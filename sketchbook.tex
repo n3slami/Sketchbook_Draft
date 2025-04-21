@@ -161,25 +161,75 @@ has appeared in the stream.
                 \draw (\j*\counterw-\counterw,-\i*\arrayh+1.5*\arrayh-\i*\arraysep+\arraysep) -- (\j*\counterw-\counterw,-\i*\arrayh+0.5*\arrayh-\i*\arraysep+\arraysep);
             }
         }
-        \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt}] (\arrayw+0.25*\arraysep,0.5*\arrayh) -- (\arrayw+0.25*\arraysep,0.5*\arrayh-\arraycount*\arrayh-\arraycount*\arraysep+\arraysep) 
-            node[pos=0.5,right=5pt,inner sep=1pt] (row_count_label) {$d$};
-        \node[inner sep=4pt] (element) at (-1.5*\counterw,1.5*\arrayh) {$e$};
-        \draw[-stealth] (element.east) -| (5.5*\counterw,0.5*\arrayh) node[pos=0.25,above=2pt,align=center,inner sep=0pt] {\small $h_1(e)$};
+        \node[inner sep=1pt,align=center] (element) at (-3.0*\counterw,1.5*\arrayh) {\small Insert/Delete $x$};
+
+        \def\pa{3.0}
+        \def\pb{1.0}
+        \def\pc{2.0}
+        \draw[-stealth] (element.east) -| (\pa*\counterw+0.5*\counterw,0.5*\arrayh) node[pos=0.225,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_1(x)$, $+1$/$-1$};
         \draw (element.east) -| (-0.75*\counterw,-1.5*\arrayh-1.7*\arraysep);
-        \draw[-stealth] (-0.75*\counterw,-0.5*\arrayh-0.7*\arraysep) -| (7.5*\counterw,-0.5*\arrayh-1.0*\arraysep) node[pos=0.25,above=2pt,align=center,inner sep=0pt] {\small $h_2(e)$};
-        \draw[-stealth] (-0.75*\counterw,-1.5*\arrayh-1.7*\arraysep) -| (2.5*\counterw,-1.5*\arrayh-2.0*\arraysep) node[pos=0.25,above=2pt,align=center,inner sep=0pt] {\small $h_3(e)$};
+        \draw[-stealth] (-0.75*\counterw,-0.5*\arrayh-0.7*\arraysep) -| (\pb*\counterw+0.5*\counterw,-0.5*\arrayh-1.0*\arraysep) node[pos=0.375,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_2(x)$, $+1$/$-1$};
+        \draw[-stealth] (-0.75*\counterw,-1.5*\arrayh-1.7*\arraysep) -| (\pc*\counterw+0.5*\counterw,-1.5*\arrayh-2.0*\arraysep) node[pos=0.265,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_3(x)$, $+1$/$-1$};
 
-        \draw[fill=gray!20] (5.0*\counterw,0.5*\arrayh) rectangle (6.0*\counterw,-0.5*\arrayh);
-        \draw[fill=gray!20] (7.0*\counterw,-0.5*\arrayh-1.0*\arraysep) rectangle (8.0*\counterw,-1.5*\arrayh-1.0*\arraysep);
-        \draw[fill=gray!20] (2.0*\counterw,-1.5*\arrayh-2.0*\arraysep) rectangle (3.0*\counterw,-2.5*\arrayh-2.0*\arraysep);
+        \node[inner sep=1pt,align=center] (query) at (\arrayw+2.0*\counterw,1.5*\arrayh) {\small Query $q$ \\[-2pt] \small Take Min};
 
-        \node[inner sep=0pt,anchor=south west,align=center] at (5.6*\counterw,0.6*\arrayh) {\footnotesize $+1$ (CMS) \\[-4pt] \footnotesize $+\sigma_1(e)$ (CS)};
-        \node[inner sep=0pt,anchor=south west,align=center] at (7.6*\counterw,-0.4*\arrayh-1.0*\arraysep) {\footnotesize $+1$ (CMS) \\[-4pt] \footnotesize $+\sigma_2(e)$ (CS)};
-        \node[inner sep=0pt,anchor=south west,align=center] at (2.6*\counterw,-1.4*\arrayh-2.0*\arraysep) {\footnotesize $+1$ (CMS) \\[-4pt] \footnotesize $+\sigma_3(e)$ (CS)};
+        \def\pa{8.0}
+        \def\pb{4.0}
+        \def\pc{7.0}
+        \draw[stealth-] (query.west) -| (\pa*\counterw+0.5*\counterw,0.5*\arrayh) node[pos=0.3,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_1(q)$};
+        \draw (query.west) -| (\arrayw+0.25*\counterw,-1.5*\arrayh-1.7*\arraysep);
+        \draw (\arrayw+0.25*\counterw,-0.5*\arrayh-0.7*\arraysep) -| (\pb*\counterw+0.5*\counterw,-0.5*\arrayh-1.0*\arraysep) node[pos=0.07,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_2(q)$};
+        \draw (\arrayw+0.25*\counterw,-1.5*\arrayh-1.7*\arraysep) -| (\pc*\counterw+0.5*\counterw,-1.5*\arrayh-2.0*\arraysep) node[pos=0.15,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_3(q)$};
 
-        \node[inner sep=0pt] at (-3.0*\counterw,0) {\textbf{A)}};
+        \draw[fill=gray!20] (\pa*\counterw,0.5*\arrayh) rectangle (\pa*\counterw+\counterw,-0.5*\arrayh);
+        \draw[fill=gray!20] (\pb*\counterw,-0.5*\arrayh-1.0*\arraysep) rectangle (\pb*\counterw+\counterw,-1.5*\arrayh-1.0*\arraysep);
+        \draw[fill=gray!20] (\pc*\counterw,-1.5*\arrayh-2.0*\arraysep) rectangle (\pc*\counterw+\counterw,-2.5*\arrayh-2.0*\arraysep);
+
+        \node[inner sep=0pt] at (-5.0*\counterw,2.75*\arrayh) {\textbf{A)}};
     \end{tikzpicture}
-    \vspace{8pt}
+    \vspace{-4pt}
+
+    \begin{tikzpicture}
+        \def\arraycount{3}
+        \def\arrayw{5}
+        \def\arrayh{0.25}
+        \def\arraylen{10}
+        \def\arraysep{0.6}
+        \def\counterw{0.5}
+
+        \foreach \i in {1, ..., \arraycount} {
+            \draw[black] (0,-\i*\arrayh+1.5*\arrayh-\i*\arraysep+\arraysep) rectangle (\arrayw,-\i*\arrayh+0.5*\arrayh-\i*\arraysep+\arraysep);
+            \foreach \j in {2, ..., \arraylen} {
+                \draw (\j*\counterw-\counterw,-\i*\arrayh+1.5*\arrayh-\i*\arraysep+\arraysep) -- (\j*\counterw-\counterw,-\i*\arrayh+0.5*\arrayh-\i*\arraysep+\arraysep);
+            }
+        }
+        \node[inner sep=1pt,align=center] (element) at (-3.0*\counterw,1.5*\arrayh) {\small Insert/Delete $x$};
+
+        \def\pa{2.0}
+        \def\pb{3.0}
+        \def\pc{1.0}
+        \draw[-stealth] (element.east) -| (\pa*\counterw+0.5*\counterw,0.5*\arrayh) node[pos=0.425,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_1(x)$, $+\sigma_1(x)$/$-\sigma_1(x)$};
+        \draw (element.east) -| (-0.75*\counterw,-1.5*\arrayh-1.7*\arraysep);
+        \draw[-stealth] (-0.75*\counterw,-0.5*\arrayh-0.7*\arraysep) -| (\pb*\counterw+0.5*\counterw,-0.5*\arrayh-1.0*\arraysep) node[pos=0.32,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_2(x)$, $+\sigma_2(x)$/$-\sigma_2(x)$};
+        \draw[-stealth] (-0.75*\counterw,-1.5*\arrayh-1.7*\arraysep) -| (\pc*\counterw+0.5*\counterw,-1.5*\arrayh-2.0*\arraysep) node[pos=0.5,above=2pt,align=center,inner sep=0pt] {\footnotesize \hspace{4.5mm} $h_3(x)$, $+\sigma_3(x)$/$-\sigma_3(x)$};
+
+        \node[inner sep=1pt,align=center] (query) at (\arrayw+2.25*\counterw,1.5*\arrayh) {\small Query $q$ \\[-2pt] \small Take Median};
+
+        \def\pa{7.0}
+        \def\pb{8.0}
+        \def\pc{6.0}
+        \draw[stealth-] (query.west) -| (\pa*\counterw+0.5*\counterw,0.5*\arrayh) node[pos=0.34,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_1(q)$, $\times \sigma_1(q)$};
+        \draw (query.west) -| (\arrayw+0.25*\counterw,-1.5*\arrayh-1.7*\arraysep);
+        \draw (\arrayw+0.25*\counterw,-0.5*\arrayh-0.7*\arraysep) -| (\pb*\counterw+0.5*\counterw,-0.5*\arrayh-1.0*\arraysep) node[pos=0.5,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_2(q)$, $\times \sigma_2(q)$};
+        \draw (\arrayw+0.25*\counterw,-1.5*\arrayh-1.7*\arraysep) -| (\pc*\counterw+0.5*\counterw,-1.5*\arrayh-2.0*\arraysep) node[pos=0.235,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_3(q)$, $\times \sigma_3(q)$};
+
+        \draw[fill=gray!20] (\pa*\counterw,0.5*\arrayh) rectangle (\pa*\counterw+\counterw,-0.5*\arrayh);
+        \draw[fill=gray!20] (\pb*\counterw,-0.5*\arrayh-1.0*\arraysep) rectangle (\pb*\counterw+\counterw,-1.5*\arrayh-1.0*\arraysep);
+        \draw[fill=gray!20] (\pc*\counterw,-1.5*\arrayh-2.0*\arraysep) rectangle (\pc*\counterw+\counterw,-2.5*\arrayh-2.0*\arraysep);
+
+        \node[inner sep=0pt] at (-5.0*\counterw,2.75*\arrayh) {\textbf{B)}};
+    \end{tikzpicture}
+    \vspace{-4pt}
 
     \begin{tikzpicture}
         \def\arrayw{5}
@@ -190,6 +240,8 @@ has appeared in the stream.
         \def\counterw{0.35}
         \def\annotationoffset{0.05}
         \def\bottomymul{2.5}
+        \def\casebracewidth{1.5}
+        \def\casebracewidthquery{0.55}
 
         \foreach \j in {1, ..., \arraylen} {
             %\draw[white,pattern=north east lines] (\j*\cellw-\counterw,0.5*\arrayh) rectangle (\j*\cellw-\cellw,-0.5*\arrayh);
@@ -201,23 +253,28 @@ has appeared in the stream.
         }
         \draw[black] (0,0.5*\arrayh) rectangle (\arrayw,-0.5*\arrayh);
 
-        \node[inner sep=4pt] (element) at (-1.5*\cellw,2.5*\arrayh) {$e$};
+        \node[inner sep=4pt] (element) at (-2.5*\cellw,2.5*\arrayh) {\small Insert $x$};
+        \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt,mirror}] ($(element.east)+(1pt,0.5*\casebracewidth)$) -- ($(element.east)+(1pt,-0.5*\casebracewidth)$);
+        \node[inner sep=0pt,anchor=west,align=center] (case_1) at ($(element.east)+(2pt,0.35*\casebracewidth)$) {\footnotesize Exists};
+        \node[inner sep=0pt,anchor=west,align=center] (case_2) at ($(element.east)+(2pt,0.03*\casebracewidth)$) {\footnotesize Does not exist, \\[-4pt] \footnotesize Empty slot};
+        \node[inner sep=0pt,anchor=west,align=center] (case_3) at ($(element.east)+(2pt,-0.35*\casebracewidth)$) {\footnotesize Does not exist, \\[-4pt] \footnotesize No empty slot};
 
-        \draw[-stealth] (element.east) -| (1.0*\cellw+\elemw+0.5*\counterw,0.5*\arrayh) node[pos=0.25,above=2pt,align=center,inner sep=0pt] {\small Exists};
-        \node[inner sep=0pt,anchor=south west] at (1.0*\cellw+\elemw+0.5*\counterw+\annotationoffset,0.65*\arrayh) {\footnotesize $+1$};
-
-        \draw[-stealth] (element.east) -| (\arraylen*\cellw-0.5*\cellw,1.2*\arrayh) node[pos=0.4,above=0pt,align=center,inner sep=0pt] {\small Does not exist, \\[-4pt] \small empty slot};
-        \node[inner sep=0pt,anchor=south west] at (\arraylen*\cellw-0.5*\cellw+2*\annotationoffset,1.2*\arrayh) {\footnotesize Store};
-
+        \draw[-stealth] (case_1.east) -| (1.0*\cellw+\elemw+0.5*\counterw,0.5*\arrayh) node[pos=0.25,above=2pt,align=center,inner sep=0pt] {\footnotesize $+1$};
+        \draw[-stealth] (case_2.east) -| (\arraylen*\cellw-0.5*\cellw,1.2*\arrayh) node[pos=0.1,above=1pt,align=center,inner sep=0pt] {\footnotesize Store $(x,1)$};
         \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt}] (\arraylen*\cellw-\cellw,0.65*\arrayh) -- (\arraylen*\cellw,0.65*\arrayh);
-        \draw (element.east) -| (-0.75*\cellw,-\bottomymul*\arrayh);
-        \draw (-0.75*\cellw,-\bottomymul*\arrayh) -- (\arraylen*\cellw-0.5*\counterw,-\bottomymul*\arrayh) node[pos=0.5,below=2pt,align=center,inner sep=0pt] {\small Does not exist, \\[-4pt] \small no empty slot};
+        \draw (case_3.east) -| (-0.25*\cellw,-\bottomymul*\arrayh);
+        \draw (-0.25*\cellw,-\bottomymul*\arrayh) -- (\arraylen*\cellw-0.5*\counterw,-\bottomymul*\arrayh) node[pos=0.1,below=2pt,align=center,inner sep=0pt] {\footnotesize $-1$};
         \foreach \j in {1, ..., \arraylen} {
             \draw[-stealth] (\j*\cellw-0.5*\counterw,-\bottomymul*\arrayh) -- (\j*\cellw-0.5*\counterw,-0.5*\arrayh);
-            \node[inner sep=0pt,anchor=north west] at (\j*\cellw-0.5*\counterw+\annotationoffset,-0.65*\arrayh) {\footnotesize $-1$};
         }
 
-        \node[inner sep=0pt] at (-1.8*\cellw,0) {\textbf{B)}};
+        \node[inner sep=4pt] (query) at (\arrayw+0.75*\cellw,4.25*\arrayh) {\small Query $q$};
+        \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt}] ($(query.west)+(-1pt,0.5*\casebracewidthquery)$) -- ($(query.west)+(-1pt,-0.5*\casebracewidthquery)$);
+        \node[inner sep=0pt,anchor=east,align=center] (case_1) at ($(query.west)+(-2pt,0.3*\casebracewidthquery)$) {\footnotesize Exists};
+        \node[inner sep=0pt,anchor=east,align=center] (case_2) at ($(query.west)+(-2pt,-0.3*\casebracewidthquery)$) {\footnotesize Otherwise, 0};
+        \draw[stealth-] (case_1.west) -| (2.0*\cellw+\elemw+0.5*\counterw,0.5*\arrayh);
+
+        \node[inner sep=0pt] at (-3.0*\cellw,4.0*\arrayh) {\textbf{C)}};
     \end{tikzpicture}
     \caption{welp}
     \vspace{-3mm}
