@@ -1589,3 +1589,394 @@
     url={https://doi.org/10.1007/978-0-387-39940-9_370}
 }
 
+@article{CMSkmer,
+    title={These are not the k-mers you are looking for: efficient online k-mer
+        counting using a probabilistic data structure},
+    author={Zhang, Qingpeng and Pell, Jason and Canino-Koning, Rosangela and
+        Howe, Adina Chuang and Brown, C Titus},
+    journal={PloS one},
+    volume={9},
+    number={7},
+    pages={e101271},
+    year={2014},
+    publisher={Public Library of Science San Francisco, USA}
+}
+
+@article{SetMinSketch,
+	author={Shibuya, Yoshihiro and Belazzougui, Djamal and Kucherov, Gregory},
+    title={Set-Min sketch: a probabilistic map for power-law distributions with
+        application to k-mer annotation},
+	elocation-id={2020.11.14.382713},
+	year={2021},
+	doi={10.1101/2020.11.14.382713},
+    publisher={Cold Spring Harbor Laboratory},
+	abstract={Motivation In many bioinformatics pipelines, k-mer counting is 
+        often a required step, with existing methods focusing on optimizing 
+            time or memory usage. These methods usually produce very large 
+            count tables explicitly representing k-mers themselves. Solutions 
+            avoiding explicit representation of k-mers include Minimal Perfect 
+            Hash Functions (MPHFs) or Count-Min sketches. The former is only
+            applicable to static maps not subject to updates, while the latter
+            suffers from potentially very large point-query errors, making it 
+            unsuitable when counters are required to be highly accurate. 
+            Results We introduce Set-Min sketch {\textendash} a sketching 
+            technique for representing associative maps inspired by Count-Min 
+            sketch {\textendash} and apply it to the problem of representing 
+            k-mer count tables. Set-Min is provably more accurate than both 
+            Count-Min and Max-Min {\textendash} an improved variant of 
+            Count-Min for static datasets that we define here. We show that 
+            Set-Min sketch provides a very low error rate, both in terms of the 
+            probability and the size of errors, at the expense of a very 
+            moderate memory increase. On the other hand, Set-Min sketches are 
+            shown to take up to an order of magnitude less space than 
+            MPHF-based solutions, especially for large values of k. 
+            Space-efficiency of Set-Min takes advantage of the power-law 
+            distribution of k-mer counts in genomic datasets. Availability
+            https://github.com/yhhshb/fressCompeting 
+            Interest Statement: The authors have declared no competing
+            interest.},
+	URL={https://www.biorxiv.org/content/early/2021/02/25/2020.11.14.382713},
+	eprint={https://www.biorxiv.org/content/early/2021/02/25/2020.11.14.382713.full.pdf},
+	journal={bioRxiv}
+}
+
+@inproceedings{SketchBasedChangeDetection,
+    author={Krishnamurthy, Balachander and Sen, Subhabrata and Zhang, Yin and
+        Chen, Yan},
+    title={Sketch-based change detection: methods, evaluation, and applications},
+    year={2003},
+    isbn={1581137737},
+    publisher={Association for Computing Machinery},
+    address={New York, NY, USA},
+    url={https://doi.org/10.1145/948205.948236},
+    doi={10.1145/948205.948236},
+    abstract={Traffic anomalies such as failures and attacks are commonplace in
+        today's network, and identifying them rapidly and accurately is
+            critical for large network operators. The detection typically
+            treats the traffic as a collection of flows that need to be
+            examined for significant changes in traffic pattern (eg, volume,
+                    number of connections). However, as link speeds and the
+            number of flows increase, keeping per-flow state is either too
+            expensive or too slow. We propose building compact summaries of the
+            traffic data using the notion of sketches. We have designed a
+            variant of the sketch data structure, k-ary sketch, which uses a
+            constant, small amount of memory, and has constant per-record
+            update and reconstruction cost. Its linearity property enables us
+            to summarize traffic at various levels. We then implement a variety
+            of time series forecast models (ARIMA, Holt-Winters, etc.) on top
+            of such summaries and detect significant changes by looking for
+            flows with large forecast errors. We also present heuristics for
+            automatically configuring the model parameters.Using a large amount
+            of real Internet traffic data from an operational tier-1 ISP, we
+            demonstrate that our sketch-based change detection method is highly
+            accurate, and can be implemented at low computation and memory
+            costs. Our preliminary results are promising and hint at the
+            possibility of using our method as a building block for network
+            anomaly detection and traffic measurement.},
+    booktitle={Proceedings of the 3rd ACM SIGCOMM Conference on Internet Measurement},
+    pages={234–247},
+    numpages={14},
+    keywords={time series analysis, sketch, network anomaly detection,
+        forecasting, data stream computation, change detection},
+    location={Miami Beach, FL, USA},
+    series={IMC '03}
+}
+
+@ARTICLE{WhatsNew,
+    author={Cormode, G. and Muthukrishnan, S.},
+    journal={IEEE/ACM Transactions on Networking}, 
+    title={What's new: finding significant differences in network data streams}, 
+    year={2005},
+    volume={13},
+    number={6},
+    pages={1219-1232},
+    keywords={Intelligent networks;Telecommunication traffic;IP
+        networks;Pattern analysis;Data analysis;Monitoring;Information
+            analysis;Information management;Performance evaluation;Systems
+            engineering and theory;Change detection;data
+            streams;deltoids;network data analysis},
+    doi={10.1109/TNET.2005.860096}
+}
+
+@inproceedings{TrafficManagementSurvey,
+    title={A survey of sketches in traffic measurement: Design, Optimization,
+        Application and Implementation},
+    author={Shangsen Li and Lailong Luo and Deke Guo and Qianzhen Zhang and
+        Pengtao Fu},
+    year={2020},
+    url={https://api.semanticscholar.org/CorpusID:236140679}
+} 
+
+@inproceedings{CoMeT,
+    author={Bostanci, F. and Yüksel, ISmail and Olgun, Ataberk and
+        Kanellopoulos, Konstantinos and Tuğrul, Yahya and Yaglikçi, Abdullah
+            Giray and Sadrosadati, Mohammad and Mutlu, Onur},
+    year={2024},
+    month={03},
+    pages={593-612},
+    title={CoMeT: Count-Min-Sketch-based Row Tracking to Mitigate RowHammer at
+        Low Cost},
+    doi={10.1109/HPCA57654.2024.00050}
+}
+
+@InProceedings{MISSION,
+    title={{MISSION}: Ultra Large-Scale Feature Selection using Count-Sketches},
+    author={Aghazadeh, Amirali and Spring, Ryan and Lejeune, Daniel and
+        Dasarathy, Gautam and Shrivastava, Anshumali and richard baraniuk},
+    booktitle={Proceedings of the 35th International Conference on Machine Learning},
+    pages={80--88},
+    year={2018},
+    editor={Dy, Jennifer and Krause, Andreas},
+    volume={80},
+    series={Proceedings of Machine Learning Research},
+    month={10--15 Jul},
+    publisher={PMLR},
+    pdf={http://proceedings.mlr.press/v80/aghazadeh18a/aghazadeh18a.pdf},
+    url={https://proceedings.mlr.press/v80/aghazadeh18a.html},
+    abstract={Feature selection is an important challenge in machine learning.
+        It plays a crucial role in the explainability of machine-driven
+            decisions that are rapidly permeating throughout modern society.
+            Unfortunately, the explosion in the size and dimensionality of
+            real-world datasets poses a severe challenge to standard feature
+            selection algorithms. Today, it is not uncommon for datasets to
+            have billions of dimensions. At such scale, even storing the
+            feature vector is impossible, causing most existing feature
+            selection methods to fail. Workarounds like feature hashing, a
+            standard approach to large-scale machine learning, helps with the
+            computational feasibility, but at the cost of losing the
+            interpretability of features. In this paper, we present MISSION, a
+            novel framework for ultra large-scale feature selection that
+            performs stochastic gradient descent while maintaining an efficient
+            representation of the features in memory using a Count-Sketch data
+            structure. MISSION retains the simplicity of feature hashing
+            without sacrificing the interpretability of the features while
+            using only O(log^2(p)) working memory. We demonstrate that MISSION
+            accurately and efficiently performs feature selection on
+            real-world, large-scale datasets with billions of dimensions.}
+}
+
+@inproceedings{ASCS,
+    author={Dai, Zhenwei and Desai, Aditya and Heckel, Reinhard and
+        Shrivastava, Anshumali},
+    title={Active Sampling Count Sketch (ASCS) for Online Sparse Estimation of
+        a Trillion Scale Covariance Matrix},
+    year={2021},
+    isbn={9781450383431},
+    publisher={Association for Computing Machinery},
+    address={New York, NY, USA},
+    url={https://doi.org/10.1145/3448016.3457327},
+    doi={10.1145/3448016.3457327},
+    abstract={Estimating and storing the covariance (or correlation) matrix of
+        high-dimensional data is computationally challenging because both
+            memory and computational requirements scale quadratically with the
+            dimension. Fortunately, high-dimensional covariance matrices as
+            observed in text, click-through, meta-genomics datasets, etc are
+            often sparse. In this paper, we consider the problem of efficient
+            sparse estimation of covariance matrices with possibly trillions of
+            entries. The size of the datasets we target requires the algorithm
+            to be online, as more than one pass over the data is prohibitive.
+            In this paper, we propose Active Sampling Count Sketch (ASCS), an
+            online and one-pass sketching algorithm, that recovers the large
+            entries of the covariance matrix accurately. Count Sketch (CS), and
+            other sub-linear compressed sensing algorithms, offer a natural
+            solution to the problem in theory. However, vanilla CS does not
+            work well in practice due to a low signal-to-noise ratio (SNR). At
+            the heart of our approach is a novel active sampling strategy that
+            increases the SNR of classical CS. We demonstrate the practicality
+            of our algorithm with synthetic data and real-world high
+            dimensional datasets. ASCS significantly improves over vanilla CS,
+        demonstrating the merit of our active sampling strategy.},
+    booktitle={Proceedings of the 2021 International Conference on Management
+        of Data},
+    pages={352–364},
+    numpages={13},
+    keywords={active sampling, count sketch, covariance matrix estimation},
+    location={Virtual Event, China},
+    series={SIGMOD '21}
+}
+
+@inproceedings{CSSetSimSearch,
+    author={Wang, Pinghui and Qi, Yiyan and Zhang, Yuanming and Zhai, Qiaozhu
+        and Wang, Chenxu and Lui, John C.S. and Guan, Xiaohong},
+    title={A Memory-Efficient Sketch Method for Estimating High Similarities in
+        Streaming Sets},
+    year={2019},
+    isbn={9781450362016},
+    publisher={Association for Computing Machinery},
+    address={New York, NY, USA},
+    url={https://doi.org/10.1145/3292500.3330825},
+    doi={10.1145/3292500.3330825},
+    abstract={Estimating set similarity and detecting highly similar sets are
+        fundamental problems in areas such as databases, machine learning, and
+            information retrieval. MinHash is a well-known technique for
+            approximating Jaccard similarity of sets and has been successfully
+            used for many applications such as similarity search and large
+            scale learning. Its two compressed versions, b-bit MinHash and Odd
+            Sketch, can significantly reduce the memory usage of the original
+            MinHash method, especially for estimating high similarities (i.e.,
+                    similarities around 1). Although MinHash can be applied to
+            static sets as well as streaming sets, of which elements are given
+            in a streaming fashion and cardinality is unknown or even infinite,
+        unfortunately, b-bit MinHash and Odd Sketch fail to deal with streaming
+            data. To solve this problem, we design a memory efficient sketch
+            method, MaxLogHash, to accurately estimate Jaccard similarities in
+            streaming sets. Compared to MinHash, our method uses smaller sized
+            registers (each register consists of less than 7 bits) to build a
+            compact sketch for each set. We also provide a simple yet accurate
+            estimator for inferring Jaccard similarity from MaxLogHash
+            sketches. In addition, we derive formulas for bounding the
+            estimation error and determine the smallest necessary memory usage
+            (i.e., the number of registers used for a MaxLogHash sketch) for
+            the desired accuracy. We conduct experiments on a variety of
+            datasets, and experimental results show that our method MaxLogHash
+            is about 5 times more memory efficient than MinHash with the same
+            accuracy and computational cost for estimating high similarities.},
+    booktitle={Proceedings of the 25th ACM SIGKDD International Conference on
+        Knowledge Discovery \& Data Mining},
+    pages={25–33},
+    numpages={9},
+    keywords={Jaccard coefficient similarity, sketch, streaming algorithms},
+    location={Anchorage, AK, USA},
+    series={KDD '19}
+}
+
+@inproceedings{DensifyingLSHSketches,
+    author={Jia, Peng and Wang, Pinghui and Zhao, Junzhou and Zhang, Shuo and
+        Qi, Yiyan and Hu, Min and Deng, Chao and Guan, Xiaohong},
+    title={Bidirectionally Densifying LSH Sketches with Empty Bins},
+    year={2021},
+    isbn={9781450383431},
+    publisher={Association for Computing Machinery},
+    address={New York, NY, USA},
+    url={https://doi.org/10.1145/3448016.3452833},
+    doi={10.1145/3448016.3452833},
+    abstract={As an efficient tool for approximate similarity computation and
+        search, Locality Sensitive Hashing (LSH) has been widely used in many
+            research areas including databases, data mining, information
+            retrieval, and machine learning. Classical LSH methods typically
+            require to perform hundreds or even thousands of hashing operations
+            when computing the LSH sketch for each input item (e.g., a set or a
+                    vector); however, this complexity is still too expensive
+            and even impractical for applications requiring processing data in
+            real-time. To address this issue, several fast methods such as OPH
+            and BCWS have been proposed to efficiently compute the LSH
+            sketches; however, these methods may generate many sketches with
+            empty bins, which may introduce large errors for similarity
+            estimation and also limit their usage for fast similarity search.
+            To solve this issue, we propose a novel densification method, i.e.,
+        BiDens. Compared with existing densification methods, our BiDens is
+            more efficient to fill a sketch's empty bins with values of its
+            non-empty bins in either the forward or backward directions.
+            Furthermore, it also densifies empty bins to satisfy the
+            densification principle (i.e., the LSH property). Theoretical
+            analysis and experimental results on similarity estimation, fast
+            similarity search, and kernel linearization using real-world
+            datasets demonstrate that our BiDens is up to 106 times faster than
+            state-of-the-art methods while achieving the same or even better
+            accuracy.},
+    booktitle={Proceedings of the 2021 International Conference on Management of Data},
+    pages={830–842},
+    numpages={13},
+    keywords={sketch, similarity, locality similarity hashing},
+    location={Virtual Event, China},
+    series={SIGMOD '21}
+}
+
+@article{LasVegasSimSearch,
+    author={Wei, Alexander},
+    title={Optimal Las Vegas Approximate Near Neighbors in $\ell_p$},
+    year={2022},
+    issue_date={January 2022},
+    publisher={Association for Computing Machinery},
+    address={New York, NY, USA},
+    volume={18},
+    number={1},
+    issn={1549-6325},
+    url={https://doi.org/10.1145/3461777},
+    doi={10.1145/3461777},
+    abstract={We show that approximate near neighbor search in high dimensions
+        can be solved in a Las Vegas fashion (i.e., without false negatives)
+            for $\ell_p ($1 \leq p \leq 2$) while matching the performance of
+                optimal locality-sensitive hashing. Specifically, we construct
+                    a data-independent Las Vegas data structure with query time
+                    $O(dn^\rho)$ and space usage $O(dn^{1+\rho})$ for
+                    $(r,cr)$-approximate near neighbors in $\mathbb{R}^d$ under
+                    the $\ell_p$ norm, where $\rho=1/{c^p}+o(1)$. Furthermore,
+                        we give a Las Vegas locality-sensitive filter
+                            construction for the unit sphere that can be used
+                            with the data-dependent data structure of Andoni
+                            et&nbsp;al. (SODA 2017) to achieve optimal
+                            space-time tradeoffs in the data-dependent setting.
+                            For the symmetric case, this gives us a
+                            data-dependent Las Vegas data structure with query
+                            time $O(dn^\rho)$ and space usage $O(dn^{1+\rho})$
+                            for $(r,cr)$-approximate near neighbors in Rd under
+                                the $\ell_p$ norm, where
+                                    $\rho=1/(2c^p-1)+o(1)$. Our
+                                    data-independent construction improves on
+                                    the recent Las Vegas data structure of Ahle
+                                    (FOCS 2017) for $\ell_p$ when $1 < p \leq
+                                    2$. Our data-dependent construction
+                                    performs even better for $\ell_p$ for all
+                                    $p \in [1, 2]$ and is the first Las Vegas
+                                    approximate near neighbors data structure
+                                    to make use of data-dependent approaches.
+                                    We also answer open questions of Indyk
+                                    (SODA 2000), Pagh (SODA 2016), and Ahle by
+                                    showing that for approximate near
+                                    neighbors, Las Vegas data structures can
+                                    match state-of-the-art Monte Carlo data
+                                    structures in performance for both the
+                                    data-independent and data-dependent
+                                    settings and across space-time tradeoffs.},
+    journal={ACM Trans. Algorithms},
+    month=jan,
+    articleno={7},
+    numpages={27},
+    keywords={recall, similarity search, locality-sensitive hashing,
+        Approximate near neighbor search}
+}
+
+@inproceedings{RandomizedRowSwap,
+    author={Saileshwar, Gururaj and Wang, Bolin and Qureshi, Moinuddin and
+        Nair, Prashant J.},
+    title={Randomized row-swap: mitigating Row Hammer by breaking spatial
+        correlation between aggressor and victim rows},
+    year={2022},
+    isbn={9781450392051},
+    publisher={Association for Computing Machinery},
+    address={New York, NY, USA},
+    url={https://doi.org/10.1145/3503222.3507716},
+    doi={10.1145/3503222.3507716},
+    abstract={Row Hammer is a fault-injection attack in which rapid activations
+        to a single DRAM row causes bit-flips in nearby rows. Several recent
+            defenses propose tracking aggressor-rows and applying mitigating
+            action on neighboring victim rows by refreshing them. However, all
+            such proposals using victim-focused mitigation preserve the spatial
+            connection between victim and aggressor rows. Therefore, these
+            proposals are susceptible to access patterns causing bit-flips in
+            rows beyond the immediate neighbor. For example, the Half-Double
+            attack causes bit-flips in the presence of victim-focused
+            mitigation.  We propose Randomized Row-Swap (RRS), a novel
+            mitigation action that breaks the spatial connection between the
+            aggressor and victim DRAM rows. This enables RRS to provide robust
+            defense against even complex Row Hammer access patterns. RRS is an
+            aggressor-focused mitigation that periodically swaps aggressor-rows
+            with other randomly selected rows in memory. This limits the
+            possible damage in any one locality within the DRAM memory. While
+            RRS can be used with any tracking mechanism, we implement it with a
+            Misra-Gries tracker and target a Row Hammer Threshold of 4.8K
+            activations (similar to the state-of-the-art attacks). Our
+            evaluations show that RRS has negligible slowdown (0.4\% on
+                    average) and provides strong security guarantees for
+            avoiding Row Hammer bit flips even under several years of
+            continuous attack.},
+    booktitle={Proceedings of the 27th ACM International Conference on
+        Architectural Support for Programming Languages and Operating Systems},
+    pages={1056–1069},
+    numpages={14},
+    keywords={Asynchronous Protocols, Covert-channel Attacks, Shared Caches},
+    location={Lausanne, Switzerland},
+    series={ASPLOS '22}
+}
+
