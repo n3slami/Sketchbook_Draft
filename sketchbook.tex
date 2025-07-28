@@ -128,22 +128,64 @@ The source code, data, and/or other artifacts have been made available at
 \section{Introduction}~\label{sec:introduction}
 
 \section{Background}~\label{sec:background}
-We describe the classical Count-Min Sketch~\cite{CountMin}, Count
-Sketch~\cite{CountSketch}, and Misra-Gries~\cite{MisraGries} data structures,
-which form the basis upon which most other sketches are designed. These data
-structures handle skew at varying levels of efficacy, making each suitable for
-different contexts and workloads.
+A na\"ive approach to tracking the frequency of elements in a stream is to
+store each element and its count in a hash table. While accurate, this
+solution's memory overhead is prohibitive, as it stores all elements in the
+dataset, using linear memory, and each of its counters must be large enough to
+accommodate the maximum count, which is often unnecessary. This overhead is
+exacerbated if the elements are variable-length strings (due to needing to
+store pointers) and if the sketch must monitor multiple streams. The classical
+Count-Min Sketch~\cite{CountMin}, Count Sketch~\cite{CountSketch}, and
+Misra-Gries~\cite{MisraGries} data structures overcome this issue by trading
+accuracy for space. They also form the basis upon which most other sketches are
+designed. These data structures handle skew at varying levels of efficacy.
+
+\begin{table}
+    \centering
+    \caption{Definitions of terms and symbols.}
+    \bgroup
+    \def\arraystretch{1.025}
+    \small
+    \begin{tabular}{cc}
+        \toprule
+        \textbf{Symbol} & \textbf{Definition} \\
+        \midrule
+        $N$ & Stream length. \\
+        $x, y$ & Example elements from the stream. \\
+        $f(x)$ & The ground-truth frequency of element~$x$. \\
+        $\hat{f}(x)$ & The estimated frequency of element~$x$. \\
+        $w$ & Number of counters/slots. \\
+        $d$ & Number of experiment repititions. \\
+        $h_i(x)$ & Hash function mapping element~$x$ to a counter. \\
+        $\sigma_i(x)$ & Hash function defining element~$x$'s update direction ($\pm 1$). \\
+        $N^{\text{res}(i)}$ & Stream length, excluding the the~$i$ hottest elements. \\
+        \cmidrule{1-2}
+        AAE & Average Absolute Error, i.e., $\text{avg}_x|f(x) - \hat{f}(x)|$. \\
+        ARE & Average Relative Error, i.e., $\text{avg}_x\frac{|f(x) - \hat{f}(x)|}{f(x)}$. \\
+        %\makecell[c]{Top-$w$ \\[-2pt] AAE} & Average Absolute Error among the~$w$ hottest items. \\
+        \bottomrule
+    \end{tabular}
+    \egroup
+    \label{tab:term_and_symbol_definitions}
+\end{table}
 
 \textbf{Stream Model.}
-A data stream is a sequence of item and update operation pairs~$\left\langle
-(x_1,\Delta_1), (x_2,\Delta_2), \dots, \right\rangle$, where each~$x_i$ is an
-item, and~$\Delta_i = \pm1$ represents whether a new~$x_i$ was inserted into
-the stream ($\Delta_i=1$) or an old one was deleted ($\Delta_i=-1$). This is
+In some applications, such as tracking click-through rates in webpages,
+elements (clicks) are only inserted. In others, such as maintaining frequency
+estimates for SQL table entries for use in a query optimizer, elements (rows)
+can also be deleted. We model both types of streams as a sequence of element
+and update operation pairs~$\left\langle (x_1,\Delta_1), (x_2,\Delta_2), \dots,
+\right\rangle$, where each~$x_i$ is an element and~$\Delta_i = \pm1$ represents
+whether it was inserted ($\Delta_i=1$) or deleted ($\Delta_i=-1$). This is
 known as the \emph{General Turnstile Model} of data
-streams~\cite{StreamModels}. At any point, $N=\sum_i \Delta_i$ represents the
-total number of items in the stream. Given a data stream, a frequency
-estimation sketch provides an estimate~$\hat{f}(x)$ of the number of
-times~$f(x)$ an item~$x$ has appeared in the stream.
+streams~\cite{StreamModels}. Supporting deletes appears to be more challenging
+than supporting only inserts, since some sketch designs fail to do
+so~\cite{MisraGries,BatchUpdateMisraGries}. At any point, $N=\sum_i \Delta_i$
+represents the total number of elements in the stream. Given a data stream, for
+any element~$x$, a frequency estimation sketch provides an
+estimate~$\hat{f}(x)$ of the number of times~$f(x)$ it has appeared in the
+stream. \Cref{tab:term_and_symbol_definitions} lists the terms and symbols used
+throughout the paper.
 
 \begin{figure}
     \centering
@@ -161,25 +203,25 @@ times~$f(x)$ an item~$x$ has appeared in the stream.
                 \draw (\j*\counterw-\counterw,-\i*\arrayh+1.5*\arrayh-\i*\arraysep+\arraysep) -- (\j*\counterw-\counterw,-\i*\arrayh+0.5*\arrayh-\i*\arraysep+\arraysep);
             }
         }
-        \node[inner sep=1pt,align=center] (element) at (-3.0*\counterw,1.5*\arrayh) {\small Insert $x$};
+        \node[inner sep=1pt,align=center] (element) at (-1.85*\counterw,1.5*\arrayh) {\small Insert $x$};
 
         \def\pa{3.0}
         \def\pb{1.0}
         \def\pc{2.0}
-        \draw[-stealth] (element.east) -| (\pa*\counterw+0.5*\counterw,0.5*\arrayh) node[pos=0.225,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_1(x)$, $+1$};
-        \draw (element.east) -| (-0.75*\counterw,-1.5*\arrayh-1.7*\arraysep);
-        \draw[-stealth] (-0.75*\counterw,-0.5*\arrayh-0.7*\arraysep) -| (\pb*\counterw+0.5*\counterw,-0.5*\arrayh-1.0*\arraysep) node[pos=0.275,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_2(x)$, $+1$};
-        \draw[-stealth] (-0.75*\counterw,-1.5*\arrayh-1.7*\arraysep) -| (\pc*\counterw+0.5*\counterw,-1.5*\arrayh-2.0*\arraysep) node[pos=0.195,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_3(x)$, $+1$};
+        \draw[-stealth] (element.east) -| (\pa*\counterw+0.5*\counterw,0.5*\arrayh) node[pos=0.16,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_1(x)$, $+1$};
+        \draw (element.east) -| (-0.6*\counterw,-1.5*\arrayh-1.7*\arraysep);
+        \draw[-stealth] (-0.6*\counterw,-0.5*\arrayh-0.7*\arraysep) -| (\pb*\counterw+0.5*\counterw,-0.5*\arrayh-1.0*\arraysep) node[pos=0.275,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_2(x)$, $+1$};
+        \draw[-stealth] (-0.6*\counterw,-1.5*\arrayh-1.7*\arraysep) -| (\pc*\counterw+0.5*\counterw,-1.5*\arrayh-2.0*\arraysep) node[pos=0.185,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_3(x)$, $+1$};
 
-        \node[inner sep=1pt,align=center] (query) at (\arrayw+2.0*\counterw,1.5*\arrayh) {\small Query $q$ \\[-2pt] \small Min $=1$};
+        \node[inner sep=1pt,align=center] (query) at (\arrayw+2.5*\counterw,1.5*\arrayh) {\small Query $q$ \\[-2pt] \small Min $=1$};
 
         \def\pa{8.0}
         \def\pb{4.0}
         \def\pc{7.0}
-        \draw[stealth-] (query.west) -| (\pa*\counterw+0.5*\counterw,0.5*\arrayh) node[pos=0.3,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_1(q)$};
+        \draw[stealth-] (query.west) -| (\pa*\counterw+0.5*\counterw,0.5*\arrayh) node[pos=0.325,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_1(q)$};
         \draw (query.west) -| (\arrayw+0.25*\counterw,-1.5*\arrayh-1.7*\arraysep);
-        \draw (\arrayw+0.25*\counterw,-0.5*\arrayh-0.7*\arraysep) -| (\pb*\counterw+0.5*\counterw,-0.5*\arrayh-1.0*\arraysep) node[pos=0.07,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_2(q)$};
-        \draw (\arrayw+0.25*\counterw,-1.5*\arrayh-1.7*\arraysep) -| (\pc*\counterw+0.5*\counterw,-1.5*\arrayh-2.0*\arraysep) node[pos=0.15,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_3(q)$};
+        \draw (\arrayw+0.25*\counterw,-0.5*\arrayh-0.7*\arraysep) -| (\pb*\counterw+0.5*\counterw,-0.5*\arrayh-1.0*\arraysep) node[pos=0.068,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_2(q)$};
+        \draw (\arrayw+0.25*\counterw,-1.5*\arrayh-1.7*\arraysep) -| (\pc*\counterw+0.5*\counterw,-1.5*\arrayh-2.0*\arraysep) node[pos=0.148,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_3(q)$};
 
         \draw[fill=gray!20] (\pa*\counterw,0.5*\arrayh) rectangle (\pa*\counterw+\counterw,-0.5*\arrayh);
         \draw[fill=gray!20] (\pb*\counterw,-0.5*\arrayh-1.0*\arraysep) rectangle (\pb*\counterw+\counterw,-1.5*\arrayh-1.0*\arraysep);
@@ -188,9 +230,9 @@ times~$f(x)$ an item~$x$ has appeared in the stream.
         \node[inner sep=0pt] at (\pb*\counterw+0.5*\counterw,-1.0*\arrayh-1.0*\arraysep) {\footnotesize $4$};
         \node[inner sep=0pt] at (\pc*\counterw+0.5*\counterw,-2.0*\arrayh-2.0*\arraysep) {\footnotesize $1$};
 
-        \node[inner sep=0pt,anchor=west] at (-5.0*\counterw,2.75*\arrayh) {\textbf{A) CMS}};
+        \node[inner sep=0pt,anchor=west] at (-3.05*\counterw,3.0*\arrayh) {\textbf{A) CMS}};
     \end{tikzpicture}
-    \vspace{-4pt}
+    \vspace{8pt}
 
     \begin{tikzpicture}
         \def\arraycount{3}
@@ -206,17 +248,17 @@ times~$f(x)$ an item~$x$ has appeared in the stream.
                 \draw (\j*\counterw-\counterw,-\i*\arrayh+1.5*\arrayh-\i*\arraysep+\arraysep) -- (\j*\counterw-\counterw,-\i*\arrayh+0.5*\arrayh-\i*\arraysep+\arraysep);
             }
         }
-        \node[inner sep=1pt,align=center] (element) at (-3.0*\counterw,1.5*\arrayh) {\small Insert $x$};
+        \node[inner sep=1pt,align=center] (element) at (-1.85*\counterw,1.5*\arrayh) {\small Insert $x$};
 
         \def\pa{2.0}
         \def\pb{3.0}
         \def\pc{1.0}
-        \draw[-stealth] (element.east) -| (\pa*\counterw+0.5*\counterw,0.5*\arrayh) node[pos=0.335,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_1(x)$, $+\sigma_1(x)$};
-        \draw (element.east) -| (-0.75*\counterw,-1.5*\arrayh-1.7*\arraysep);
-        \draw[-stealth] (-0.75*\counterw,-0.5*\arrayh-0.7*\arraysep) -| (\pb*\counterw+0.5*\counterw,-0.5*\arrayh-1.0*\arraysep) node[pos=0.21,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_2(x)$, $+\sigma_2(x)$};
-        \draw[-stealth] (-0.75*\counterw,-1.5*\arrayh-1.7*\arraysep) -| (\pc*\counterw+0.5*\counterw,-1.5*\arrayh-2.0*\arraysep) node[pos=0.3,above=2pt,align=center,inner sep=0pt] {\footnotesize \hspace{4.5mm} $h_3(x)$, $+\sigma_3(x)$};
+        \draw[-stealth] (element.east) -| (\pa*\counterw+0.5*\counterw,0.5*\arrayh) node[pos=0.275,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_1(x)$, $+\sigma_1(x)$};
+        \draw (element.east) -| (-0.6*\counterw,-1.5*\arrayh-1.7*\arraysep);
+        \draw[-stealth] (-0.6*\counterw,-0.5*\arrayh-0.7*\arraysep) -| (\pb*\counterw+0.5*\counterw,-0.5*\arrayh-1.0*\arraysep) node[pos=0.19,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_2(x)$, $+\sigma_2(x)$};
+        \draw[-stealth] (-0.6*\counterw,-1.5*\arrayh-1.7*\arraysep) -| (\pc*\counterw+0.5*\counterw,-1.5*\arrayh-2.0*\arraysep) node[pos=0.26,above=2pt,align=center,inner sep=0pt] {\footnotesize \hspace{4.5mm} $h_3(x)$, $+\sigma_3(x)$};
 
-        \node[inner sep=1pt,align=center] (query) at (\arrayw+2.25*\counterw,1.5*\arrayh) {\small Query $q$ \\[-2pt] \small Median $=2$};
+        \node[inner sep=1pt,align=center] (query) at (\arrayw+2.3*\counterw,1.5*\arrayh) {\small Query $q$ \\[-2pt] \small Median $=2$};
 
         \def\pa{7.0}
         \def\pb{8.0}
@@ -233,17 +275,17 @@ times~$f(x)$ an item~$x$ has appeared in the stream.
         \node[inner sep=0pt] at (\pb*\counterw+0.5*\counterw,-1.0*\arrayh-1.0*\arraysep) {\footnotesize $9$};
         \node[inner sep=0pt] at (\pc*\counterw+0.5*\counterw,-2.0*\arrayh-2.0*\arraysep) {\footnotesize $-4$};
 
-        \node[inner sep=0pt,anchor=west] at (-5.0*\counterw,2.75*\arrayh) {\textbf{B) CS}};
+        \node[inner sep=0pt,anchor=west] at (-3.1*\counterw,3.0*\arrayh) {\textbf{B) CS}};
     \end{tikzpicture}
-    \vspace{-4pt}
+    \vspace{8pt}
 
     \begin{tikzpicture}
-        \def\arrayw{5}
+        \def\arrayw{4.75}
         \def\arrayh{0.25}
         \def\arraylen{5}
-        \def\cellw{1.0}
+        \def\cellw{0.95}
         \def\elemw{0.65}
-        \def\counterw{0.35}
+        \def\counterw{0.30}
         \def\annotationoffset{0.05}
         \def\bottomymul{2.5}
         \def\casebracewidth{1.5}
@@ -268,13 +310,13 @@ times~$f(x)$ an item~$x$ has appeared in the stream.
         \draw[-stealth] (case_1.east) -| (1.0*\cellw+\elemw+0.5*\counterw,0.5*\arrayh) node[pos=0.25,above=2pt,align=center,inner sep=0pt] {\footnotesize $+1$};
         \draw[-stealth] (case_2.east) -| (\arraylen*\cellw-0.5*\cellw,1.2*\arrayh) node[pos=0.1,above=1pt,align=center,inner sep=0pt] {\footnotesize Store $(x,1)$};
         \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt}] (\arraylen*\cellw-\cellw,0.65*\arrayh) -- (\arraylen*\cellw,0.65*\arrayh);
-        \draw (case_3.east) -| (-0.25*\cellw,-\bottomymul*\arrayh);
-        \draw (-0.25*\cellw,-\bottomymul*\arrayh) -- (\arraylen*\cellw-0.5*\counterw,-\bottomymul*\arrayh) node[pos=0.1,below=2pt,align=center,inner sep=0pt] {\footnotesize $-1$};
+        \draw (case_3.east) -| (-0.15*\cellw,-\bottomymul*\arrayh);
+        \draw (-0.15*\cellw,-\bottomymul*\arrayh) -- (\arraylen*\cellw-0.5*\counterw,-\bottomymul*\arrayh) node[pos=0.1,below=2pt,align=center,inner sep=0pt] {\footnotesize $-1$};
         \foreach \j in {1, ..., \arraylen} {
             \draw[-stealth] (\j*\cellw-0.5*\counterw,-\bottomymul*\arrayh) -- (\j*\cellw-0.5*\counterw,-0.5*\arrayh);
         }
 
-        \node[inner sep=4pt] (query) at (\arrayw+0.75*\cellw,4.25*\arrayh) {\small Query $q$};
+        \node[inner sep=4pt] (query) at (\arrayw+0.05*\cellw,4.25*\arrayh) {\small Query $q$};
         \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt}] ($(query.west)+(-1pt,0.5*\casebracewidthquery)$) -- ($(query.west)+(-1pt,-0.5*\casebracewidthquery)$);
         \node[inner sep=0pt,anchor=east,align=center] (case_1) at ($(query.west)+(-2pt,0.3*\casebracewidthquery)$) {\hspace*{1pt} \footnotesize Exists, 4};
         \node[inner sep=0pt,anchor=east,align=center] (case_2) at ($(query.west)+(-2pt,-0.3*\casebracewidthquery)$) {\footnotesize Otherwise, 0};
@@ -282,148 +324,198 @@ times~$f(x)$ an item~$x$ has appeared in the stream.
         \node[inner sep=0pt] at (2.0*\cellw+0.5*\elemw,0.0*\arrayh) {\footnotesize $q$};
         \node[inner sep=0pt] at (2.0*\cellw+\elemw+0.5*\counterw,0.0*\arrayh) {\footnotesize $4$};
 
-        \node[inner sep=0pt,anchor=west] at (-3.0*\cellw,4.5*\arrayh) {\textbf{C) MG}};
+        \node[inner sep=0pt,anchor=west] at (-3.2*\cellw,5.25*\arrayh) {\textbf{C) MG}};
     \end{tikzpicture}
     \caption{A) CMS, B) CS, and C) MG maintain a set of counters to estimate
-    the frequency of items in a stream. Each subfigure illustrates insertions
-    on the left and queries on the right.}
+    the elements' frequencies. Each subfigure illustrates insertions on the
+    left and queries on the right.}
     \vspace{-3mm}
     \label{fig:sketches_overview}
 \end{figure}
 
 \textbf{Count-Min Sketch (CMS).}
-CMS employs an array of~$w$ counters, initialized to zero, to conduct a
-frequency estimation ``experiment.'' It inserts an item~$x$ by mapping it to a
-counter in the array using a hash function and incrementing the counter. CMS
-estimates the frequency of item~$x$ as the value of the counter that it hashes
-to. This yields an accurate estimation, as the other items in the stream likely
-map to different counters, meaning that~$x$'s counter mainly tracks~$x$'s
-frequency. The wider the array is, the more likely this separation of counters,
-and thus, the better CMS' \emph{Accuracy} becomes. CMS handles a deletion for
-item~$x$ by locating its associated counter and decrementing it.
+In its simplest form, CMS employs an array of~$w$ counters initialized to
+zeros. It inserts an element~$x$ by mapping it to a counter in the array using
+a hash function and incrementing the counter. CMS estimates the frequency
+of~$x$ as the counter value it hashes to. This is, on average, a good estimate
+of the frequency, as other elements likely map to different counters,
+allowing~$x$'s counter to mainly track~$x$'s frequency. The wider the array is,
+the more likely this separation of counters and the better CMS's
+\emph{Accuracy} becomes. CMS deletes~$x$ by decrementing its counter. Compared
+to the exhaustive hash table solution, CMS consumes significantly less memory
+since it avoids storing the elements themselves and allocates a constant number
+of counters.
 
-Yet, due to hash collisions, multiple items can still hash to the same counter.
-Because of this, CMS may overestimate the frequency of an item, but it never
-underestimates it. To limit the overestimation error, CMS repeats the single
-array experiment~$d$ times with independent arrays and hash
-functions~$h_1,\dots,h_d$. \Cref{fig:sketches_overview} shows an overview of
-this repeated structure. CMS now answers a query for an item~$q$ by taking the
-minimum of its associated counters in all~$d$ arrays.\footnote{CMS ensures that
-this reduces the estimation error by employing pairwise-independent hash
-functions for~$h_1,\dots,h_d$. Doing so provides a bound on the probability of
-collisions and overestimation.} Increasing the number of experiments improves
-the sketch's \emph{Confidence} by lowering the probability of severe errors
-without affecting the estimation accuracy.
-
+Yet, due to hash collisions, multiple elements can map to the same counter.
+Because of this, unlike the exhaustive approach, CMS may overestimate
+frequencies, but it never underestimates. This error is expected to be small,
+though it may become exceedingly large if there is a collision with a different
+frequent element or many other elements. To control the likelihood of this
+event and bound the error, CMS treats its array as a frequency estimation
+``experiment'' and repeats it~$d$ times with independent arrays and hash
+functions~$h_1,\dots,h_d$. \Cref{fig:sketches_overview} shows an example of
+this repeated structure. CMS now answers a query by taking the minimum of its
+counters in all~$d$ arrays.\footnote{CMS ensures that this reduces the
+estimation error by employing pairwise-independent hash functions
+for~$h_1,\dots,h_d$. Doing so provides a bound on the probability of collisions
+and overestimation.} Having more experiments improves CMS's \emph{Confidence},
+as it becomes increasingly unlikely for the minimum to experience severe errors
+since it requires all experiments to err significantly.
 Using~$w=\frac{e}{\epsilon}$ counters and~$d=\ln \frac{1}{\delta}$ repititions,
-CMS ensures estimates have an error of at most~$\epsilon N$ with a high
-confidence of~$1-\delta$, i.e., $\Pr\left( |\hat{f}(x)-f(x)| \leq \epsilon N
-\right) \geq 1-\delta$ for any item~$x$. Due to its simplicity and high
-accuracy, CMS is used in many applications, such as $k$-mer counting in
-bioinformatics~\cite{CMSkmer,SetMinSketch}, network monitoring and traffic
-estimation~\cite{SketchBasedChangeDetection,WhatsNew,TrafficManagementSurvey},
-and hardware security systems~\cite{CoMeT}.
+CMS ensures estimates have an error of at most~$\epsilon N$ with a confidence
+of~$1-\delta$, i.e., $\Pr\left( |\hat{f}(x)-f(x)| \leq \epsilon N \right) \geq
+1-\delta$ for any element~$x$.
+
+CMS produces a biased estimator due to its one-sided overestimation errors.
+These errors compound when the sketch is used in some tasks, particularly those
+that involve multiplying frequencies. These errors cannot be eliminated by
+discounting the results, as amount depends on the unknown ground-truth
+frequency.
+%For example, in join size estimation, multiplying overestimated counts from the input tables leads to an overly large join size.
 
 \textbf{Count Sketch (CS).}
-Even though CMS is accurate, it systematically creates overestimation errors,
-which may compound when the sketch is used in downstream tasks. CS addresses
-this problem by providing unbiased estimates that remove such systematic
-errors. As such, it is used in many applications in database systems, networks,
-and machine learning, such as SQL query
-optimization~\cite{Compass,QueryOptimizationSketches,ConvolutionSketch},
-covariance estimation~\cite{ASCS}, feature selection~\cite{MISSION}, and
-similarity
-search~\cite{CSSetSimSearch,DensifyingLSHSketches,LasVegasSimSearch}. CS also
-provides universality: the ability to estimate many quantities based on the
-item frequencies. This makes it a general measurement tool for networks,
-leading to its use in DDoS detection and many other tasks~\cite{UnivMon}.
-
-Similarly to CMS, CS conducts an experiment using an array of~$w$ counters
-coupled with a hash function~$h_i$ that maps a given item to a counter. CS
-further associated a random ``update direction'' from the set~$\{-1,+1\}$ to
-each item by hashing it with another hash
+CS removes such systematic errors and provides unbiased estimates. Similarly to
+CMS, CS uses an array of~$w$ counters coupled with a hash function~$h_i$ that
+maps a given element to a counter that tracks its frequency. CS further
+associates with each element a random ``update direction'' from the
+set~$\{-1,+1\}$ by hashing it with another hash
 function~$\sigma_i$.\footnote{The~$\sigma_i$ form a 4-wise independent family
-of hash functions, yielding a bound on the probability of large errors.} CS
-inserts a new item~$x$ by incrementing or decrementing its counter according
-to~$\sigma_i$, as shown in \Cref{fig:sketches_overview}-B. Since the update
-directions are random, the expected interference on~$x$'s counter from any
-other item is zero, as the positive and negative possibilities cancel out.
-Thus, CS estimates~$x$'s frequency by multiplying the value of its counter
-by~$\sigma_i(x)$ to revert the sign and recover the number of increments. The
-zero expected interference from other items makes the average estimate equal to
-the ground-truth frequency~$f(x)$, removing systematic errors. CS deletes~$x$
-by subtracting~$\sigma_i(x)$ from the corresponding counter to undo the effects
-of its insertion.
+of hash functions, yielding a bound on the probability of large
+errors~\cite{CountSketch}.} It inserts a new element~$x$ by incrementing or
+decrementing its counter according to~$\sigma_i$, as shown in
+\Cref{fig:sketches_overview}-B. Since each element's update direction is
+random, the expected interference on~$x$'s counter from any other element is
+zero, as the positive and negative possibilities cancel out. Thus, the value of
+the counter along the update direction is an estimate of~$x$'s frequency, which
+CS returns during a query. Although this estimate may be smaller or larger than
+the ground-truth frequency, depending on the update directions of the other
+items, the zero expected interference makes the estimate equal to the
+ground-truth on average, resolving systematic errors. CS deletes~$x$ by
+subtracting~$\sigma_i(x)$ from its counter to undo its insertion effects.
 
-Hash collisions may still degrade the accuracy of this estimate in the worst
-case. Having more counters in the array makes such collisions less likely,
-yielding better accuracy. As with CMS, CS increases its confidence by repeating
-the experiment~$d$ times. Unlike CMS, CS cannot answer a query by returning the
-minimum estimate, as it may be inaccurate due to experiments suffering from
-underestimations. Instead, it returns the median estimate, as shown in
-\Cref{fig:sketches_overview}-B. In doing so, CS mitigates both underestimations
-and overestimations simultaneously since severe hash collisions are unlikely to
-occur for enough experiments to affect the median. 
-
-Using~$w=\frac{e}{\epsilon^2}$ counters and $d=\ln \frac{1}{\delta}$
+Hash collisions still degrade the accuracy of this estimate. Having more
+counters in the array makes such collisions less likely, yielding better
+accuracy. As with CMS, CS increases its confidence (i.e., reduces the chances
+of pathological hash collisions) by treating the array as an experiment and
+repeating it~$d$ times. Unlike CMS, CS cannot answer a query by returning the
+minimum estimate, as it may greatly underestimate the result due to two-sided
+errors. Instead, it returns the median estimate, as shown in
+\Cref{fig:sketches_overview}-B. This controls the likelihood of large errors,
+since severe errors are unlikely to occur for enough experiments to affect the
+median. CS uses the median instead of the mean, as it is more robust to
+outliers. Using~$w=\frac{e}{\epsilon^2}$ counters and $d=\ln \frac{1}{\delta}$
 repititions, CS guarantees a high confidence of~$1-\delta$ for an estimate with
-an error of at most~$\epsilon \cdot \sqrt{\sum_{y} f^2(y)}$, i.e., $\Pr\left(
-|\hat{f}(x)-f(x)| \leq \epsilon \cdot \sqrt{\sum_{y} f^2(y)} \right) \geq
-1-\delta$ for any item~$x$. The error term above is smaller than CMS' error
-term when the frequency distribution is less skewed.
+an error of at most~$\epsilon \cdot \sqrt{\sum_{y} (f(y))^2}$, i.e., $\Pr\left(
+|\hat{f}(x)-f(x)| \leq \epsilon \cdot \sqrt{\sum_{y} (f(y))^2} \right) \geq
+1-\delta$ for any element~$x$. The error term above is smaller than CMS's error
+term when the frequency distribution is less skewed, as the root slows its
+growth to~$O(\sqrt{N})$ (vs.~$N$) when the summands are small.
 
 \textbf{Misra-Gries (MG).}
-Under extreme skew, using dedicated counters to track the hottest items is more
-beneficial than hashing them into a large array of counters as in CMS and CS.
-By applying this insight, MG provides more accurate estimates under extreme
-skew. As such, MG has seen widespread use as a sub-component in many sketch
-designs~\cite{BatchUpdateMisraGries,AugmentedSketch,BitMatcher,BubbleSketch,HeavyGuardian,HeavyKeeper,JigsawSketch,MVSketch,SketchVisor,WavingSketch,MicroscopeSketch,PSketch}
-and has been implemented in the popular Apache DataSketches
-library~\cite{DataSketches}. Although certain variations of MG provide better
-estimates in practice~\cite{SpaceSaving,UnbiasedSpaceSaving}, we describe the
-original MG for its simplicity.
+As skew increases, using dedicated counters to track the hottest elements
+becomes more beneficial than hashing them into an array of counters, like CMS
+and CS. By applying this insight, MG provides more accurate estimates in these
+scenarios. Although certain variations of MG provide better estimates in
+practice~\cite{SpaceSaving,UnbiasedSpaceSaving}, we describe the original MG
+for its simplicity and because our techniques generalize to the improved
+variations.
 
 \Cref{fig:sketches_overview}-C shows an overview of MG. MG maintains an array
-of slots, each storing an item identifier (shown in grey) and a dedicated
-frequency counter (shown in white). This array tracks the frequencies of the
-hottest items in the stream. MG inserts an incoming item~$x$ by first checking
-if it has a dedicated counter in some slot. If it does, MG increments the
-counter. If not, and the array has an empty slot, MG stores~$x$ in it with a
-count of~$1$. If~$x$ is not in the array and the array is full, MG decrements
-all counters and discards the items with zero counters. Such items are unlikely
-to be among the most frequent, leading to MG emptying their slots to make room
-for tracking hotter items. MG estimates~$x$'s frequency by returning the value
-of its counter if it has one in the array and zero otherwise. MG only
-underestimates the frequency of a counter, as it only increments the counter of
-an item if it exists in the array and decrements counters otherwise. MG does
-not support deletions, as decreasing counters in the array may make the
-discarded items better candidates for tracking, breaking the semantics of the
-array.
+of slots, each storing an element identifier (shown in grey) and a dedicated
+frequency counter (shown in white). The idea is to track the frequencies of the
+hottest elements in this array. MG estimates the frequency of each of these
+elements as the value of its counter, yielding a good estimate. It returns an
+estimate of zero for the other, less frequent elements, which is not far off
+from the ground-truth due to the assumption of high skew. When inserting an
+element~$x$, MG first checks if it has a dedicated counter in some slot. If it
+does, MG increments~$x$'s counter. If not, and the array has an empty slot, MG
+stores~$x$ in it with a count of~$1$. If~$x$ is not in the array and the array
+is full, MG decrements all counters and discards any elements whose counters
+become zero. Such elements are unlikely to be among the most frequent, and as
+such, MG empties their slots to make room for tracking hotter elements. Note
+that~$x$ is not placed in the newly emptied slots in this case. MG does not
+support deletions, as deleting the currently hot elements may make the
+untracked elements the hot ones. Since MG did not track these elements, it
+cannot place them in its array, incurring significant errors. MG is much more
+space-efficient than the exhaustive hash table solution, as it only stores a
+constant number of element and counter pairs.
 
-Having more slots in the array allows MG to track more items without discarding
-them, enabling more accurate estimates. Since MG is a deterministic data
-structure that does not use hashing, unlike CMS and CS, it does not suffer from
-hash collisions and its estimations have full confidence.
+Having more slots in the array allows MG to track more elements without
+discarding them, leading to more accurate estimates. Since MG is a
+deterministic data structure that does not use hashing, unlike CMS and CS, it
+does not suffer from pathological hash collisions, and its estimations have
+full confidence. Using an array of~$w$ slots, MG estimates the frequency of any
+element with an error of at most~$\frac{N}{w}$, i.e., $|\hat{f}(x)-f(x)| \leq
+\frac{N}{w}$ for any element~$x$. Since it uses dedicated counters for hot
+elements, MG also provides a strong ``\emph{Tail Guarantee},'' stating that the
+error for any element is at most~$\min_{1 \leq i \leq w}
+\frac{N^{\text{res}(i)}}{w-i+1}$, where $N^{\text{res}(i)}$ is the total
+frequency of all elements not among the top~$i$. Note that~$N^{\text{res}(i)}$
+is much smaller than~$N$ when the dataset is skewed.
 
-Using an array of~$w$ slots, MG estimates the frequency of any item with an
-error of at most~$\frac{N}{w}$, i.e., $|\hat{f}(x)-f(x)| \leq \frac{N}{w}$ for
-any item~$x$. Since it uses dedicated counters for hot items, MG also provides
-a strong ``\emph{Tail Guarantee},'' stating that the estimation error for the
-$i$-th most frequent item in the stream is at
-most~$\frac{N^{\text{res}(i)}}{w-i+1}$, where $N^{\text{res}(i)}$ is the total
-frequency of all items not among the top~$i$. As MG also tracks the items
-themselves, in contrast to CMS and CS, it is used in finding the hottest items,
-items with heavy frequency changes, and much
-more~\cite{BatchUpdateMisraGries,AugmentedSketch,BitMatcher,BubbleSketch,HeavyGuardian,HeavyKeeper,JigsawSketch,MVSketch,SketchVisor,WavingSketch,MicroscopeSketch,PSketch}.
+Since MG only increments an element's counter if it is in the array and
+decrements counters otherwise, it only underestimates frequencies. Thus, its
+estimates are biased. For similar reasons to CMS, this bias cannot be removed
+by enlarging estimates.
 
-\textbf{Performance.}
-CMS and CS offer high performance since they read and write a single counter in
-each array. In contrast, MG scans the entire array to handle an insertion or
-answer a query. Typical implementations of MG use a hash table instead of the
-array to speed up accesses. They also lazily decrement the counters and employ
-an auxiliary heap to efficiently locate and discard items with zero counts.
-However, maintaining these structures is expensive, making MG slower than CMS
-and CS.
+Typical implementations of MG implement the array of elements with a hash
+table, yielding constant-time queries. They also optimize insertions by lazily
+decrementing the counters and employing an auxiliary heap to locate and discard
+elements with zero counts.
+
+\begin{table}
+    \centering
+    \caption{The classical sketches strike different tradeoffs.}
+    %\def\arraystretch{1.075}
+    \setlength{\tabcolsep}{2pt}
+    \begin{tabular}{cccccccc}
+        \toprule
+
+        \textbf{\footnotesize Sketch} 
+        & \footnotesize \textbf{Accuracy}
+        & \footnotesize \textbf{Bias}
+        & \footnotesize \textbf{Confidence}
+        & \footnotesize \textbf{Insert}
+        & \footnotesize \textbf{Delete}
+        & \footnotesize \textbf{Query}
+        & \makecell[c]{\footnotesize \textbf{Best} \\[-4pt] \footnotesize \textbf{Skew}} \\
+
+        \midrule
+
+        \footnotesize CMS & \footnotesize $\frac{N}{w}$ & \scriptsize Over & \footnotesize $1-e^{-d}$ & \footnotesize $O(d)$ & \footnotesize $O(d)$ & \footnotesize $O(d)$ & \scriptsize Medium \\
+
+        \footnotesize CS & \footnotesize $\sqrt{\frac{e \cdot \sum_y (f(y))^2}{w}}$ & \scriptsize Unbiased & \footnotesize $1-e^{-d}$ & \footnotesize $O(d)$ & \footnotesize $O(d)$ & \footnotesize $O(d)$ & \scriptsize Low \\
+
+        \footnotesize MG & \footnotesize $\min_i \frac{N^{\text{res}(i)}}{w-i+1}$ & \scriptsize Under & \footnotesize 1 & \footnotesize $O(\log w)$ & - & \footnotesize $O(1)$ & \scriptsize High \\
+
+        \bottomrule
+    \end{tabular}
+    \label{tab:classical_sketch_stats}
+\end{table}
+
+\textbf{Comparison.}
+\Cref{tab:classical_sketch_stats} summarizes the discussion of CMS, CS, and MG
+thus far by comparing their attributes. While \Cref{tab:classical_sketch_stats}
+compares the error bounds of the sketches, we further illustrate their
+differences by evaluating the sketches under varying levels of data skew and
+memory budgets. Here, we insert 100M keys drawn from the \textsc{Zipfian}
+distribution into each sketch. We vary the characteristic exponent of the
+distribution to control the skew of the data. We evaluate the \emph{Average
+Absolute Error (AAE)} for each sketch by querying each element in the stream,
+computing the abosulte difference of estimate from the ground-truth, and
+averaging the results.
+%We also measure \emph{Top-$w$ AAE} by computing the AAE over the~$w$ hottest elements.
+
+\Cref{fig:classical_comparison} plots these results. As shown in the left
+subfigure, CS beats the others under less skew, as the updates of elements with
+similar frequencies cancel out when their hashes collide. In contrast, such
+collisions in CMS accumulate the error, and MG has insufficient slots to track
+elements accurately. Under moderate skew, CMS performs the best. This is
+because taking the minimum estimate increases confidence and bounds the error
+more reliably than the median method of CS. MG closely follows the performance
+of CMS as it benefits more from the increasing skew. Eventually, MG surpasses
+both CMS and CS by fully leveraging its dedicated counters and even achieves
+zero error under high enough skew.
 
 \begin{figure}
     \centering
@@ -434,41 +526,198 @@ and CS.
     \label{fig:classical_comparison}
 \end{figure}
 
-\textbf{Comparison.}
-We compare the accuracy of CMS, CS, and MG under varying levels of data
-skewness and memory budgets. We insert 100M keys drawn from the
-\textsc{Zipfian} distribution into each sketch. We vary the characteristic
-exponent of the distribution to control the skew of the data. We evaluate the
-\emph{Average Absolute Error (AAE)} for each sketch by querying each item in
-the stream, computing how far the estimate is from the ground-truth frequency,
-and averaging the results.
+The right plot in \Cref{fig:classical_comparison} illustrates that, under
+extreme memory constraints, MG outperforms CMS and CS. This is because CMS and
+CS do not have enough counters, leading to too many hash collisions and overly
+large estimates, whereas MG makes the most of its limited counters by
+leveraging its tail bound. Here, CS bests CMS due to its zero-interference
+property, making it more robust to hash collisions. Given more memory, CMS and
+CS outperform MG, with CMS beating CS by benefiting more from the minimum
+estimate than CS does from the median. With more memory, MG tracks all elements
+and provides the most accurate estimations, whereas CMS and CS's estimates
+still suffer from collision errors.
 
-\Cref{fig:classical_comparison} plots these results. As shown in the left
-subfigure, CS beats the others when the data is less skewed, as the updates of
-items with similar frequencies cancel out when their hashes collide. In
-contrast, such collisions in CMS accumulate the error. MG also does not have
-enough slots to provide an accurate estimation. Under moderate skew, CMS
-performs the best. This is because it improves its confidence by taking the
-minimum of its experiments, unlike CS, which has to be more careful about its
-aggregation method. MG does not perform well here since the data is not skewed
-enough. Under high skew, MG fully leverages its dedicated counters, beating
-both CMS and CS.
+CMS and CS are faster than MG since they read and write a single counter in
+each array, while MG has to pay the logarithmic cost of maintaining the heap
+and the added cost of the hash table.
 
-The right plot in \Cref{fig:classical_comparison} further illustrates that,
-under strict memory constraints, CS outperforms CMS. This is because of the
-zero interference property of CS, making it more robust to hash collisions. In
-contrast, CMS does not have enough counters to limit collisions. CMS avoids
-hash collisions under a moderate memory budget and outperforms both CS and MG.
-With more memory, MG tracks all heavy items and provides the most accurate
-estimations.
+\textbf{Applications.} 
+Due to its simplicity and high accuracy under moderate skew, CMS is used in
+applications with moderately skewed data, including $k$-mer counting in
+bioinformatics~\cite{CMSkmer,SetMinSketch}, network
+monitoring~\cite{SketchBasedChangeDetection,WhatsNew,TrafficManagementSurvey},
+and hardware security systems~\cite{CoMeT}.
+
+Since CS provides unbiased estimates, it is used in applications where
+estimates are combined or multiplied to derive more complex statistics. In
+particular, unbiased estimation is crucial for query
+optimization~\cite{Compass,QueryOptimizationSketches,ConvolutionSketch} and
+covariance estimation~\cite{ASCS}, as frequency estimates are multiplied in
+these contexts, amplifying any bias. Other applications benefiting from CS
+include feature selection~\cite{MISSION} and similarity
+search~\cite{CSSetSimSearch,DensifyingLSHSketches,LasVegasSimSearch,DistanceSensitiveBloomFilters}.
+CS also provides \emph{Universality}~\cite{UniversalSketching}: the ability to
+estimate many statistics based on the element frequencies. This makes it a
+general measurement tool for networks since it allows administrators to collect
+diagnostics of any kind without needing to explicitly define the required
+statistics (such as the mean, variance, and moments) beforehand~\cite{UnivMon}.
+
+As MG accurately tracks the frequencies of hot elements, many other sketch
+designs use it as a sub-component to reap its benefits. Moreover, because it
+also stores the elements themselves, unlike CMS and CS, it is used to report
+the hottest elements, trending elements, and much
+more~\cite{BatchUpdateMisraGries,AugmentedSketch,BitMatcher,BubbleSketch,HeavyGuardian,HeavyKeeper,JigsawSketch,MVSketch,SketchVisor,WavingSketch,MicroscopeSketch,PSketch}.
 
 \section{Problem Analysis}\label{sec:problem_analysis}
 
 \section{Sketchbook}\label{sec:sketchbook} 
+We present Sketchbook, a general method of expanding sketches to handle streams
+of unknown size and achieve better space utilization.
+\Cref{sec:expanding_columns} describes how Sketchbook guarantees a lower error
+bound by expanding the number of columns (or slots) along with the number of
+elements in the stream. Specifically, it utilizes an \emph{Expansion Rate
+Function} to decide when to expand. The larger this function is, the earlier
+the sketch expands and the more accurate it becomes, exposing an accuracy-space
+tradeoff. \Cref{sec:expanding_counters} describes how Sketchbook makes use of
+variable-length counters that expand to accommodate the value they store,
+improving accuracy by minimizing unused bits in the counters. Sketchbook
+employs lookup tables and rank and select operations to efficiently manipulate
+these counters. We do not discuss the idea of expanding the number of rows in
+CMS and CS since it does not yield a significant benefit in accuracy or
+confidence, as shown in \Cref{sec:theoretical_analysis}. For concreteness, we
+describe our techniques applied to CMS as a running example and comment on how
+they can be applied to CS and MG.
 
-\subsection{Expanding Rows}\label{sec:expanding_rows}
+\subsection{Expanding Columns}\label{sec:expanding_columns}
 
-\subsection{Expanding Counters}\label{sec:diva_dynamic}
+\textbf{Expansion Rate Function.} 
+Introduce the expansion rate function~$R(N)$. The idea is to maintain~$R(N)$
+columns in the sketch at all times to ``emulate'' the case where we knew~$N$
+and started with a sketch with~$R(N)$ columns. The hope is to approximately
+achieve the same error bound as this sketch, i.e., $N/R(N)$.
+
+\textbf{Chain of Sketches.} 
+Explain that we maintain a chain of sketches, with each sketch being twice the
+size of the sketch before it. Say that updates go to the final sketch in the
+chain, as it is the most accurate, but queries have to check all sketches.
+Explain that this sketch acts like a single, unified sketch the size of the
+last sketch in the chain, and connect it back to the size intuition above.
+Point out that the space is good since the total size of the chain is dominated
+by the last sketch. We use the same hash function across all sketches to save
+CPU.
+
+\textbf{Expansions.} 
+To expand, we add a new sketch double the size of the previous one each time
+the expansion function doubles. Give intuition about how this maintains
+approximately~$R(N)$ columns/slots at any point in time with the hope of
+achieving the same behavior as a sketch of size~$R(N)$ allocated with knowledge
+of~$N$. Doing so controls the total error as the sum of a geometric series.
+
+\textbf{Aggregate Sketch.}
+Having to work with the entire chain and to query all sketches in it is slow.
+To avoid this cost, we create an aggregate sketch that takes into account all
+sketches in the chain. Explain the sketch doubling method for CMS and CS and
+that it allows us to keep using the same hash function across time. To save
+memory and avoid storing the aggregate sketch as well, we ``replace'' the last
+sketch in the chain with the aggregate sketch. Argue that this does not create
+information loss, as we reconstruct the last sketch by ``subtracting out'' the
+old ones. 
+
+Point out that for MG, as it doesn't use hashing and is more of an associative
+array, we expand on a slot-by-slot basis to exactly match~$R(N)$, yielding
+potentially higher accuracy. 
+
+\textbf{Contractions.} 
+Explain that we have to shrink the sketch to save memory if too many keys are
+deleted. Specifically, when the expansion rate function is halved, we
+reconstruct the final sketch in the chain by ``subtracting out'' the other
+sketches from the aggregate sketch. As a result of this subtraction, some
+counters may be positive, signifying inserts, and some may become negative,
+signifying deletes. As such, it behaves like an ``update sketch,'' which
+``fold'' onto itself to make it the same size as the previous sketch in the
+chain and add them to propagate back the updates. 
+
+Give intuition that the error bound remains good, as the old sketches contain a
+small fraction of keys, and a lot of keys must be deleted for a contraction to
+occur. Also point out that now, the state of the sketches in the chain depends
+on the sequence of inserts and deletes done. Regardless of the sequence,
+however, the error bounds hold.
+
+\textbf{Physical Storage.}
+If we only want to support inserts, we physically manifest only the aggregate
+sketch to save memory. For deletes, since we have to subtract out the old
+sketches during contractions to reconstruct the final chain sketch, we need to
+store the entire chain.
+
+\subsection{Expanding Counters}\label{sec:expanding_counters}
+
+\textbf{State of the Art.} 
+Reiterate that using fixed-sized counters is bad, since most counters will have
+small values, and thus their higher-order bits are left unused, wasting space.
+Point to the backgroun section with a review of existing variable-length
+counter encodings, and explain Stingy Sketch as the state of the art in terms
+of both accuracy and speed. 
+
+\textbf{Sharing of Higher-Order Bits.} 
+State that the key problem in such methods is that higher-order bits in the
+counters are shared. This is counter-intuitive, since higher-order bits have
+more impact on the accuracy of the sketch, and sharing them opens up the door
+to unwanted errors. Moreover, it complicates deletes, as it is no longer
+possible to ``separate out'' the counters that share some higher-order bits
+from each other as soon as possible to improve accuracy. An attacker may be
+able to use this behavior to radically increase the error of the sketch with
+time. So we propose not sharing any parts of the counters to resolve all these
+problems.
+
+\textbf{Base Counters Array.} 
+Given a logical array of counters, Sketchbook encodes it by first allocating an
+array of small, $b$-bit counters to each. Each base counter encodes the~$b$
+least-significant bits of its logical counter. Here, $b$ is a tuning parameter
+denoting the width we expect each counter to be. We have found~$b=6$ is
+reasonable for many sketch configurations. As the some logical counters can
+grow beyond the range of~$b$-bit counters, we require another mechanism to
+succinctly encode the remaining higher-order bits of these counters.
+
+\textbf{Overflowed Bitmap.} 
+To this end, we employ a contiguous overflowed bitmap to indicate which base
+counters have reached their limit and have overflowed. For any overflowed
+counter, we encode the remaining higher-order bits using~$b'$-bit extensions.
+
+\textbf{Extensions Array.}
+Explain that the~$b'$-bit extensions represent the value of the counter's
+higher-order bits in base-$(2^{b'}-1)$. Explain that we pack all extensions
+contiguously into an extensions array, forming runs. State that we reserved one
+of the~$2^{b'}$ values to act as a delimiter between the runs. Give a sense of
+the total space overhead one can expect for the average counter.
+
+\textbf{Locating a Run.}
+Introduce rank and select and state that we apply them along with some bitwise
+operations to the extensions array to locate the end of a run.
+
+\textbf{Decoding Counters.}
+Explain how we decode a counter given the encoding above.
+
+\textbf{Spill Mechanism.} 
+In unlikely scenarios, the extensions array may fill up and make the sketch run
+out of space. Inspired by frontyard/backyard hash table designs, we implement a
+``spill'' mechanism that activates when the extensions array fills up. Here, we
+employ a flag in the extensions array to denote whether we are in the spilled
+state. If we are, the extensions array stores a pointer to an array of full
+counters, which will now store the values of the counters, modulo the $b$
+least-significant bits already stored in the base counters. We expect the
+memory overhead of the spill mechanism to be very small, as it is only
+activated in the unlikely even of the extensions array filling up.
+
+\textbf{Chunking.} 
+Describe how we apply the our techniques to chunks of 64 counters each to
+minimize the amount of extension shifting and to further reduce the memory cost
+of the spill mechanism. Go into details as to how having 6-bit base counters
+and 2-bit extensions allows us to fit the encoding of these 64 counters neatly
+into a 512-bit cache line, yielding good cache behavior.
+
+\textbf{Optimizations.}
+Explain how we use lookup tables to speed up updates to the base counters and
+how we use x86 instructions to speed up rank and select.
 
 \section{Theoretical Analysis}\label{sec:theoretical_analysis}
 

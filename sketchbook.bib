@@ -1060,6 +1060,42 @@
     series={SIGCOMM '16}
 }
 
+@inproceedings{UniversalSketching,
+    author={Braverman, Vladimir and Chestnut, Stephen R. and Woodruff, David P.
+        and Yang, Lin F.},
+    title={Streaming Space Complexity of Nearly All Functions of One Variable
+        on Frequency Vectors},
+    year={2016},
+    isbn={9781450341912},
+    publisher={Association for Computing Machinery},
+    address={New York, NY, USA},
+    url={https://doi.org/10.1145/2902251.2902282},
+    doi={10.1145/2902251.2902282},
+    abstract={A central problem in the theory of algorithms for data streams is
+        to determine which functions on a stream can be approximated in
+            sublinear, and especially sub-polynomial or poly-logarithmic,
+        space. Given a function g, we study the space complexity of
+            approximating ∑i=1n g(|fi|), where f ∈ Zn is the frequency vector
+            of a turnstile stream. This is a generalization of the well-known
+            frequency moments problem, and previous results apply only when g
+            is monotonic or has a special functional form. Our contribution is
+            to give a condition such that, except for a narrow class of
+            functions g, there is a space-efficient approximation algorithm for
+            the sum if and only if g satisfies the condition. The functions g
+            that we are able to characterize include all convex, concave,
+        monotonic, polynomial, and trigonometric functions, among many others,
+        and is the first such characterization for non-monotonic functions.
+            Thus, for nearly all functions of one variable, we answer the open
+            question from the celebrated paper of Alon, Matias and Szegedy
+            (1996).},
+    booktitle={Proceedings of the 35th ACM SIGMOD-SIGACT-SIGAI Symposium on Principles of Database Systems},
+    pages={261–276},
+    numpages={16},
+    keywords={sketching, frequency moments, data streams},
+    location={San Francisco, California, USA},
+    series={PODS '16}
+}
+
 @article{ConvolutionSketch,
     author={Heddes, Mike and Nunes, Igor and Givargis, Tony and Nicolau, Alex},
     title={Convolution and Cross-Correlation of Count Sketches Enables Fast
@@ -1148,7 +1184,7 @@
 }
 
 @phdthesis{QueryOptimizationSketches,
-    title={Query Optimization using Sketchesin Relational Database Systems},
+    title={Query Optimization using Sketches in Relational Database Systems},
     author={Yesdaulet Izenov},
     year=2023,
     month={Fall},
@@ -1935,6 +1971,36 @@
     numpages={27},
     keywords={recall, similarity search, locality-sensitive hashing,
         Approximate near neighbor search}
+}
+
+@inproceedings{DistanceSensitiveBloomFilters,
+    author={Goswami, Mayank and Pagh, Rasmus and Silvestri, Francesco and
+        Sivertsen, Johan},
+    title={Distance sensitive bloom filters without false negatives},
+    year={2017},
+    publisher={Society for Industrial and Applied Mathematics},
+    address={USA},
+    abstract={A Bloom filter is a widely used data-structure for representing a
+        set S and answering queries of the form "Is x in S?". By allowing some
+            false positive answers (saying 'yes' when the answer is in fact
+                    'no') Bloom filters use space significantly below what is
+            required for storing S. In the distance sensitive setting we work
+            with a set S of (Hamming) vectors and seek a data structure that
+            offers a similar trade-off, but answers queries of the form "Is x
+            close to an element of S?" (in Hamming distance). Previous work on
+            distance sensitive Bloom filters have accepted false positive and
+            false negative answers. Absence of false negatives is of critical
+            importance in many applications of Bloom filters, so it is natural
+            to ask if this can be also achieved in the distance sensitive
+            setting. Our main contributions are upper and lower bounds (that
+                    are tight in several cases) for space usage in the distance
+            sensitive setting where false negatives are not allowed.},
+    booktitle={Proceedings of the Twenty-Eighth Annual ACM-SIAM Symposium on
+        Discrete Algorithms},
+    pages={257–269},
+    numpages={13},
+    location={Barcelona, Spain},
+    series={SODA '17}
 }
 
 @inproceedings{RandomizedRowSwap,
