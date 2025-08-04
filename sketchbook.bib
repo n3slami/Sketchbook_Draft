@@ -2085,3 +2085,277 @@
     numpages={13}
 }
 
+@INPROCEEDINGS{RobinHoodHashing,
+    author={Celis, Pedro and Larson, Per-Ake and Munro, J. Ian},
+    booktitle={26th Annual Symposium on Foundations of Computer Science (sfcs
+            1985)}, 
+    title={Robin hood hashing}, 
+    year={1985},
+    volume={},
+    number={},
+    pages={281-288},
+    doi={10.1109/SFCS.1985.48}
+}
+
+@book{LinearProbing,
+    added-at={2016-06-15T15:54:18.000+0200},
+    author={Knuth, Donald},
+    biburl={https://www.bibsonomy.org/bibtex/292d514d70188edc70b86721de9ae31ee/ilias_pbm_test},
+    interhash={132508fb11effd51eb89389b60bfeccc},
+    intrahash={92d514d70188edc70b86721de9ae31ee},
+    keywords={publikationen puma},
+    pages={391-392},
+    publisher={Addison-Wesley},
+    timestamp={2016-06-15T15:54:18.000+0200},
+    title={The Art Of Computer Programming, vol. 3: Sorting And Searching},
+    year=1973
+}
+
+@inproceedings{BitSense,
+    author={Ding, Rui and Yang, Shibo and Chen, Xiang and Huang, Qun},
+    title={BitSense: Universal and Nearly Zero-Error Optimization for Sketch
+        Counters with Compressive Sensing},
+    year={2023},
+    isbn={9798400702365},
+    publisher={Association for Computing Machinery},
+    address={New York, NY, USA},
+    url={https://doi.org/10.1145/3603269.3604865},
+    doi={10.1145/3603269.3604865},
+    abstract={Sketch algorithms have been widely deployed for network
+        measurement as they achieve high accuracy with restricted resource
+            usage. They store measurement results compactly in fixed-size
+            counters. However, as sketch counters are skewed towards low
+            values, higher bits in most counters remain zero. Such massive
+            unused bits impair the space efficiency valued by sketch
+            algorithms. Unfortunately, efforts to mitigate the issue either
+            apply to specific algorithms or compromise accuracy. In this paper,
+        we design BitSense, a novel optimization framework that integrates with
+            existing sketch algorithms. The key idea is to regard higher bits
+            in sketch counters as a sparse vector and leverage compressive
+            sensing techniques to compress and restore counters. Further,
+        BitSense provides a programming model to help developers easily realize
+            sketch algorithms without dealing with the details of compression
+            and recovery. Bit-Sense proposes an automatic approach for
+            parameter configuration. It theoretically guarantees nearly zero
+            error under the configuration. We have built a BitSense prototype
+            in P4 and a software platform and integrated it with fourteen
+            sketch solutions. Extensive experiments show that BitSense
+            significantly reduces the memory usage of existing sketch solutions
+            by 25\%-80\% while incurring little overhead and almost zero
+            accuracy drop, outperforming five state-of-the-art optimization
+            frameworks.},
+    booktitle={Proceedings of the ACM SIGCOMM 2023 Conference},
+    pages={220–238},
+    numpages={19},
+    keywords={network measurement, sketch, compressive sensing},
+    location={New York, NY, USA},
+    series={ACM SIGCOMM '23}
+}
+
+@inproceedings{SALSA,
+    author={Basat, Ran and Einziger, Gil and Mitzenmacher, Michael and
+        Vargaftik, Shay},
+    year={2021},
+    month={04},
+    pages={864-875},
+    title={SALSA: Self-Adjusting Lean Streaming Analytics},
+    doi={10.1109/ICDE51399.2021.00080}
+}
+
+@article{PyramidSketch,
+    author={Yang, Tong and Zhou, Yang and Jin, Hao and Chen, Shigang and Li,
+        Xiaoming},
+    title={Pyramid sketch: a sketch framework for frequency estimation of data
+        streams},
+    year={2017},
+    issue_date={August 2017},
+    publisher={VLDB Endowment},
+    volume={10},
+    number={11},
+    issn={2150-8097},
+    url={https://doi.org/10.14778/3137628.3137652},
+    doi={10.14778/3137628.3137652},
+    abstract={Sketch is a probabilistic data structure, and is used to store
+        and query the frequency of any item in a given multiset. Due to its
+            high memory efficiency, it has been applied to various fields in
+            computer science, such as stream database, network traffic
+            measurement, etc. The key metrics of sketches for data streams are
+            accuracy, speed, and memory usage. Various sketches have been
+            proposed, but they cannot achieve both high accuracy and high speed
+            using limited memory, especially for skewed datasets. To address
+            this issue, we propose a sketch framework, the Pyramid sketch,
+        which can significantly improve accuracy as well as update and query
+            speed. To verify the effectiveness and efficiency of our framework,
+        we applied our framework to four typical sketches. Extensive
+            experimental results show that the accuracy is improved up to 3.50
+            times, while the speed is improved up to 2.10 times. We have
+            released our source codes at Github [1].},
+    journal={Proc. VLDB Endow.},
+    month=aug,
+    pages={1442–1453},
+    numpages={12}
+}
+
+@inproceedings{AdaptiveCounterSplicing,
+    author={Gao, Guoju and Qian, Zhaorong and Huang, He and Du, Yang},
+    year={2023},
+    month={06},
+    pages={1-4},
+    title={An Adaptive Counter-Splicing-Based Sketch for Efficient Per-Flow
+        Size Measurement},
+    doi={10.1109/IWQoS57198.2023.10188733}
+}
+
+@article{CounterTree,
+    author={Chen, Min and Chen, Shigang and Cai, Zhiping},
+    title={Counter Tree: A Scalable Counter Architecture for Per-Flow Traffic
+        Measurement},
+    year={2017},
+    issue_date={April 2017},
+    publisher={IEEE Press},
+    volume={25},
+    number={2},
+    issn={1063-6692},
+    url={https://doi.org/10.1109/TNET.2016.2621159},
+    doi={10.1109/TNET.2016.2621159},
+    abstract={Per-flow traffic measurement, which is to count the number of
+        packets for each active flow during a certain measurement period, has
+            many applications in traffic engineering, classification of routing
+            distribution or network usage pattern, service provision, anomaly
+            detection, and network forensics. In order to keep up with the high
+            throughput of modern routers or switches, the online module for
+            per-flow traffic measurement should use high-bandwidth SRAM that
+            allows fast memory accesses. Due to limited SRAM space, exact
+            counting, which requires to keep a counter for each flow, does not
+            scale to large networks consisting of numerous flows. Some recent
+            work takes a different approach to estimate the flow sizes using
+            counter architectures that can fit into tight SRAM. However,
+        existing counter architectures have limitations, either still requiring
+            considerable SRAM space or having a small estimation range. In this
+            paper, we design a scalable counter architecture called Counter
+            Tree, which leverages a 2-D counter sharing scheme to achieve far
+            better memory efficiency and in the meantime extend estimation
+            range significantly. Furthermore, we improve the performance of
+            Counter Tree by adding a status bit to each counter. Extensive
+            experiments with real network traces demonstrate that our counter
+            architecture can produce accurate estimates for flows of all sizes
+            under very tight memory space.},
+    journal={IEEE/ACM Trans. Netw.},
+    month=apr,
+    pages={1249–1262},
+    numpages={14}
+}
+
+@article{TreeSensing,
+    author={Liu, Zirui and Zhang, Yixin and Zhu, Yifan and Zhang, Ruwen and
+        Yang, Tong and Xie, Kun and Wang, Sha and Li, Tao and Cui, Bin},
+    title={TreeSensing: Linearly Compressing Sketches with Flexibility},
+    year={2023},
+    issue_date={May 2023},
+    publisher={Association for Computing Machinery},
+    address={New York, NY, USA},
+    volume={1},
+    number={1},
+    url={https://doi.org/10.1145/3588910},
+    doi={10.1145/3588910},
+    abstract={A Sketch is an excellent probabilistic data structure, which
+        records the approximate statistics of data streams. Linear additivity
+            is an important property of sketches. This paper studies how to
+            keep the linear property after sketch compression. Most existing
+            compression methods do not keep the linear property. We propose
+            TreeSensing, an accurate, efficient, and flexible framework to
+            linearly compress sketches. In TreeSensing, we first separate a
+            sketch into two parts according to counter values. For the sketch
+            with small counters, we propose a technique called TreeEncoding to
+            compress it into a hierarchical structure. For the sketch with
+            large counters, we propose a technique called SketchSensing to
+            compress it using compressive sensing. We theoretically analyze the
+            accuracy of TreeSensing. We use TreeSensing to compress 7 sketches
+            and conduct two end-to-end experiments: distributed measurement and
+            distributed machine learning. Experimental results show that
+            TreeSensing outperforms prior art on both accuracy and efficiency,
+        which achieves up to 100\texttimes{} smaller error and 5.1\texttimes{}
+        higher speed than state-of-the-art Cluster-Reduce. All related codes
+            are open-sourced.},
+    journal={Proc. ACM Manag. Data},
+    month=may,
+    articleno={56},
+    numpages={28},
+    keywords={compression, data streams, distributed measurement, sketches}
+}
+
+@inproceedings{TightSketch,
+    author={Li, Weihe and Patras, Paul},
+    title={Tight-Sketch: A High-Performance Sketch for Heavy Item-Oriented Data
+        Stream Mining with Limited Memory Size},
+    year={2023},
+    isbn={9798400701245},
+    publisher={Association for Computing Machinery},
+    address={New York, NY, USA},
+    url={https://doi.org/10.1145/3583780.3615080},
+    doi={10.1145/3583780.3615080},
+    abstract={Accurate and fast data stream mining is critical and fundamental
+        to many tasks, including time series database handling, big data
+            management and machine learning. Different heavy-based detection
+            tasks, such as heavy hitter, heavy changer, persistent item and
+            significant item detection, have drawn much attention from both the
+            industry and academia. Unfortunately, due to the growing data
+            stream speeds and limited memory (L1 cache) available for real-time
+            processing, existing schemes face challenges in simultaneously
+            achieving high detection accuracy, high memory efficiency, and fast
+            update throughput, as we reveal. To tackle this conundrum, we
+            propose a versatile and elegant sketch framework named
+            Tight-Sketch, which supports a spectrum of heavy-based detection
+            tasks. Considering that most items are cold
+            (non-heavy/persistent/significant) in practice, we employ different
+            eviction treatments for different types of items to discard these
+            potentially cold ones as soon as possible, and offer more
+            protection to those that are hot (heavy/persistent/significant). In
+            addition, we propose an eviction method that follows a stochastic
+            decay strategy, enabling Tight-Sketch to only bear small one-sided
+            errors (no overestimation). We present a theoretical analysis of
+            the error bounds and conduct extensive experiments on diverse
+            detection tasks to demonstrate that Tight-Sketch significantly
+            outperforms existing methods in terms of accuracy and update speed.
+            Lastly, we accelerate Tight-Sketch's update throughput by up to
+            36\% with Single Instruction Multiple Data (SIMD) instructions.},
+    booktitle={Proceedings of the 32nd ACM International Conference on
+        Information and Knowledge Management},
+    pages={1328–1337},
+    numpages={10},
+    keywords={sustained arrival strength, significant item, persistent item,
+        heavy item, data stream mining},
+    location={Birmingham, United Kingdom},
+    series={CIKM '23}
+}
+
+@inproceedings{CodingSketch,
+    author={Qizhi Chen and Yisen Hong and Yuhan Wu and Tong Yang and Bin Cui},
+    title={CodingSketch: A Hierarchical Sketch with Efficient Encoding and
+        Recursive Decoding},
+    year={2024},
+    cdate={1704067200000},
+    pages={1592-1605},
+    url={https://doi.org/10.1109/ICDE60146.2024.00130},
+    booktitle={ICDE},
+    crossref={conf/icde/2024}
+}
+
+@article{FEASketch,
+    added-at={2025-05-03T00:00:00.000+0200},
+    author={Wu, Xiaocan and Huang, He and Du, Yang and e Sun, Yu and Han,
+        Yifan},
+    biburl={https://www.bibsonomy.org/bibtex/2fe9af3b27b1b4bd7533bece78cf56f6b/dblp},
+    ee={https://doi.org/10.1007/s11432-024-4244-3},
+    interhash={7be968d54d20a591e0ff8f4d0483d70c},
+    intrahash={fe9af3b27b1b4bd7533bece78cf56f6b},
+    journal={Sci. China Inf. Sci.},
+    keywords={dblp},
+    number=3,
+    timestamp={2025-05-05T07:29:50.000+0200},
+    title={FEA-Sketch: flow entries assisted sketch for heavy flow detection in
+        software-defined networking.},
+    url={http://dblp.uni-trier.de/db/journals/chinaf/chinaf68.html#WuHDSH25},
+    volume=68,
+    year=2025
+}
