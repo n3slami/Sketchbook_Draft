@@ -126,6 +126,12 @@ The source code, data, and/or other artifacts have been made available at
 %%% VLDB block end %%%
 
 \section{Introduction}~\label{sec:introduction}
+The streams we consider both insert and delete keys, which amount to
+incrementing and decrementing the key's frequency, respectively. While some
+applications such as tracking click-through rates in webpages only require
+insertions, deletions are needed for other applications such as maintaining
+frequency estimates for SQL tables for use in a query optimizer. 
+
 We define the following two goals: \textbf{(G1)~Space-Efficient Counters}, and
 \textbf{(G2)~Scaling Error with Stream Length}.
 
@@ -159,23 +165,37 @@ keys, trending keys, and much
 more~\cite{BatchUpdateMisraGries,AugmentedSketch,BitMatcher,BubbleSketch,HeavyGuardian,HeavyKeeper,JigsawSketch,MVSketch,SketchVisor,WavingSketch,MicroscopeSketch,PSketch,TightSketch}.
 
 \section{Background}~\label{sec:background}
-The simplest approach to tracking the frequency of keys in a stream is to store
-each key and its count in a hash table. Although this solution provides an
-accurate count of each key's frequency, it entails high memory overheads for
-multiple reasons: 1)~It stores all keys in the stream, incurring a linear
-memory footprint. This overhead worsens if the keys are variable-length, as
-they require a layer of indirection such as pointers for storage. 2)~It stores
-one counter for each key. 3)~Each counter must be long enough to accommodate
-the maximum count, even if most keys have a very low count. 4)~The hash table
-may have a space utilization as low as 50\% to support collision resolution and
-expansions. These overheads multiply with the number of streams the application
-monitors. The Count-Min Sketch (CMS) addresses problems~1, 2, and 4 by trading
-accuracy for space, though it slightly worsens problem~3. In
-Sections~\ref{sec:cs} and \ref{sec:mg}, we discuss alternatives to CMS such as
-Count Sketch and Misra-Gries and apply our techniques to them. 
+Formally, a stream is a sequence of key and update operation
+pairs~$\left\langle (x_1,\Delta_1), (x_2,\Delta_2), \dots, \right\rangle$,
+where each~$x_i$ is a key and~$\Delta_i = \pm1$ represents whether its
+frequency was incremented ($\Delta_i=1$) or decremented ($\Delta_i=-1$). This
+is known as the \emph{General Turnstile Model} of data
+streams~\cite{StreamModels}. At any point, $N=\sum_i \Delta_i$ represents the
+total number of keys. Given a data stream a frequency estimation sketch
+provides, for any key~$x$, an estimate~$\hat{f}(x)$ of the number of
+times~$f(x)$ it has appeared in the stream.
+\Cref{tab:term_and_symbol_definitions} lists the terms and symbols used
+throughout the paper.
 
-%Moreover, each counter in the hash table must be large enough to accommodate the maximum count, which is often unnecessary.
-%The core differences between these structures are in their estimation biases and their ability to handle skew. Applications that combine frequency estimates often require unbiased estimates, and users fine-tune their application's performance by choosing the best sketch based on the data's skew.
+\textbf{Exhaustive Approach.}
+The simplest approach to tracking frequencies is to store each key and its
+count in a hash table. Although this exhaustive solution accurately tracks the
+frequency of each key, it entails a high memory overheads for four reasons:
+(1)~It stores all keys in the stream. This overhead worsens if the keys are
+variable-length, as they require a layer of indirection (such as pointers) for
+storage. (2)~It stores one counter for each key. (3)~Each counter must be long
+enough to accommodate the maximum count, even if most keys have a very low
+count. (4)~The hash table may have a space utilization as low as 50\% to
+support collision resolution and expansions. These overheads multiply with the
+number of streams the application monitors. Note that problems~(1) and (2)
+already imply a memory footprint that is linear in the stream's length.
+
+Frequency estimation sketches address problems~(1), (2), and (4) by trading
+accuracy for space, although they may slightly worsen problem~(3). We focus on
+Count-Min Sketch (CMS) in our discussion, as it is the simplest and most
+widely used sketch. Later, we introduce other sketches such as Count Sketch
+(\Cref{sec:cs}) and Misra-Gries (\Cref{sec:mg}), and apply our techniques to
+them. 
 
 \begin{table}
     \centering
@@ -206,24 +226,6 @@ Count Sketch and Misra-Gries and apply our techniques to them.
     \egroup
     \label{tab:term_and_symbol_definitions}
 \end{table}
-
-\textbf{Streams and Frequency Estimation.}
-We consider a stream model where keys are both inserted and deleted, which
-amount to incrementing and decrementing the key's frequency, respectively.
-while some applications such as tracking click-through rates in webpages only
-require insertions, deletions are needed for other applications such as
-maintaining frequency estimates for SQL tables for use in a query optimizer.
-Formally, a stream is a sequence of key and update operation
-pairs~$\left\langle (x_1,\Delta_1), (x_2,\Delta_2), \dots, \right\rangle$,
-where each~$x_i$ is a key and~$\Delta_i = \pm1$ represents whether its
-frequency was incremented ($\Delta_i=1$) or decremented ($\Delta_i=-1$). This
-is known as the \emph{General Turnstile Model} of data
-streams~\cite{StreamModels}. At any point, $N=\sum_i \Delta_i$ represents the
-total number of keys. Given a data stream a frequency estimation sketch
-provides, for any key~$x$, an estimate~$\hat{f}(x)$ of the number of
-times~$f(x)$ it has appeared in the stream.
-\Cref{tab:term_and_symbol_definitions} lists the terms and symbols used
-throughout the paper.
 
 \begin{figure}
     \centering
@@ -279,88 +281,71 @@ throughout the paper.
 \end{figure}
 
 \textbf{CMS.}
-The core design element of CMS is an array of~$w$ counters, initialized to
-zeros. CMS inserts a key~$x$ by mapping it to a counter in the array using a
-hash function and incrementing the counter. It deletes~$x$ by decrementing its
-counter. CMS estimates the frequency of~$x$ as the counter value it hashes to.
-The top row of \Cref{fig:cms_overview} shows an example of this array along
-with an insertion and a query. Due to hash collisions, multiple keys can map to
-the same counter. Because of this, the in this array may overestimate
-frequencies. Increasing the array's size makes hash collisions less likely and
-improves CMS's \emph{Accuracy}.
+The core design element of CMS is a counter array consisting of~$w$ counters,
+initialized to zeros. CMS inserts a key~$x$ by mapping it to a counter in the
+array using a hash function and incrementing the counter. It deletes~$x$ by
+decrementing its counter. CMS estimates the frequency of~$x$ as the counter
+value it hashes to. The top row of \Cref{fig:cms_overview} shows an example of
+this array along with an insertion and a query. Due to hash collisions,
+multiple keys can map to the same counter. Because of this, CMS may
+overestimate frequencies. Increasing the array's size makes hash collisions
+less likely and improves CMS's \emph{Accuracy}. One can use Markov's inequality
+to show that this counter array yields an error bound of at most~$\frac{eN}{w}$
+with a \emph{Confidence} of at least~$1-1/e$, i.e., $\Pr\left(
+|\hat{f}(x)-f(x)| \leq \frac{eN}{w} \right) \geq 1-1/e$ for any key~$x$.
 
-Yet, no matter the array's size, all keys sharing the same counter as a
-frequent key will suffer from heavily inflated estimates. Such collisions
-reduce CMS's \emph{Confidence} in its results. CMS counteracts this by
-allocating~$d$ independent counter arrays, each with a dedicated hash
-function~$h_i$. CMS inserts or deletes a key by applying the operation to each
-array, and answers a query by querying all arrays and taking the minimum
-estimate.\footnote{CMS ensures a reduction in estimation error by employing
-pairwise-independent hash functions. Doing so bounds the probability of
-collisions and overestimation~\cite{CountMin}.} \Cref{fig:cms_overview} shows
-an example of insertions and queries. Returning the minimum for queries
-improves confidence since it only carries severe errors when all estimates err
-significantly. As such, CMS ensures an error bound of at most~$\frac{eN}{w}$
-with a confidence of~$1-e^{-d}$, i.e., $\Pr\left( |\hat{f}(x)-f(x)| \leq
-\frac{eN}{w} \right) \geq 1-e^{-d}$ for any key~$x$.
+Yet, a single array's confidence is low ($\approx 0.63$). One manifestation of
+this is that all keys sharing the same counter as a frequent key will suffer
+from heavily inflated estimates. CMS addresses this issue by allocating~$d$
+independent counter arrays, each with a dedicated hash function~$h_i$. CMS
+inserts or deletes a key by applying the operation to each array, and answers a
+query by querying all arrays and taking the minimum estimate.\footnote{CMS
+ensures a reduction in estimation error by employing pairwise-independent hash
+functions. Doing so bounds the probability of collisions and
+overestimation~\cite{CountMin}.} \Cref{fig:cms_overview} shows an example of
+insertions and queries applied to three counter arrays. Returning the minimum
+for queries boosts confidence exponentially, since it only carries severe
+errors when all estimates err significantly. The $d$ arrays ensure an error of
+at most~$\frac{eN}{w}$ with a confidence of~$1-e^{-d}$, i.e., $\Pr\left(
+|\hat{f}(x)-f(x)| \leq \frac{eN}{w} \right) \geq 1-e^{-d}$ for any key~$x$.
 
-\textbf{Tradeoffs.}
-CMS avoids storing the stream's keys and only uses a constant number of
-counters that are tightly packed to remove unused space. As such, its memory
-footprint is significantly smaller than the hash table approach. In exchange,
-its estimations are biased since it only overestimates. Moreover, CMS's errors
-compound when the sketch is used in some tasks, particularly those that
-multiply frequencies. One cannot discount the estimates to eliminate their
-bias, as the correction amount varies from key to key and depends on the
-ground-truth frequency. In \Cref{sec:cs}, we describe the Count Sketch and show
-how it achieves unbiased estimation.
-%For example, in join size estimation, multiplying overestimated counts from the input tables leads to an overly large join size.
+CMS avoids storing the stream's keys and only uses a constant number of tightly
+packed counters. As such, it has a significantly smaller memory footprint than
+the exhaustive approach.
 
 \section{Problem Analysis}\label{sec:problem_analysis}
 This section highlights the challenges CMS faces in achieving the two goals
 outlined in~\Cref{sec:introduction}, as well as the limitations of existing
 approaches to improving CMS.
-%Describe how many sketches allocate fixed-length counters to count the items. Since the counters are fixed-length, they must all be large enough to accommodate tha maximum count. As such, many counters will not use their higher-order bits, wasting memory. 
 
 \textbf{Space-Efficient Counters~(G1) and Accuracy.}
 CMS uses fixed-length counters in its arrays. Each counter must be at
-least~$\log_2 N$ bits long to avoid overflowing, as it can become as large
-as~$N$ in the worst case when all of the stream's keys map to it. Yet, since
-hashing spreads the keys uniformly across the counters, most counters will be
-small, leaving many of their bits unused. Ideally, each counter should be just
-long enough to fit its value; i.e., the counters must be variable-length. This
-allows CMS to have more counters under the same memory budget and achieve
-higher accuracy. 
+least~$\log_2 N$ bits long to prevent overflows, as a counter can become as
+large as~$N$ in the worst case when all keys map to it. Despite this, since
+workloads are often skewed, most counters will be small and many of their bits
+will be unused. Ideally, each counter should be just long enough to fit its
+value. This allows CMS to have more counters under the same memory budget and
+achieve higher accuracy. One method of achieving this is using variable-length
+counters, which comes at the cost of having additional metadata for delimiting
+them. Moreover, such counters may not support random access, compromising
+performance. Another approach is to leverage compression, which introduces
+decompression overheads to the query
+path~\cite{TreeSensing,BitSense,CodingSketch}. The challenge lies in minimizing
+the memory overhead while maintaining high performance.
 
-CMS requires additional metadata to locate the beginning and end of
-variable-length counters. The challenge is to minimize the amount of metadata
-to improve space efficiency. In practice, one can only afford~$\approx 1$ bit
-of metadata per counter. This is because many counter values never exceed 127
-in realistic configurations~\cite{StingySketch} and thus fit in at most 7 bits,
-implying that having 2 metadata bits per counter translates to a memory
-overhead of at least~$\approx 30\%$.
-
-%Give an overview of the current methods and how the trade speed for space-efficiency.
-%It is important to optimize for both cache and CPU efficiency to make the sketches useful for write-heavy database workloads and line-speed network monitoring.
-
-\textbf{Pitfall of Supporting~(G1): Counter Sharing.} 
 Many sketches achieve~(G1) by using short counters and storing the overflows in
 ``shared'' pieces of memory. For example, \cite{SALSA} merges an overflowing
-counter with its adjacent counter to create a longer counter storing their
-aggregate value. Other
+counter with its adjacent counter to create a longer counter that aggregates
+their value. Other
 sketches~\cite{BitSense,PyramidSketch,StingySketch,AdaptiveCounterSplicing,CounterTree,TreeSensing}
 allocate a small number of counter fragments, each acting as the higher-order
-bits of multiple short counters. A counter's value is retrieved by
-concatenating its fragments. Counter sharing negatively impacts accuracy, as it
-blows up many otherwise small counters. Sketchbook attains~(G1) without counter
-sharing, avoiding the drop in accuracy.
-
-Moreover, counter sharing couples the counter values together, altering their
-statistical behavior. This complicates the integration of other orthogonal
-techniques, such as using Bayesian inference for improving
-accuracy~\cite{BayesianSketches} and applying the convolution operator for
-join-size estimation~\cite{ConvolutionSketch}. By avoiding counter sharing,
-Sketchbook allows for seamless integration of these techniques.
+bits of multiple short counters. Counter sharing negatively impacts accuracy,
+as it blows up many otherwise small counters. Accuracy further deteriorates
+when the sketch processes deletions, as counter sharing ambiguates how counters
+must be ``separated'' once they become small. Moreover, counter sharing couples
+the counter values together, altering their statistical behavior and thus
+complicating the integration of other orthogonal improvements to
+CMS~\cite{BayesianSketches,ConvolutionSketch}.
 
 \textbf{Handling Streams of Unknown Length~(G2).}
 In many applications, such as counting SQL table entries or tracking network
@@ -369,55 +354,17 @@ unknown. Since the error of CMS (and other sketches) scales linearly with~$N$,
 the value of which is hard to predict, practitioners are faced with the
 challenge of tuning the sketch's size to control the error. If the sketch is
 too small, the estimates will have significant errors, and if it is too large,
-memory is wasted. Sketchbook overcomes this challenge by expanding along with
-the stream, minimizing memory wastage, and achieving sub-linear errors.
-
-\textbf{Maintaining High Performance.} 
-While variable-length counters significantly reduce memory consumption~(G1),
-accessing and updating them is costly. This stems from the counters no longer
-being word-aligned and requiring extra logic to parse. The parsing overhead is
-even higher in methods that compute a highly compressed sketch and decompress
-it to answer queries. These methods are unsuitable for online query processing,
-as the decompression algorithm typically entails heavy-weight algorithms such
-as compressive sensing~\cite{TreeSensing,BitSense} and hyper-graph
-peeling~\cite{CodingSketch}, limiting their applicability. Sketchbook achieves
-high performance by avoiding expensive decompression algorithms, ensuring that
-each counter is fully contained within a single cache line, prefetching these
-cache lines, and employing lookup tables and specialized CPU instructions to
-manipulate them efficiently.
-
-Handling unknown stream lengths~(G2) introduces additional overheads, as
-updates must also expand CMS. It may also adversely impact queries, as they
-must probe a more complex structure. Minimizing these performance overheads is
-critical for many applications, such as network monitoring, where CMS must
-process packets at line
-speed~\cite{SketchBasedChangeDetection,WhatsNew,TrafficManagementSurvey}.
-Sketchbook addresses this problem by leveraging SIMD to optimize expansions and
-by maintaining a read-optimized sketch to speed up queries.
-
-\textbf{Supporting Deletes.}
-Deletions reduce the number of keys in the stream~$N$, improving CMS's
-accuracy. Yet, if~$N$ drops disproportionally to the memory budget, CMS's
-overly large memory yields diminishing returns in accuracy. To address this
-issue and attain~(G2) while maintaining space efficiency and accuracy, the
-sketch must contract. Moreover, to meet~(G1), each counter in the sketch must
-handle deletions gracefully, shortening whenever possible to allow for more
-counters and improve accuracy. This is particularly challenging for methods
-using counter sharing, as it is unclear how to ``separate'' the counters once
-they become small.
-
-\textbf{Case Study: Stingy Sketch.}
-I'm wondering if we need this at this point. It would be nice to illustrate the
-points above with an example, but I'm unsure about how interesting or
-beneficial it may be for the reader.
+memory is wasted. Moreover, $N$ may fluctuate over time due to the stream
+having both insertions and deletions. Thus, the ideal sketch must maintain a
+memory footprint proportional to~$N$ to bound the error without wasting space.
 
 \textbf{Summary.}
 Although much research has gone into achieving space-efficient counters~(G1),
-existing sketches either 1)~use counter sharing and thus inherit its downsides,
-2)~are inefficient, or 3)~do not support deletes. Moreover, no work explores
-the idea of expanding sketches to handle streams of unknown length~(G2). Is it
-possible to design a sketch that achieves~(G1) and (G2) while maintaining high
-performance and supporting deletes?
+existing sketches either (1)~use counter sharing and thus inherit its
+downsides, (2)~are inefficient, or (3)~do not support deletes. Moreover, no
+work attempts to handle streams of unknown length~(G2). Is it possible to
+design a sketch that achieves~(G1) and (G2) while maintaining high performance
+and supporting deletes?
 
 \section{Sketchbook}\label{sec:sketchbook} 
 We present Sketchbook, a general framework for memory-efficient frequency
@@ -450,8 +397,8 @@ of the spill mechanism. Go into details as to how having 6-bit stub counters
 and 2-bit extensions allows us to fit the encoding of these 64 counters neatly
 into a 512-bit cache line, yielding good cache behavior.
 
-\textbf{Stub Counters Array.} 
-Given a logical array of counters, Sketchbook encodes it by first allocating an
+\textbf{Stub Counters.} 
+Given a logical counter array, Sketchbook encodes it by first allocating an
 array of small, $b$-bit counters to each. Each stub counter encodes the~$b$
 least-significant bits of its logical counter. Here, $b$ is a tuning parameter
 denoting the width we expect each counter to be. We have found~$b=6$ is
@@ -464,7 +411,7 @@ To this end, we employ a contiguous overflowed bitmap to indicate which stub
 counters have reached their limit and have overflowed. For any overflowed
 counter, we encode the remaining higher-order bits using~$b'$-bit extensions.
 
-\textbf{Extensions Array.}
+\textbf{Extensions.}
 Explain that the~$b'$-bit extensions represent the value of the counter's
 higher-order bits in base-$(2^{b'}-1)$. Explain that we pack all extensions
 contiguously into an extensions array, forming runs. State that we reserved one
@@ -555,12 +502,20 @@ sketches during contractions to reconstruct the final chain sketch, we need to
 store the entire chain.
 
 \subsection{Generalization to Count Sketch}\label{sec:cs}
-\textbf{Count Sketch (CS).}
-Unlike CMS, CS provides unbiased estimates of a key's frequency. The third row
-of \Cref{tab:classical_sketch_stats} summarizes the properties of CS and
-compares it to CMS.
+%For example, in join size estimation, multiplying overestimated counts from the input tables leads to an overly large join size.
 
-The core component of CS is an array of~$w$ counters coupled with a hash
+
+\textbf{Count Sketch (CS).}
+CMS has two key shortcomings: (1)~its estimations are biased since it only
+overestimates and (2)~its errors compound when it is used in some tasks,
+particularly those that multiply frequencies. One cannot discount CMS's
+estimates to eliminate their bias, as the correction amount varies from key to
+key and depends on the ground-truth frequency. CS addresses these issues by
+providing unbiased estimates. The third row of
+\Cref{tab:classical_sketch_stats} summarizes the properties of CS and compares
+it to CMS.
+
+The core component of CS is a counter array of size~$w$ coupled with a hash
 function~$h_i$ mapping a key to a counter. CS further associates with each key
 a random ``update direction'' from the set~$\{-1,+1\}$ by hashing it with
 another hash function~$\sigma_i$.\footnote{The~$\sigma_i$ form a 4-wise
@@ -649,10 +604,10 @@ growth to~$O(\sqrt{N})$ (vs.~$N$) when the summands are small.
 \subsection{Generalization to Misra-Gries}\label{sec:mg}
 \textbf{Misra-Gries (MG).}
 As skew increases, using dedicated counters to track the hottest keys yields
-higher accuracy for the same memory compared to hashing them into an array of
-counters. MG applies this insight to provide more accurate estimates under
-skewed workloads. The third row of \Cref{tab:classical_sketch_stats} summarizes
-the properties of MG and compares it to CMS and CS.
+higher accuracy for the same memory compared to hashing them into a counter
+array. MG applies this insight to provide more accurate estimates under skewed
+workloads. The third row of \Cref{tab:classical_sketch_stats} summarizes the
+properties of MG and compares it to CMS and CS.
 
 \begin{figure}
     \centering
