@@ -171,9 +171,9 @@ appears in the stream and~$\Delta_i = \pm1$ represents whether its count was
 incremented ($\Delta_i=1$) or decremented ($\Delta_i=-1$). This is known as the
 \emph{General Turnstile Model} of data streams~\cite{StreamModels}. The
 quantity~$N=\sum_i \Delta_i$ represents the current total count of the keys in
-the stream. A frequency estimation sketch provides an estimate~$\hat{f}(x)$ of
-key~$x$'s count~$f(x)$. \Cref{tab:term_and_symbol_definitions} lists the terms
-and symbols used throughout the paper.
+the stream, and~$f(x)$ denotes key~$x$'s count.
+\Cref{tab:term_and_symbol_definitions} lists the terms and symbols used
+throughout the paper.
 
 \textbf{Exhaustive Approach.}
 The simplest approach to tracking frequencies is to store each key and its
@@ -181,16 +181,17 @@ count in a hash table. Although this approach accurately tracks each key's
 count, it entails a high memory overhead for four reasons: (1)~It stores all
 keys in the stream. Variable-length keys worsen this overhead since they require an
 indirection layer (e.g., pointers). (2)~It stores one counter for each
-unique key. (3)~Since the counters are fixed-length, each of them must be long
-enough to accommodate the maximum count, even if most keys have a very low
-count. (4)~The hash table may occasionally be as much as half empty to support
+unique key. (3)~The hash table may occasionally be as much as half empty to support
 collision resolution and expansions. These different overheads multiply with
 the number of streams the application monitors. Problems~(1) and (2) imply a
 memory footprint that is linear in the number of unique keys in the stream,
 which can be as large as the total key count~$N$.
 
-Frequency estimation sketches address problems~(1), (2), and (4) by trading
-accuracy for space. We focus on Count-Min Sketch~\cite{CountMin} in our
+%(3)~Since the counters are fixed-length, each of them must be long enough to accommodate the maximum count, even if most keys have a very low count.
+
+Frequency estimation sketches address these problems by trading accuracy for
+space. That is, for any key~$x$, a sketch returns an estimate~$\hat{f}(x)$ of
+$x$'s count~$f(x)$. We focus on Count-Min Sketch~\cite{CountMin} in our
 discussion since it is the simplest and most widely used
 sketch~\cite{ADSMassiveDatasetBook,SketchesTrafficManagementSurvey}. Later, we
 introduce other sketches such as Count Sketch~\cite{CountSketch}
@@ -218,8 +219,8 @@ our techniques to them.
         $\sigma_i(x)$ & Hash function defining key~$x$'s update direction ($\pm 1$). \\
         $N^{\text{res}(i)}$ & Total count of all but the~$i$ hottest keys. \\
         \cmidrule{1-2}
-        AAE & Average Absolute Error, i.e., $\text{avg}_x|f(x) - \hat{f}(x)|$. \\
-        ARE & Average Relative Error, i.e., $\text{avg}_x\frac{|f(x) - \hat{f}(x)|}{f(x)}$. \\
+        AAE & Average Absolute Error, i.e., $\text{avg}_x|\hat{f}(x) - f(x)|$. \\
+        ARE & Average Relative Error, i.e., $\text{avg}_x\frac{|\hat{f}(x) - f(x)|}{f(x)}$. \\
         %\makecell[c]{Top-$w$ \\[-2pt] AAE} & Average Absolute Error among the~$w$ hottest items. \\
         \bottomrule
     \end{tabular}
@@ -282,22 +283,25 @@ our techniques to them.
 
 \textbf{Count-Min Sketch (CMS).}
 The core design element of CMS is a counter array consisting of~$w$ counters,
-each initialized to zero. CMS inserts a key~$x$ by hashing it to a counter in
-the array and incrementing the counter. It deletes~$x$ by decrementing its
-corresponding counter. CMS estimates the count of~$x$ as the counter value it
-hashes to. Due to hash collisions, multiple keys can map to the same counter.
-Because of this, CMS may overestimate frequencies. Increasing the array's size
-makes hash collisions less likely and improves CMS's \emph{Accuracy}. Due to
-the randomness of hashing, CMS's estimates are only sometimes as accurate as
-expected, the probability of which is the sketch's \emph{Confidence}. A
-straight-forward application of Markov's inequality shows that the counter
-array yields an accuracy bound of at most~$\frac{eN}{w}$ with a confidence of
-at least~$1-1/e$, i.e., $\Pr\left( |\hat{f}(x)-f(x)| \leq \frac{eN}{w} \right)
-\geq 1-1/e$ for any key~$x$.\footnote{We use Euler's constant~$e$ in the
-analysis due to convention. Any other constant would also work and would
-replace~$e$ in both the accuracy bound and the confidence. This implies that
-the smaller the constant becomes, i.e., the more accurate we expect the sketch
-to be, the lower confidence drops.}
+each initialized to zero. We insert a key~$x$ into this array by hashing it to
+one counter and incrementing it. We delete~$x$ by decrementing its
+corresponding counter. The counter~$x$ hashes to estimates its count. Due to
+hash collisions, multiple keys can map to the same counter. Because of this, we
+may overestimate the count of a key. This error is at most~$\frac{N}{w}$ in
+expectation since a key participates in a hash collision with a probability
+of~$\frac{1}{w}$ and the total count of different keys is at most~$N$.
+Increasing the array's size makes collisions less likely, thereby decreasing
+the error and improving \emph{Accuracy}. Yet, in reality, the error may deviate
+from its expectation. The probability that errors do not exceed the expectation
+``too much'' is known as the sketch's \emph{Confidence}. A straight-forward
+application of Markov's inequality shows that the error does not
+exceed~$\frac{eN}{w}$ with a confidence of at least~$1-1/e$, i.e., $\Pr\left(
+|\hat{f}(x)-f(x)| \leq \frac{eN}{w} \right) \geq 1-1/e$ for any
+key~$x$.\footnote{We use Euler's constant~$e$ in the analysis due to
+convention. Any other constant would also work and would replace~$e$ in both
+the accuracy bound and the confidence. This implies that the smaller the
+constant becomes, i.e., the more accurate we expect the sketch to be, the lower
+confidence drops.}
 
 Yet, with a single array, confidence is low ($\approx 63\%$). The reason is
 that all keys sharing the same counter as a frequent key (or many infrequent
@@ -305,77 +309,73 @@ keys) will suffer from inflated estimates. CMS addresses this issue by
 allocating~$d$ independent counter arrays, each with a dedicated hash
 function~$h_i$. CMS inserts or deletes a key by applying the operation to each
 array, and answers a query by querying all arrays and taking the minimum of the
-estimates.\footnote{CMS ensures a reduction in estimation error by employing
-pairwise-independent hash functions. Doing so bounds the probability of
-collisions and overestimation~\cite{CountMin}.} \Cref{fig:cms_overview} shows
-an example of insertions and queries applied to three counter arrays. Returning
-the minimum for queries boosts confidence exponentially, since it only carries
-severe errors when all estimates err significantly. The $d$ arrays ensure an
-error of at most~$\frac{eN}{w}$ with a confidence of~$1-e^{-d}$, i.e.,
-$\Pr\left( |\hat{f}(x)-f(x)| \leq \frac{eN}{w} \right) \geq 1-e^{-d}$ for any
-key~$x$.
+estimates.\footnote{CMS uses pairwise-independent hash functions to bound the
+probability of collisions and overestimation~\cite{CountMin}.}
+\Cref{fig:cms_overview} shows an example of insertions and queries applied to
+three counter arrays. Returning the minimum for queries boosts confidence
+exponentially, since it only carries severe errors when all estimates err
+significantly. The $d$ arrays ensure an error of at most~$\frac{eN}{w}$ with a
+confidence of~$1-e^{-d}$, i.e., $\Pr\left( |\hat{f}(x)-f(x)| \leq \frac{eN}{w}
+\right) \geq 1-e^{-d}$ for any key~$x$.
 
-CMS avoids storing the stream's keys, thereby resolving problem~(1) of the
+CMS does not store the stream's keys, thereby resolving problem~(1) of the
 exhaustive approach. Moreover, it uses a constant number of tightly packed
-counters, addressing problems~(2) and (4) as well. Therefore, CMS benefits from
-a much smaller memory footprint. Yet, CMS (and other sketches) still suffer
-from problem~(3), i.e., having long fixed-length counters to prevent overflows.
+counters, addressing problems~(2) and (3) as well. Therefore, CMS benefits from
+a much smaller memory footprint. Nevertheless, CMS still suffers from several
+memory inefficiencies, as we show in the following section.
 
 \section{Problem Analysis}\label{sec:problem_analysis}
-Although CMS greatly reduces the space required for frequency estimation, it
-fails to attain goals~(G1) and (G2).
+We now illustrate that CMS often uses far more memory than necessary by
+(P1)~fixing the length of each of its counters and (P2)~fixing the number of
+counters in each array.
 
-\textbf{Space-Efficient Counters~(G1).}
-CMS uses fixed-length counters in its arrays. Since a counter can become as
-large as the total key count~$N$, it must be at least~$\log_2 N$ bits long to
-prevent overflows. Since workloads are often skewed, most counters will be
-small and many of their bits will be unused.
+\textbf{(P1)~Fixed-Length Counters.}
+CMS uses fixed-length counters in its arrays. To prevent overflows, each
+counter must be long enough to accommodate the maximum counter value, which can
+be as large as the total key count~$N$. Since workloads are often skewed, most
+counters will be small and many of their bits will be unused.
 
 Ideally, each counter should be just long enough to fit its value. This would
-allow CMS to have more counters under the same memory budget and achieve higher
-accuracy. One method of achieving this is to leverage
-compression~\cite{TreeSensing,BitSense,CodingSketch}, which introduces
-decompression overheads to the query path. Another approach is using
-variable-length
-counters~\cite{SALSA,BitSense,PyramidSketch,StingySketch,AdaptiveCounterSplicing,CounterTree,TreeSensing},
-which comes at the cost of having additional metadata for delimiting them.
-Moreover, such counters may compromise performance by not supporting random
-access. The challenge lies in minimizing the memory overhead while maintaining
-high performance.
+save space, or, conversely, enable having more counters under the same memory
+budget to improve accuracy. One method of achieving this is to compress them
+using algorithms such as compressive sensing~\cite{TreeSensing,BitSense} or
+hypergraph peeling~\cite{CodingSketch}. These approaches introduce heavy
+decompression overheads to queries.
 
-Many sketches implement variable-length counters by employing short counters
-and storing their overflows in ``shared'' counters. For example, \cite{SALSA}
-merges an overflowing counter with its adjacent counter to create a longer
-counter that aggregates their value. Other
+Another approach is to implement variable-length counters by using short
+counters upfront and allowing overflows to spill into ``shared'' counters. For
+example, \cite{SALSA} merges an overflowing counter with an adjacent counter to
+create a longer counter that aggregates their value. Other
 sketches~\cite{BitSense,PyramidSketch,StingySketch,AdaptiveCounterSplicing,CounterTree,TreeSensing}
 allocate a small number of counter fragments, each acting as the higher-order
 bits of multiple short counters. Counter sharing negatively impacts accuracy,
 as it blows up many otherwise small counters. Accuracy further deteriorates
-when the sketch processes deletions, as counter sharing ambiguates how counters
-must be ``separated'' once they become small. Moreover, counter sharing couples
-the counter values together, altering their statistical behavior and thus
-complicating the integration of other orthogonal improvements to
-CMS~\cite{BayesianSketches,ConvolutionSketch}. We present the first
-variable-length counter encoding that avoids counter sharing.
+when keys are deleted, as counter sharing ambiguates how counters must be
+``separated'' once they become small. Moreover, counter sharing couples the
+counter values, complicating the integration of other orthogonal improvements
+to CMS~\cite{BayesianSketches,ConvolutionSketch}. 
 
-\textbf{Handling Streams of Unknown Length~(G2).}
-In many applications, the total key count~$N$ is unknown. Examples include
-counting SQL table entries and tracking network activity in a fixed time
-interval. Since the error of CMS (and other sketches) scales linearly with~$N$,
-the value of which is hard to predict, practitioners are faced with the
-challenge of tuning the sketch's size to control the error. If the sketch is
-too small, the estimates will have significant errors. If it is too large,
-memory is wasted. Moreover, $N$ may fluctuate over time due to the stream
-having both insertions and deletions. Thus, the ideal sketch must maintain a
-memory footprint that scales with~$N$ to bound the error without wasting space.
+\textbf{(P2)~Fixed-Size Sketch.}
+Many applications monitor continually changing streams. In such cases, the
+total key count~$N$ can grow and is therefore unknown upfront. Counting SQL
+table entries in OLTP or HTAP workloads and tracking network activity in a
+fixed time interval are examples of such applications. Since the error of a
+fixed-size CMS (and other sketches) scales linearly with~$N$, practitioners are
+faced with the challenge of controlling the sketch's error by tuning its size,
+i.e., the number of counters in each array, without knowing the ultimate value
+of~$N$. The crux of the problem is that if the sketch has too few counters, its
+estimates will have significant errors. If it has too many counters, memory is
+wasted. Moreover, $N$ may fluctuate over time due to the stream having both
+insertions and deletions. The ideal sketch must scale its memory footprint
+with~$N$ to bound the error without wasting space.
 
 \textbf{Summary.}
-Although much research has gone into achieving space-efficient counters~(G1),
-existing sketches either (1)~suffer from the accuracy issues of counter
-sharing, (2)~are slow, or (3)~have accuracy drops when deleting keys. Moreover,
-no work to date has attempted to handle streams of unknown length~(G2). Is it
-possible to design a sketch that achieves~(G1) and (G2) while maintaining high
-performance and accurate support of deletions?
+Although much research has gone into resolving~(P1) with space-efficient
+counters, existing sketches either (1)~suffer from the accuracy issues of
+counter sharing, (2)~are slow, or (3)~have accuracy drops when deleting keys.
+Moreover, no work to date has attempted to address~(P2) by resizing the sketch.
+Is it possible to design a sketch that resolves~(P1) and (P2) while maintaining
+high performance and accurate support of deletions?
 
 \section{Sketchbook}\label{sec:sketchbook} 
 We present Sketchbook, a general framework for memory-efficient frequency
@@ -399,7 +399,7 @@ number of rows and thus omit it from our discussion. For concreteness, we
 describe our techniques applied to CMS as a running example and generalize them
 to other sketches in Sections~\ref{sec:cs} and \ref{sec:mg}.
 
-\subsection{Expanding Counters}\label{sec:expanding_counters}
+\subsection{Variable-Length Counters}\label{sec:expanding_counters}
 
 \textbf{Chunking.} 
 Describe how we apply the our techniques to chunks of 64 counters each to
@@ -751,8 +751,8 @@ keys with zero counts.
         & \footnotesize $O(d)$ \\
 
         \footnotesize MG 
-        & \scriptsize High
         & \scriptsize Under 
+        & \scriptsize High
         & \footnotesize $\min_i \frac{N^{\text{res}(i)}}{w-i+1}$ 
         & \footnotesize 1 
         & \footnotesize $O(\log w)$ 
