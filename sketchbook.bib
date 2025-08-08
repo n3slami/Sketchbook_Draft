@@ -698,30 +698,30 @@
 }
 
 @inproceedings{FlorianRankandSelect,
-    author       = {Kurpicz, Florian},
-    year         = {2022},
-    title        = {Engineering Compact Data Structures for Rank and Select
-        Queries on Bit Vectors},
-    pages        = {257–272},
-    eventtitle   = {29th International Symposium on String Processing and
+    author={Kurpicz, Florian},
+    year={2022},
+    title={Engineering Compact Data Structures for Rank and Select Queries on
+        Bit Vectors},
+    pages={257–272},
+    eventtitle={29th International Symposium on String Processing and
         Information Retrieval},
-    eventtitleaddon = {SPIRE 2022},
-    eventdate    = {2022-11-08/2022-11-10},
-    venue        = {Concepci{\'{o}}n, Chile},
-    booktitle    = {String Processing and Information Retrieval {\textendash }
-        29th International Symposium, SPIRE 2022, Concepci{\'{o}}n, Chile,
-             November 8{\textendash }10, 2022, Proceedings. Ed.: D. Arroyuelo},
-    doi          = {10.1007/978-3-031-20643-6_19},
-    publisher    = {{Springer International Publishing}},
-    isbn         = {978-3-031-20643-6},
-    issn         = {0302-9743},
-    series       = {Lecture Notes in Computer Science},
-    language     = {english},
-    volume       = {13617}
+    eventtitleaddon={SPIRE 2022},
+    eventdate={2022-11-08/2022-11-10},
+    venue={Concepci{\'{o}}n, Chile},
+    booktitle={String Processing and Information Retrieval {\textendash } 29th
+        International Symposium, SPIRE 2022, Concepci{\'{o}}n, Chile, November
+            8{\textendash }10, 2022, Proceedings. Ed.: D. Arroyuelo},
+    doi={10.1007/978-3-031-20643-6_19},
+    publisher={Springer International Publishing},
+    isbn={978-3-031-20643-6},
+    issn={0302-9743},
+    series={Lecture Notes in Computer Science},
+    language={english},
+    volume={13617}
 }
 
 @phdthesis{CompactPATTrees,
-    author={{Clark, David}},
+    author={Clark, David},
     title={Compact PAT trees},
     year={1997},
     publisher="UWSpace",
@@ -729,14 +729,14 @@
 }
 
 @inproceedings{RankandSelectDict,
-    author = {Okanohara, Daisuke and Sadakane, Kunihiko},
-    title = {Practical entropy-compressed rank/select dictionary},
-    year = {2007},
-    publisher = {Society for Industrial and Applied Mathematics},
-    address = {USA},
-    abstract = {Rank/Select dictionaries are data structures for an ordered set
-        S ⊂ {0,1, . . ., n − 1} to compute rank(x, S) (the number of elements
-                in S that are no greater than x), and select(i, S) (the i-th
+    author={Okanohara, Daisuke and Sadakane, Kunihiko},
+    title={Practical entropy-compressed rank/select dictionary},
+    year={2007},
+    publisher={Society for Industrial and Applied Mathematics},
+    address={USA},
+    abstract={Rank/Select dictionaries are data structures for an ordered set S
+        ⊂ {0,1, . . ., n − 1} to compute rank(x, S) (the number of elements in
+                S that are no greater than x), and select(i, S) (the i-th
                     smallest element in S), which are the fundamental
                 components of succinct data structures of strings, trees,
         graphs, etc.. In these data structures, however, only asymptotic
@@ -750,11 +750,66 @@
             characteristics of our data structures and also show that these
             data structures are superior to existing implementations, both in
             terms of size and query time.},
-    booktitle = {Proceedings of the Meeting on Algorithm Engineering \&
+    booktitle={Proceedings of the Meeting on Algorithm Engineering \&
         Expermiments},
-    pages = {60–70},
-    numpages = {11},
-    location = {New Orleans, Louisiana}
+    pages={60–70},
+    numpages={11},
+    location={New Orleans, Louisiana}
+}
+
+@inproceedings{GQF,
+    author={Pandey, Prashant and Bender, Michael A. and Johnson, Rob and Patro, Rob},
+    title={A General-Purpose Counting Filter: Making Every Bit Count},
+    year={2017},
+    isbn={9781450341974},
+    publisher={Association for Computing Machinery},
+    address={New York, NY, USA},
+    url={https://doi.org/10.1145/3035918.3035963},
+    doi={10.1145/3035918.3035963},
+    abstract={Approximate Membership Query (AMQ) data structures, such as the
+        Bloom filter, quotient filter, and cuckoo filter, have found numerous
+            applications in databases, storage systems, networks, computational
+            biology, and other domains. However, many applications must work
+            around limitations in the capabilities or performance of current
+            AMQs, making these applications more complex and less performant.
+            For example, many current AMQs cannot delete or count the number of
+            occurrences of each input item, take up large amounts of space, are
+            slow, cannot be resized or merged, or have poor locality of
+            reference and hence perform poorly when stored on SSD or disk. This
+            paper proposes a new general-purpose AMQ, the counting quotient
+            filter (CQF). The CQF supports approximate membership testing and
+            counting the occurrences of items in a data set. This
+            general-purpose AMQ is small and fast, has good locality of
+            reference, scales out of RAM to SSD, and supports deletions,
+        counting (even on skewed data sets), resizing, merging, and highly
+            concurrent access. The paper reports on the structure's performance
+            on both manufactured and application-generated data sets.In our
+            experiments, the CQF performs in-memory inserts and queries up to
+            an order-of magnitude faster than the original quotient filter,
+        several times faster than a Bloom filter, and similarly to the cuckoo
+            filter, even though none of these other data structures support
+            counting. On SSD, the CQF outperforms all structures by a factor of
+            at least 2 because the CQF has good data locality.The CQF achieves
+            these performance gains by restructuring the metadata bits of the
+            quotient filter to obtain fast lookups at high load factors (i.e.,
+                    even when the data structure is almost full). As a result,
+        the CQF offers good lookup performance even up to a load factor of
+            95\%. Counting is essentially free in the CQF in the sense that the
+            structure is comparable or more space efficient even than
+            non-counting data structures (e.g., Bloom, quotient, and cuckoo
+                    filters).The paper also shows how to speed up CQF
+            operations by using new x86 bit-manipulation instructions
+            introduced in Intel's Haswell line of processors. The restructured
+            metadata transforms many quotient filter metadata operations into
+            rank-and-select bit-vector operations. Thus, our efficient
+            implementations of rank and select may be useful for other
+            rank-and-select-based data structures.},
+    booktitle={Proceedings of the 2017 ACM International Conference on Management of Data},
+    pages={775–787},
+    numpages={13},
+    keywords={bloom filters and hashing, sketching and sampling, computational biology, network monitoring},
+    location={Chicago, Illinois, USA},
+    series={SIGMOD '17}
 }
 
 @inproceedings{PartitionedEliasFano,
@@ -2418,4 +2473,129 @@
     volume={59},
     journal={Communications on Pure and Applied Mathematics},
     doi={10.1002/cpa.20132}
+}
+
+@article{Backyarding1,
+    author={Peterson, W. W.},
+    title={Addressing for random-access storage},
+    year={1957},
+    issue_date={April 1957},
+    publisher={IBM Corp.},
+    address={USA},
+    volume={1},
+    number={2},
+    issn={0018-8646},
+    url={https://doi.org/10.1147/rd.12.0130},
+    doi={10.1147/rd.12.0130},
+    abstract={Estimates are made of the amount of searching required for the
+        exact location of a record in several types of storage systems,
+        including the index-table method of addressing and the sorted-file
+            method. Detailed data and formulas for access time are given for an
+            "open" system which offers high flexibility and speed of access.
+            Experimental results are given for actual record files.},
+    journal={IBM J. Res. Dev.},
+    month=apr,
+    pages={130–146},
+    numpages={17}
+}
+
+@book{Backyarding2,
+    author={Vitter, Jeffrey S. and Chen, Wen-Chin},
+    title={The design and analysis of coalesced hashing},
+    year={1987},
+    isbn={0195041828},
+    publisher={Oxford University Press, Inc.},
+    address={USA}
+}
+
+@article{BackyardCuckooHashing,
+    title={Backyard Cuckoo Hashing: Constant Worst-Case Operations with a
+        Succinct Representation},
+    author={Yuriy Arbitman and Moni Naor and Gil Segev},
+    journal={2010 IEEE 51st Annual Symposium on Foundations of Computer Science},
+    year={2009},
+    pages={787-796},
+    url={https://api.semanticscholar.org/CorpusID:5544423}
+}
+
+@article{DeamortizedCuckooHashing,
+    title={Fully De-Amortized Cuckoo Hashing for Cache-Oblivious Dictionaries
+        and Multimaps},
+    author={Michael T. Goodrich and Daniel S. Hirschberg and Michael
+        Mitzenmacher and Justin Thaler},
+    journal={ArXiv},
+    year={2011},
+    volume={abs/1107.4378},
+    url={https://api.semanticscholar.org/CorpusID:5359265}
+}
+
+@InProceedings{CacheObliviousDictionaries,
+    author={Goodrich, Michael T. and Hirschberg, Daniel S. and Mitzenmacher,
+        Michael and Thaler, Justin},
+    editor={Even, Guy and Rawitz, Dror},
+    title={Cache-Oblivious Dictionaries and Multimaps with Negligible Failure
+        Probability},
+    booktitle={Design and Analysis of Algorithms},
+    year={2012},
+    publisher={Springer Berlin Heidelberg},
+    address={Berlin, Heidelberg},
+    pages={203--218},
+    abstract={A dictionary (or map) is a key-value store that requires all keys
+        be unique, and a multimap is a key-value store that allows for multiple
+            values to be associated with the same key. We design hashing-based
+            indexing schemes for dictionaries and multimaps that achieve
+            worst-case optimal performance for lookups and updates, with
+            minimal space overhead and sub-polynomial probability that the data
+            structure will require a rehash operation. Our dictionary structure
+            is designed for the Random Access Machine (RAM) model, while our
+            multimap implementation is designed for the cache-oblivious
+            external memory (I/O) model. The failure probabilities for our
+            structures are sub-polynomial, which can be useful in cryptographic
+            or data-intensive applications.},
+    isbn={978-3-642-34862-4}
+}
+
+@article{IcebergHashing,
+    author={Bender, Michael A. and Conway, Alex and Farach-Colton, Mart\'{\i}n
+        and Kuszmaul, William and Tagliavini, Guido},
+    title={Iceberg Hashing: Optimizing Many Hash-Table Criteria at Once},
+    year={2023},
+    issue_date={December 2023},
+    publisher={Association for Computing Machinery},
+    address={New York, NY, USA},
+    volume={70},
+    number={6},
+    issn={0004-5411},
+    url={https://doi.org/10.1145/3625817},
+    doi={10.1145/3625817},
+    abstract={Despite being one of the oldest data structures in computer
+        science, hash tables continue to be the focus of a great deal of both
+            theoretical and empirical research. A central reason for this is
+            that many of the fundamental properties that one desires from a
+            hash table are difficult to achieve simultaneously; thus many
+            variants offering different trade-offs have been proposed.This
+            article introduces Iceberg hashing, a hash table that
+            simultaneously offers the strongest known guarantees on a large
+            number of core properties. Iceberg hashing supports constant-time
+            operations while improving on the state of the art for space
+            efficiency, cache efficiency, and low failure probability. Iceberg
+            hashing is also the first hash table to support a load factor of up
+            to 1 - o(1) while being stable, meaning that the position where an
+            element is stored only ever changes when resizes occur. In fact, in
+            the setting where keys are Θ (log n) bits, the space guarantees
+            that Iceberg hashing offers, namely that it uses at most (log
+                    binom{|U|}{n} + O(n log  text{log} n))  bits to store n
+            items from a universe U, matches a lower bound by Demaine
+            et&nbsp;al. that applies to any stable hash table.Iceberg hashing
+            introduces new general-purpose techniques for some of the most
+            basic aspects of hash-table design. Notably, our indirection-free
+            technique for dynamic resizing, which we call waterfall addressing,
+        and our techniques for achieving stability and very-high probability
+            guarantees, can be applied to any hash table that makes use of the
+            front-yard/backyard paradigm for hash table design.},
+    journal={J. ACM},
+    month=nov,
+    articleno={40},
+    numpages={51},
+    keywords={Hashing, stability, dynamic resizing}
 }
