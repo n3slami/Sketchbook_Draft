@@ -177,15 +177,15 @@ used throughout the paper.
 
 \textbf{Exhaustive Approach.}
 The simplest approach to tracking frequencies is to store each key and its
-count in a hash table. Although this approach accurately tracks each key's
-count, it entails a high memory overhead for four reasons: (i)~It stores all
-keys in the stream. Variable-length keys worsen this overhead since they
-require an indirection layer (e.g., pointers). (ii)~It stores one counter for
-each unique key. (iii)~The hash table may occasionally be as much as half empty
-to support collision resolution and expansions. These different overheads
-multiply with the number of streams the application monitors. Problems~(i) and
-(ii) imply a memory footprint that is linear in the number of unique keys in
-the stream, which can be of the same magnitude as the total key count~$N$.
+count in a hash table. Although this approach is fully accurate, it entails a
+high memory overhead for three reasons: (i)~It stores all keys in the stream.
+Variable-length keys worsen this overhead since they require an indirection
+layer (e.g., pointers). (ii)~It stores one counter for each unique key.
+(iii)~The hash table may occasionally be as much as half empty to support
+collision resolution and expansions. These different overheads multiply with
+the number of streams the application monitors. Problems~(i) and (ii) imply a
+memory footprint that is linear in the number of unique keys in the stream,
+which can be of the same magnitude as the total key count~$N$.
 
 %(3)~Since the counters are fixed-length, each of them must be long enough to accommodate the maximum count, even if most keys have a very low count.
 
@@ -194,7 +194,7 @@ space. That is, for any key~$x$, a sketch returns an estimate~$\hat{f}(x)$ of
 $x$'s count~$f(x)$. We focus on Count-Min Sketch~\cite{CountMin} for now, as it
 is the simplest and most widely used
 sketch~\cite{ADSMassiveDatasetBook,SketchesTrafficManagementSurvey}. Later, we
-introduce Count Sketch~\cite{CountSketch} (\Cref{sec:cs}) and
+describe Count Sketch~\cite{CountSketch} (\Cref{sec:cs}) and
 Misra-Gries~\cite{MisraGries} (\Cref{sec:mg}) and apply our techniques to them. 
 
 \begin{table}
@@ -293,22 +293,24 @@ counter. Because of this, we may overestimate the count of a key~$x$. This
 error is at most~$\frac{N}{w}$ in expectation since a key participates in a
 hash collision with a probability of~$\frac{1}{w}$ and the total count of keys
 different from~$x$ is at most~$N$. Increasing the array's size makes collisions
-less likely, thereby decreasing the error and improving \emph{Accuracy}. Yet,
-in reality, the error may deviate from its expectation. The probability that
-errors do not exceed the expectation ``too much'' is known as the sketch's
+less likely, thereby decreasing the error and improving \emph{Accuracy}. Even
+so, the error may deviate from its expectation. The probability that errors do
+not exceed the expectation ``too much'' is known as the sketch's
 \emph{Confidence}. A straight-forward application of Markov's inequality shows
 that the error does not exceed~$\frac{eN}{w}$ with a confidence of at
 least~$1-1/e$, i.e., $\Pr\left( |\hat{f}(x)-f(x)| \leq \frac{eN}{w} \right)
-\geq 1-1/e$ for any key~$x$.\footnote{We use Euler's constant~$e$ in the
-analysis due to convention. Any other constant would also work and would
-replace~$e$ in both the accuracy bound and the confidence. This implies that
-the smaller the constant becomes, i.e., the more accurate we expect the sketch
-to be, the lower confidence drops.}
+\geq 1-1/e$ for any key~$x$. Here, we use Euler's constant~$e$ due to
+convention. Any other constant would also work and would replace~$e$ in both
+the accuracy bound and the confidence. This implies that the smaller the
+constant becomes, i.e., the more accurate we expect the sketch to be, the lower
+confidence drops.
 
 Yet, with a single array, confidence is low ($\approx 63\%$). The reason is
-that all keys sharing the same counter as a frequent key (or many infrequent
-keys) will suffer from inflated estimates. CMS addresses this issue by
-allocating~$d$ independent counter arrays, each with a dedicated hash
+that all keys sharing the same counter as a frequent key will suffer from
+inflated estimates. Moreover, since there are many keys with low or moderate
+counts, there is a non-negligible chance that enough of them map to the same
+counter and inflate estimates beyond the error bound. CMS addresses these
+issues by allocating~$d$ independent counter arrays, each with a dedicated hash
 function~$h_i$. CMS inserts or deletes a key by applying the operation to each
 array, and it answers a query by querying all arrays and taking the minimum of
 the estimates.\footnote{CMS uses pairwise-independent hash functions to bound
@@ -327,14 +329,14 @@ still suffers from several memory inefficiencies, as we show in the following
 section.
 
 \section{Problem Analysis}\label{sec:problem_analysis}
-CMS often uses far more memory than necessary by (P1)~using fixed-length
-counters and (P2)~using fixed-size arrays.
+CMS often uses far more memory than necessary by using (P1)~fixed-length
+counters and (P2)~fixed-size arrays.
 
 \textbf{(P1)~Fixed-Length Counters.}
-CMS uses arrays of fixed-length counters. To prevent overflows, each counter
-must be long enough to fit the maximum counter value, which may be of the same
-magnitude as the total key count~$N$. Since workloads are often skewed, most
-counters are typically small and many of their bits are unused.
+CMS uses fixed-length counters. To prevent overflows, each counter must be long
+enough to fit the maximum counter value, which may be of the same magnitude as
+the total key count~$N$. Since workloads are often skewed, most counters are
+typically small and many of their bits are unused.
 
 Ideally, each counter should be just long enough to fit its value. This would
 save space, or, conversely, enable having more counters under the same memory
@@ -354,23 +356,24 @@ as it blows up the estimates of keys mapping to a small counter that is merged
 with a large counter. Accuracy further deteriorates when keys are deleted, as
 counter sharing ambiguates how counters should be ``separated'' as they
 decrease. Moreover, counter sharing couples the counter values, complicating
-the integration of other orthogonal accuracy
-improvements~\cite{BayesianSketches,ConvolutionSketch}. 
+the integration of other orthogonal techniques like Bayesian inference for
+improving accuracy~\cite{BayesianSketches} and convolution for join size
+estimation~\cite{ConvolutionSketch}. 
 
 \textbf{(P2)~Fixed-Size Sketch.}
-Many applications monitor continually changing streams. In such cases, the
-total key count~$N$ can grow and is therefore unknown upfront. Counting
-attribute values in SQL tables for OLTP or HTAP workloads and periodically
-collecting network activity reports for administration are examples of such
-applications. Since the error of a fixed-size CMS (and other sketches) scales
-linearly with~$N$, practitioners are faced with the challenge of controlling
-the sketch's error by tuning the number of counters in each array without
-knowing the ultimate value of~$N$. The crux of the problem is that if there are
-too few counters in each array, the estimates will have significant errors. If
-there are too many counters, memory is wasted. Moreover, $N$ may fluctuate over
-time due to the stream having both insertions and deletions. The ideal sketch
-must scale its memory footprint with~$N$ to bound the error without wasting
-space.
+Many applications monitor continually changing streams. In such scenarios, the
+total key count~$N$ can grow over time and is therefore unknown upfront. Since
+the error of a fixed-size CMS (and other sketches) scales linearly with~$N$,
+practitioners are faced with the challenge of controlling the sketch's error by
+tuning the number of counters in each array without knowing the ultimate value
+of~$N$. The crux of the problem is that if there are too few counters in each
+array, the estimates will have significant errors. If there are too many
+counters, memory is wasted. Moreover, $N$ may fluctuate over time due to the
+stream having both insertions and deletions. The ideal sketch must scale its
+memory footprint with~$N$ to bound the error without wasting space, thereby
+guaranteeing sub-linear errors.
+
+%Counting attribute values in SQL tables for OLTP or HTAP workloads and periodically collecting network activity reports for administration are examples of such applications. 
 
 \textbf{Summary.}
 Although much research has gone into resolving~(P1) with space-efficient
@@ -382,37 +385,33 @@ performance and accurate support of deletions?
 
 \section{Sketchbook}\label{sec:sketchbook} 
 We present Sketchbook, the first general framework for improving the memory
-efficiency of sketches without hampering accuracy, performance, or deletion
+efficiency of sketches that maintains accuracy, performance, and deletion
 support. 
 
 %\Cref{sec:varlen_counters} describes how Sketchbook achieves space-efficient counters and addresses problem~(P1). \Cref{sec:expanding_columns} describes how Sketchbook resizes the sketch along with the stream to remove the need for upfront knownledge of the total key count~$N$ and address~(P2), improving accuracy without wasting memory.
 
-\Cref{sec:varlen_counters} describes how Sketchbook achieves memory-efficient
-counters~(P1) by encoding variable-length counters. It employs techniques
-inspired by frontyard-backyard hash
+\Cref{sec:varlen_counters} describes how Sketchbook uses techniques inspired by
+frontyard-backyard hash
 tables~\cite{Backyarding1,Backyarding2,BackyardCuckooHashing,CacheObliviousDictionaries,IcebergHashing}
-to minimize the metadata overhead of these counters without relying on counter
-sharing. Sketchbook leverages rank and select
+to encode variable-length counters without sharing bits. It also illustrates
+Sketchbook's use of rank and select
 primitives~\cite{Poppy,FlorianRankandSelect,CompactPATTrees,RankandSelectDict,GQF}
 and lookup tables to maintain this encoding efficiently.
 
-\Cref{sec:expanding_columns} describes how Sketchbook achieves higher accuracy
-without wasting memory for streams of unknown length~(P2) by expanding the
-underlying sketch with the stream. Specifically, Sketchbook utilizes an
-\emph{Expansion Rate Function}, which is a function of the total key count~$N$
-(or some related measure) and expands whenever its value doubles. The faster
-this function grows, the earlier the sketch expands and the more accurate it
-becomes, exposing an accuracy-space tradeoff. Expansions enable Sketchbook to
-achieve memory efficiency in exchange for slightly slower amortized updates.
-Moreover, Sketchbook supports deletions and contractions with a small memory
-overhead.
+\Cref{sec:expanding_columns} details how Sketchbook accurately handles streams
+of unknown length~(P2) with a low memory footprint by expanding the number of
+counters in each array based on a function of the stream size. This technique
+comes at the cost of slightly slower amortized updates. The rate of expansion
+controls an accuracy-space tradeoff. Sketchbook supports deletions and
+contractions with a small memory overhead.
 
-We show in~\Cref{sec:theoretical_analysis} that Sketchbook maintains its
-confidence without varying the number of rows. Since requirements on confidence
-(e.g., service-level agreements) typically do not change, we do not discuss
-varying the number of rows. For concreteness, we describe our techniques
-applied to CMS as a running example and generalize them to other sketches in
-Sections~\ref{sec:cs} and \ref{sec:mg}.
+We prove in~\Cref{sec:theoretical_analysis} that Sketchbook maintains its
+confidence without varying the number of arrays. One can also expand the number
+of arrays to improve confidence over time. We omit this from our exposition due
+to its similarity to the approach of expanding the number of counters in each
+array. For concreteness, we describe our techniques applied to CMS as a running
+example and generalize them to other sketches in Sections~\ref{sec:cs} and
+\ref{sec:mg}.
 
 \subsection{Variable-Length Counters}\label{sec:varlen_counters}
 
