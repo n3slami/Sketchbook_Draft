@@ -217,7 +217,8 @@ Misra-Gries~\cite{MisraGries} (\Cref{sec:mg}) and apply our techniques to them.
         $m_c$ & Number of counters in each chunk. \\
         $m_s$ & Length of each stub counter in bits. \\
         $m_e$ & Length of each extension in bits. \\
-        $C(N)$ & Expansion rate function, controls time of expansion. \\
+        $b$ & Base of the extension encoding, i.e., $2^{m_e}-1$. \\
+        $C(N)$ & Expansion rate function. \\
         $\sigma_i(x)$ & Hash function defining key~$x$'s update direction ($\pm 1$). \\
         $N^{\text{res}(i)}$ & Total count of all but the~$i$ hottest keys. \\
         \cmidrule{1-2}
@@ -416,17 +417,15 @@ example and generalize them to other sketches in Sections~\ref{sec:cs} and
 \subsection{Variable-Length Counters}\label{sec:varlen_counters}
 
 \textbf{Chunking.}
-To improve performance and optimize cache locality, Sketchbook partitions each
-of CMS's arrays into chunks of~$m_c$ consecutive counters and encodes each
-chunk within a single cache line, which is typically 512 bits long. This allows
-Sketchbook to freely position the metadata and counters of each chunk within
-its cache line without incurring extra cache misses for accessing them. The
-value of~$m_c$ must be tuned based on the amount of skew in the workload and
-the desired error bound. The more skewed the workload is and the more accurate
-the sketch must be, the higher~$m_c$ can go. We have found that having~$m_c=63$
-counters in each chunk strikes a good balance between accuracy and memory
-efficiency for many realistic scenarios. We will henceforth focus on encoding a
-chunk of~$m_c=63$ counters to simplify exposition.
+To improve performance, Sketchbook partitions each of CMS's arrays into chunks
+of~$m_c$ counters each and encodes each chunk within a single cache line, which
+is typically 512 bits long. This allows Sketchbook to freely position the
+metadata and counters of each chunk within its cache line and access them all
+with a single cache read. One must tune the value of~$m_c$ in proportion to the
+amount of skew in the workload and the desired level of accuracy. We have found
+that~$m_c=63$ improves memory efficiency significantly for many realistic
+settings and enables full utilization of the cache line. We will henceforth
+focus on encoding a chunk with~$m_c=63$ counters.
 
 \begin{figure}
     \centering
@@ -466,7 +465,7 @@ chunk of~$m_c=63$ counters to simplify exposition.
         \foreach \i in {1, ..., \extensioncount} {
             \draw[black] (\arrayw-\extensionsarrayw+\i*\extensionw,0) -- (\arrayw-\extensionsarrayw+\i*\extensionw,\arrayh);
         }
-        \node[inner sep=0pt] (extension_0) at (\arrayw-\extensionsarrayw+0.5*\extensionw,0.5*\arrayh) {\small $01$};
+        \node[inner sep=1.75pt] (extension_0) at (\arrayw-\extensionsarrayw+0.5*\extensionw,0.5*\arrayh) {\small $01$};
         \node[inner sep=0pt] (extension_1) at (\arrayw-\extensionsarrayw+1.5*\extensionw,0.5*\arrayh) {\small $11$};
         \node[inner sep=0pt] (extension_2) at (\arrayw-\extensionsarrayw+2.5*\extensionw,0.5*\arrayh) {\small $00$};
         \node[inner sep=0pt] (extension_dots) at (\arrayw-0.5*\extensionsarrayw+0.5*\extensioncount*\extensionw,0.5*\arrayh) {\small $\dots$};
@@ -486,7 +485,7 @@ chunk of~$m_c=63$ counters to simplify exposition.
             \draw[black] (\arrayw-\bitw-\extensionsarrayw-\i*\stubw,0) -- (\arrayw-\bitw-\extensionsarrayw-\i*\stubw,\arrayh);
         }
         \node[inner sep=1pt] (stub_0) at (\overflowbitmapw+0.5*\stubw,0.5*\arrayh) {\small $31$};
-        \node[inner sep=1pt] (stub_1) at (\overflowbitmapw+1.5*\stubw,0.5*\arrayh) {\small $20$};
+        \node[inner sep=1.6pt] (stub_1) at (\overflowbitmapw+1.5*\stubw,0.5*\arrayh) {\small $20$};
         \node[inner sep=1pt] (stub_end_0) at (\arrayw-\bitw-\extensionsarrayw-0.5*\stubw,0.5*\arrayh) {\small $23$};
         \node[inner sep=1pt] (stub_end_1) at (\arrayw-\bitw-\extensionsarrayw-1.5*\stubw,0.5*\arrayh) {\small $40$};
         \node[inner sep=1pt] (stub_dots) at (0.5*\overflowbitmapw+0.5*\stubcountl*\stubw+0.5*\arrayw-0.5*\bitw-0.5*\extensionsarrayw-0.5*\stubcountr*\stubw,0.5*\arrayh) {\small $\dots$};
@@ -495,74 +494,120 @@ chunk of~$m_c=63$ counters to simplify exposition.
         \node[inner sep=0pt] (stub_label) at (0.5*\overflowbitmapw+0.5*\arrayw-0.5*\extensionsarrayw-0.5*\bitw,1.75*\arrayh) {\small \verb|stubs|};
         \draw[decorate,decoration={brace,mirror,raise=1pt,amplitude=2pt}] (\overflowbitmapw+\stubw,0) -- (\overflowbitmapw+2*\stubw,0)
             node[pos=0.5,below=4pt,inner sep=1pt] (stub_length) {\small $m_s$ Bits};
+
+        % Example Counter
+        \def\counterw{3.2}
+        \def\counterh{0.3}
+        \def\countery{1.5}
+        \def\counterlowfrac{0.3}
+        \draw[black] (0.5*\arrayw-0.5*\counterw,\countery) rectangle (0.5*\arrayw+0.5*\counterw,\countery+\counterh);
+        \draw (0.5*\arrayw+0.5*\counterw-\counterlowfrac*\counterw,\countery) -- (0.5*\arrayw+0.5*\counterw-\counterlowfrac*\counterw,\countery+\counterh);
+
+        \node[inner sep=1.5pt] (counter_lower_bits) at (0.5*\arrayw+0.5*\counterw-0.5*\counterlowfrac*\counterw,\countery+0.5*\counterh) {\small $001010$};
+        \node[inner sep=0pt,right=0.1 of counter_lower_bits] (counter_low_label)  {\small Low Part};
+        \draw[-stealth] plot[hobby] coordinates { (counter_lower_bits.south) ($(counter_lower_bits.south)+(-0.05,-0.07)$) ($(stub_1.north)+(0.15,0.4)$) (stub_1.north) };
+
+        \node[inner sep=1.5pt] (counter_higher_bits) at (0.5*\arrayw-0.5*\counterlowfrac*\counterw,\countery+0.5*\counterh) {\small $\dots0000000000001$};
+        \node[inner sep=0pt,left=0.1 of counter_higher_bits] (counter_high_label) {\small High Part};
+        \draw[-stealth] plot[hobby] coordinates { (counter_higher_bits.south) ($(counter_higher_bits.south)+(0.05,-0.07)$) ($(extension_0.north)+(-0.15,0.4)$) (extension_0.north) };
+
+        \node[inner sep=0pt] (counter_label) at (0.5*\arrayw,\countery+1.75*\counterh) {\small Counter 1};
     \end{tikzpicture}
-    \caption{Sketchbook encodes a chunk of size~$m_c$ ($=63)$ in a (512-bit)
-    cache line. It encodes the~$m_s$ ($=6$) least-significant bits of each
-    counter in a stub counter and stores the remaining higher-order bits
-    in~$m_e$ ($=2$) bit extensions.}
+    \caption{Sketchbook encodes a chunk of size~$m_c=63$ in a (512-bit) cache
+    line. It encodes the low part (the $m_s=6$ least-significant bits) of each
+    counter in a stub counter and stores the high part in~$m_e=2$-bit
+    extensions.}
     \label{fig:counter_chunk}
 \end{figure}
 
 \textbf{Encoding Counters.} 
-Within a chunk, Sketchbook allocates an array of~$m_s$-bit \emph{Stub
-Counters}, called \verb|stubs|, where the~$i$-th stub counter stores the~$m_s$
-least-significant bits of the $i$-th counter. The parameter~$m_s$ is chosen
-such that most counters fit in their stub counters. We have found~$m_s=6$
-achieves this for many realistic workloads and configurations of CMS.
-\Cref{fig:counter_chunk} illustrates the layout of a chunk and the \verb|stubs|
-array within it. 
+Sketchbook splits each of the chunk's counters into an~$m_s$-bit \emph{Low
+Part} and a \emph{High Part}, as illustrated in \Cref{fig:counter_chunk}.
+Sketchbook allocates an array of~$m_s$-bit \emph{Stub Counters}, called
+\verb|stubs|, to explicitly store the low part of each counter.
+\Cref{fig:counter_chunk} illustrates the storage layout of a chunk and the
+\verb|stubs| array within it. The parameter~$m_s$ is chosen such that the value
+of most counters fits in its stub counter. We have found~$m_s=6$ achieves this
+for many realistic workloads and configurations.
 
-Nevertheless, several counters may not fit in their stub counters. Sketchbook
-tracks these counters using an~$m_c$-bit \verb|overflows| bitmap. The~$i$-th
-bit in this bitmap is~1 if the~$i$-th counter in the chunk has overflowed its
-stub counter and is~0 otherwise. \Cref{fig:counter_chunk} shows an example of
-this bitmap. Sketchbook represents the value of each overflowing counter after
-truncating its~$m_s$ least-significant bits (which are stored in its stub
-counter) using a sequence of~$m_e$-bit \emph{Extensions}. Sketchbook reserves
-the all-ones extension, i.e., $2^{m_e}-1$, as a delimiter. It encodes a value
-by representing it in base{\nobreakdash-}$b=(2^{m_e}-1)$, storing the resulting
-digits in extensions, and finally appending the delimiter. This encoding is
-self-delimiting and unambiguous since the base{\nobreakdash-}$b$ digits will
-never equal~$b$, i.e., the delimiter. Formally, a value~$v$ is represented
-by~$\left\lceil \log_B v \right\rceil + 1$ extensions, with the~$j$-th
-extension equaling $\left\lfloor v/b^j \right\rfloor \mkern-10mu \mod b$ and
-the last extension being the delimiter. We call such a sequence of extensions a
-\emph{Run}. For example, with~$m_e=2$ and $b=3$, the value~2 is represented by
-the run~$\langle 10, 11 \rangle$. In contrast, the value~3 has two digits in
+Nevertheless, some counters may not fit in their stub counters, i.e., have
+non-zero high parts. Sketchbook tracks these counters using an~$m_c$-bit
+\verb|overflows| bitmap. The~$i$-th bit in this bitmap is~1 if the~$i$-th
+counter's high part is non-zero and is~0 otherwise. \Cref{fig:counter_chunk}
+shows an example of this bitmap. Sketchbook represents the high part of each of
+these overflowing counters using a sequence of~$m_e$-bit \emph{Extensions}. To
+this end, Sketchbook reserves the all-1s extension, i.e., $b=2^{m_e}-1$, as a
+delimiter. It encodes a value by representing it in base{\nobreakdash-}$b$,
+storing the resulting digits in extensions, and appending the delimiter. This
+encoding is self-delimiting and unambiguous since digits in
+base{\nobreakdash-}$b$ will never equal~$b$, i.e., the delimiter. Formally, a
+value~$v$ is represented by~$\left\lfloor \log_b v \right\rfloor + 2$
+extensions, with the~$j$-th extension being $\left\lfloor v/b^j \right\rfloor
+\mod b$ and the last being the delimiter. We call such a sequence of extensions
+a \emph{Run}. For example, with~$m_e=2$ and $b=3$, the value~2 is represented
+by the run~$\langle 10, 11 \rangle$. In contrast, the value~3 has two digits in
 base{\nobreakdash-}3 and is therefore represented by~$\langle 00, 01, 11
-\rangle$. The parameter~$m_e$ controls how close the run length is to the
-length of the value it represents. One can achieve near-optimal run lengths by
-using~$m_e=2$.
+\rangle$. The parameter~$m_e$ controls how close a run's length is to the
+length of the value it represents. \Cref{sec:theoretical_analysis} shows that a
+run representing the value~$v$ is $\approx 2 \cdot m_e+\log_b (b+1) \cdot
+\log_2 v$ bits long, implying that~$m_e=2$ yields near-optimal run lengths.
 
-Sketchbook stores the runs of the overflowing counters consecutively in
-whatever space remains in the cache line, forming an \verb|extensions| array.
-These runs are stored in the same order as their counters, i.e., the~$i$-th run
+Sketchbook uses the cache line's remaining space to store the runs of
+overflowing counters, forming a contiguous \verb|extensions| array. The runs
+are stored in the same order as their counters, i.e., the~$i$-th run
 corresponds to the~$i$-th overflowing counter. \Cref{fig:counter_chunk}
-presents an example of this array. Here, as there are~$m_c=63$ counters in the
-chunk and each stub counter is~$m_s=6$-bits long, and because Sketchbook
-reserves one bit to use as a flag for later, the \verb|extensions| array will
-be~70 bits long. One can show that a well-chosen stub counter length~$m_s$
-drastically reduces the number of extensions required to encode overflowing
-counters, allowing all runs to fit together in an \verb|extensions| array as
-small as a single machine word. As shown in \Cref{sec:theoretical_analysis},
-Sketchbook encodes each counter with a value of~$v$ in $\approx
-1+m_s+m_e+\log_b (v/2^{m_s})$ bits if~$v$ does not fit in a stub counter, and
-in~$1+m_s$ bits otherwise.
+presents an example of this array. Here, the \verb|extensions| array is~70 bits
+long since there are~$m_c=63$ counters, each stub counter is~$m_s=6$ bits long,
+and one bit is reserved by Sketchbook to be later used as a flag.
+\Cref{sec:theoretical_analysis} shows that a well-chosen~$m_s$ drastically
+reduces the total number of extensions, allowing for an \verb|extensions| array
+that fits in 1-2 machine words. As also shown in
+\Cref{sec:theoretical_analysis}, a chunk uses $1+m_s$ bits to encode a
+value~$v$ if it fits in a stub counter and~$\approx m_s+m_e+\log_b (b+1) \cdot
+\log_2 v$ bits otherwise.
 
 \textbf{Locating a Run.}
-To decode an overflowing counter, Sketchbook must locate its run in the
-\verb|extensions| array. Since there is a one-to-one correspondence between
-overflowing counters and runs, Sketchbook locates the~$i$-th counter's run by
-counting the preceding overflowing counters, or equivalently, the number of 1s
-before the~$i$-th bit in the \verb|overflows| bitmap. This quantity is also
-known as the rank of the~$i$-th bit in the \verb|overflows| bitmap, denoted
-by~$\text{rank}(i,$ \verb|overflows|$)$. Sketchbook then scans the
-\verb|extensions| array and skips the first~$\text{rank}(i,$
-\verb|overflows|$)$ runs to locate the desired run. For example, Sketchbook
-locates the run of the counter at offset~3 in \Cref{fig:counter_chunk} by first
-computing~$\text{rank}(3,$ \verb|overflows|$)=1$ and scanning the
-\verb|extensions| bitmap to skip the first run which consists of two
-extensions.
+To decode an overflowing counter, Sketchbook must locate its run. Since there
+is a one-to-one correspondence between overflowing counters and runs,
+Sketchbook locates the~$i${\nobreakdash-}th counter's run by scanning the
+\verb|extensions| array and skipping the runs of the preceding overflowing
+counters. Sketchbook determines the number of such runs by scanning the
+\verb|overflows| bitmap and counting the number of~1s before
+the~$i${\nobreakdash-}th bit. For example, in \Cref{fig:run_location_example},
+Sketchbook locates the run of the counter at offset~3 by noticing that there is
+a single~1 before its bit in the \verb|overflows| bitmap and skipping the first
+run within the \verb|extensions| array.
+
+Sketchbook speeds up locating a counter's run by employing rank and select
+primitives~\cite{Poppy,FlorianRankandSelect,CompactPATTrees,RankandSelectDict,GQF}.
+The $\text{rank}(i,B)$ primitive counts the number of~1s before the $i$-th bit
+in a bitmap~$B$, and the $\text{select}(i,B)$ primitive returns the offset of
+the~$i${\nobreakdash-}th 1 within $B$. Sketchbook counts the number of
+preceding runs by simply computing~$\text{rank}(i,$~\verb|overflows|$)$. It
+locates the corresponding run by treating the \verb|extensions| array as a
+bitmap and converting it into a \verb|runends| bitmap that has a 1 at the end
+of each delimiter. Sketchbook achieves this by first computing
+\begin{center}
+    \verb|extensions| \verb|&| $($\verb|extensions >> |1$)$ \verb|&| \dots \\ \verb|&| $($\verb|extensions >> |$(m_e-1))$,
+\end{center}
+where \verb|&| is the bitwise and operator and \verb|>>| is the bitwise right
+shift operator. The resulting bitmap has a~1 at each position where a patch
+of~$m_e$ consecutive 1s ends (similarly to the end of a delimiter) in
+\verb|extensions|. Sketchbook refines this into the \verb|runends| bitmap by
+only keeping the~$m_e${\nobreakdash-}th bits and masking out the rest, thus
+ensuring that a 1 only occurs at the end of an extension and singling out the
+delimiters. These operations are efficient, as the \verb|extensions| array
+typically fits in 1-2 machine words. \Cref{fig:run_location_example} shows an
+example of computing a \verb|runends| bitmap with~$m_e=2$. Sketchbook locates
+the offset of the target run's delimiter within the \verb|extension| array by
+computing~$\text{select}(\text{rank}(i,$~\verb|overflows|$),$~\verb|runends|$)$
+and dividing the result by~$m_e$. Sketchbook parses this run's value by
+starting from its end and scanning it from right to left.
+\Cref{fig:run_location_example} shows an example of using rank and select
+primitives to find the run of the counter at offset~3. Here,
+$\text{rank}(3,$~\verb|overflows|$)=1$. Applying select over the \verb|runends|
+bitmap with this value, Sketchbook locates the end of the target run at
+the~5{\nobreakdash-}th extension.
 
 \begin{figure}
     \centering
@@ -590,6 +635,9 @@ extensions.
         \node[inner sep=0pt] (overflow_bitmap) at (0.5*\overflowbitmapw,0.5*\arrayh) {\small $0 1 0 \text{\textbf{1}} \dots 0 1 1$};
         \node[inner sep=0pt] (overflow_bitmap_label) at (0.5*\overflowbitmapw,1.75*\arrayh) {\small \verb|overflows|};
         \node[inner sep=1pt] (rank_value) at (0.5*\overflowbitmapw,-0.75*\arrayh) {\small $\text{rank}(3,$ \verb|overflows|$)=1$};
+
+        % Middle Dots
+        \node[inner sep=0pt] (middle_dots) at (\overflowbitmapw+\bitw+0.5*\partsep,0.5*\arrayh) {\small $\dots$};
 
         % Extensions
         \draw[black] (\overflowbitmapw+\bitw+\partsep+\bitw,0) rectangle (\overflowbitmapw+\bitw+\partsep+\bitw+\extensionsarrayw,\arrayh);
@@ -664,7 +712,7 @@ extensions.
             \node[inner sep=0pt,right=0.2 of dots] (label) {\small \verb|runends|};
         \end{scope}
 
-        \node[inner sep=1pt,anchor=west] (select_value) at (\overflowbitmapw+\bitw+\partsep+\bitw,-5.0*\arrayh) {\small $\lfloor\text{select}(1,$ \verb|runends|$)/2\rfloor=\lfloor 11/2 \rfloor=5$};
+        \node[inner sep=1pt,anchor=west] (select_value) at (\overflowbitmapw+\bitw+\partsep+\bitw,-5.0*\arrayh) {\small $\lfloor\text{select}(1,$ \verb|runends|$)/m_e\rfloor=\lfloor 11/2 \rfloor=5$};
         \draw[-stealth] ($(rank_value.south east)+(-3pt,0)$) |- (select_value.west);
     \end{tikzpicture}
     \caption{Sketchbook applies rank and select primitives to locate an
@@ -673,14 +721,53 @@ extensions.
 \end{figure}
 
 \textbf{Decoding Counters.}
-Explain how we decode a counter given the encoding above.
+Sketchbook decodes the $i${\nobreakdash-}th counter in a chunk by first
+checking the~$i$-th bit in the \verb|overflows| bitmap. If it is~0, Sketchbook
+returns \verb|stub[|$i$\verb|]|. Otherwise, it retrieves the counter's high
+part by locating and decoding its run. Letting~$v_j$ denote
+the~$j${\nobreakdash-}th extension in this run, Sketchbook decodes the high
+part as~$v=b^0 \cdot v_0 + b^1 \cdot v_1 + \dots$, where~$b=2^{m_e}-1$ is the
+base of the encoding. Finally, Sketchbook decodes the counter's value by
+concatenating the high part with the low part in~\verb|stub[|$i$\verb|]|, i.e.,
+returning \verb|stub[|$i$\verb|]|~$+ \; 2^{m_s} \cdot v$. For example, in
+\Cref{fig:counter_chunk} (where~$m_s=6$ and $m_e=2$), Sketchbook
+returns~\verb|stub[|$0$\verb|]|~$=31$ as the value of the counter at offset~0
+since the 0{\nobreakdash-}th bit of \verb|overflows| bitmap is~0. For the
+counter at offset~1, since the 1{\nobreakdash-}st bit of \verb|overflows|
+bitmap is~1, Sketchbook locates its run and decodes it to derive~$v=3^0 \cdot
+1=1$. It then decodes the counter value as~\verb|stub[|$1$\verb|]|~$+ \; 2^6
+\cdot v = 20 + 64 \cdot 1 = 84$.
 
-Here, we have~$m_e=2$ and thus~$b=3$. Since the third extension is the
-delimiter and the first two are the digits~2 and 1, this run encodes the
-value~$2 \cdot 3^0 + 1 \cdot 3^1 = 5$.
+\textbf{Incrementing and Decrementing Counters.}
+Sketchbook increments the~$i${\nobreakdash-}th counter by
+incrementing~\verb|stub[|$i$\verb|]|. If~\verb|stub[|$i$\verb|]| overflows as a
+result, the counter's high part increases, so Sketchbook moves a carry to its
+run. To this end, Sketchbook checks the~$i${\nobreakdash-}th bit of the
+\verb|overflows| bitmap to see if the counter has a run. If this bit is~0,
+Sketchbook sets it to~1 and creates a new run representing the value~1.
+Sketchbook places this run in the appropriate position (determined using rank
+and select) in the \verb|extensions| array, shifting other runs to the right to
+make room. If the~$i${\nobreakdash-}th bit of the \verb|overflows| bitmap is
+already~1, Sketchbook updates the corresponding run by incrementing its first
+extension and propagating a carry to the other extensions as necessary. If the
+increment elongates the high part's base{\nobreakdash-}$b$ representation,
+Sketchbook adds an extension to the run, shifting subsequent runs to the right.
+Such shifting operations are efficient due to the short length of the
+\verb|extensions| array.
 
-\textbf{Updating Counters.}
-welp
+Analogously, Sketchbook decrements the~$i${\nobreakdash-}th counter by
+decrementing~\verb|stub[|$i$\verb|]|. If~\verb|stub[|$i$\verb|]| underflows,
+Sketchbook decrements the value of the high part in its run. As a result, it
+may remove an extension, in which case it also shifts subsequent runs to the
+left to keep the \verb|extensions| array consistent. If Sketchbook removes the
+entire run, it sets the~$i${\nobreakdash-}th bit in the \verb|overflows| bitmap
+back to~0.
+
+Increments and decrements only modify the runs when a stub counter overflows or
+underflows, which occurs infrequently. Because of this, and to simplify the
+implementation, we do not heavily optimize modifying runs. Nevertheless, as the
+\verb|extensions| array typically fits in 1-2 machine words, one can employ
+bitwise operations to increment and decrement a run in constant time.
 
 \begin{figure}
     \centering
@@ -720,7 +807,7 @@ welp
         \draw[very thick] (\arrayw-\extensionsarrayw,0) -- (\arrayw-\extensionsarrayw,\arrayh);
         \node[inner sep=1.23pt] (spill_ptr) at (\arrayw-\extensionsarrayw+0.5*\ptrw,0.5*\arrayh) {\small \verb|ptr|};
         \draw[decorate,decoration={brace,mirror,aspect=0.8,raise=1pt,amplitude=2pt}] (\arrayw-\extensionsarrayw,0) -- (\arrayw-\extensionsarrayw+\ptrw,0)
-            node[pos=0.8,below=4pt,inner sep=1pt] (spill_ptr_length) {\small 64 Bits};
+            node[pos=0.8,below=4pt,inner sep=1pt] (spill_ptr_length) {\small 48 Bits};
 
         % Stub Counters
         \foreach \i in {1, ..., \stubcountl} {
@@ -753,25 +840,87 @@ welp
         \draw[decorate,decoration={brace,mirror,raise=1pt,amplitude=2pt}] (\spillarrayoffsetx,\spillarrayoffsety-\spillarrayh) -- (\spillarrayoffsetx+\spillw,\spillarrayoffsety-\spillarrayh)
             node[pos=0.5,below=4pt,inner sep=1pt] (spill_unused_extensions_length) {\small 32 or 64 Bits};
     \end{tikzpicture}
-    \caption{Sketchbook repurposes the extensions array as a pointer to an
-    array of spill counters storing overflow values.}
+    \caption{Sketchbook repurposes the \texttt{extensions} array as a pointer
+    to an array of spill counters storing overflow values.}
     \label{fig:counter_chunk_spilled}
 \end{figure}
 
 \textbf{Spilling.} 
-In unlikely scenarios, the extensions array may fill up and make the sketch run
-out of space. Inspired by frontyard/backyard hash table designs, we implement a
-``spill'' mechanism that activates when the extensions array fills up. Here, we
-employ a flag in the extensions array to denote whether we are in the spilled
-state. If we are, the extensions array stores a pointer to an array of full
-counters, which will now store the values of the counters, modulo the $b$
-least-significant bits already stored in the stub counters. We expect the
-memory overhead of the spill mechanism to be very small, as it is only
-activated in the unlikely even of the extensions array filling up.
+There is a chance that the \verb|extensions| array fills up, barring the
+storage of larger counters. Inspired by frontyard-backyard hash
+tables~\cite{Backyarding1,Backyarding2,BackyardCuckooHashing,CacheObliviousDictionaries,IcebergHashing},
+Sketchbook addresses this problem by ``spilling'' the counters' high parts into
+an external array of full-length counters called \verb|spills|. To this end,
+Sketchbook employs a~\verb|mode| flag in the cache line and sets it to~1 to
+indicate it has spilled the chunk. It then empties the \verb|extensions| array
+and stores a pointer to the \verb|spills| array in it. This requires the
+\verb|extensions| array to be at least 48 bits long (which is the case in
+realistic chunk encodings), as a general pointer requires 48 bits of storage on
+modern machines. Sketchbook stores the~$i${\nobreakdash-}th counter's high part
+in \verb|spills[|$i$\verb|]| and decodes it by concatenating
+\verb|stubs[|$i$\verb|]| and \verb|spills[|$i$\verb|]|.
+\Cref{fig:counter_chunk_spilled} illustrates an example of a spilled chunk.
+Here, as the stub counter length is~$m_s=6$, the value of the
+0{\nobreakdash-}th counter is decoded by concatenating the binary
+representations of \verb|stub[|$0$\verb|]| and \verb|spills[|$0$\verb|]|,
+yielding $63 + 2^{m_s} \cdot 100 = 6463$. 
 
-\textbf{Optimizations.}
-Explain how we use lookup tables to speed up updates to the stub counters and
-how we use x86 instructions to speed up rank and select.
+A well-chosen~$m_s$ reduces the number of runs and allows them to fit in the
+\verb|extensions| array with high probability, thereby making spilling very
+unlikely. Thus, we expect the total memory overhead of the \verb|spills| arrays
+to be negligible, as observed in our evaluation.
+
+\textbf{Optimization~1: Hardware Accelerated Rank and Select.}
+Sketchbook leverages specialized CPU instructions to accelerate rank and select
+operations. In the case of~$\text{rank}(i,B)$, Sketchbook scans the
+first~$\left\lceil i/64 \right\rceil$ words of the bitmap~$B$, applying masking
+operations and the \verb|POPCNT| instruction to count the~1s before
+the~$i${\nobreakdash-}th bit. For~$\text{select}(i,B)$, Sketchbook locates the
+word containing the $i${\nobreakdash-}th 1 by scanning~$B$ word-by-word and
+maintaining a running count of the 1s. Once found, it applies the x86
+instructions \verb|PDEP| and \verb|LZCNT| to evaluate the target bit's
+position, as described in \cite{GQF}.
+
+\textbf{Optimization~2: Lookup Tables.}
+Incrementing or decrementing a stub counter is costly due to the misaligned
+stub counters. Sketchbook addresses this problem by precomputing lookup tables
+that store for each stub counter the word it starts in and its relative
+position within that word. This allows Sketchbook to directly increment or
+decrement a stub counter with a single word-aligned addition while avoiding
+multiplications to compute the offsets.
+
+\textbf{Optimization~3: Fast Division.}
+Determining the $i${\nobreakdash-}th counter's chunk is expensive, as it
+entails dividing~$i$ by $m_c$, which may not be a power of two. Sketchbook
+avoids this cost by precomputing the value~$2^{\lceil \log_2 m_c \rceil} / m_c$
+and storing it using a fixed-point representation with the decimal point being
+after the $\left\lceil \log_2 w \right\rceil${\nobreakdash-}th bit, where~$w$
+is the size of CMS's arrays. Sketchbook then treats~$i$'s binary representation
+as a fixed-point fractional value, but with the decimal point being after
+the~$\left\lceil \log_2 m_c \right\rceil${\nobreakdash-}th bit. This allows
+Sketchbook to simply multiply these values with standard integer multiplication
+and shift the result~$\left\lceil \log_2 w \right\rceil + \left\lceil \log_2
+m_c \right\rceil$ bits to the right to remove the fractional bits,
+yielding~$\left\lfloor (i/2^{\lceil \log_2 m_c \rceil}) \cdot (2^{\lceil \log_2
+m_c \rceil}/m_c) \right\rfloor = \left\lfloor i/m_c \right\rfloor$.
+
+\textbf{Optimization~4: Prefetching.}
+Following \cite{StingySketch}, Sketchbook hides latency and improves throughput
+by prefetching chunks. Specifically, it maintains a prefetching queue for each
+of CMS's arrays, recording the eight most recent requests for chunks. Each time
+Sketchbook attempts to read a chunk from an array, it issues a software
+prefetch instruction for the desired cache line to the memory hierarchy and
+pushes the request into the array's queue. Once the queue fills up, the oldest
+request in the queue will have its data brought into L1 cache. So Sketchbook
+reads it and pops the queue. This allows Sketchbook to have eight concurrent
+cache line reads for each array in CMS with a single thread.
+
+\textbf{Optimization~5: Hash Splicing.}
+Sketchbook cuts down on the cost of hashing a key by applying a single hash
+function to derive a long hash value and splicing it into~$d$ parts, using each
+as the hash for each of CMS's~$d$ arrays. Sketchbook applies the fast reduce
+technique~\cite{FastHashReduce} to quickly reduce the range of each hash value
+to the size of its array without using modulo operations.
 
 \subsection{Expanding Columns}\label{sec:expanding_columns}
 
