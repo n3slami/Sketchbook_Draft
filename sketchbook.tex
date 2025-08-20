@@ -216,7 +216,7 @@ Misra-Gries~\cite{MisraGries} (\Cref{sec:mg}) and apply our techniques to them.
         $h_i(x)$ & Hash function mapping key~$x$ to a counter. \\
         $m_c$ & Number of counters in each chunk. \\
         $m_s$ & Length of each stub counter in bits. \\
-        $C(N)$ & Expansion rate function. \\
+        $S(N)$ & Size function. \\
         $\sigma_i(x)$ & Hash function defining key~$x$'s update direction ($\pm 1$). \\
         $N^{\text{res}(i)}$ & Total count of all but the~$i$ hottest keys. \\
         \cmidrule{1-2}
@@ -389,7 +389,7 @@ and memory while maintaining high performance and deletion support.
 \Cref{sec:varlen_counters} describes how Sketchbook encodes variable-length
 counters without sharing bits, as well as its use of rank and select
 primitives~\cite{Poppy,FlorianRankandSelect,CompactPATTrees,RankandSelectDict,GQF}
-for fast access. \Cref{sec:expanding_columns} details how Sketchbook accurately
+for fast access. \Cref{sec:expanding_contracting_arrays} details how Sketchbook accurately
 handles streams of unknown length~(P2) with a low memory footprint by expanding
 each array along with the stream. We first describe Sketchbook as applied to
 CMS. We generalize it to other sketches in Sections~\ref{sec:cs} and
@@ -936,23 +936,117 @@ Sketchbook applies the fast reduce technique~\cite{FastHashReduce} to quickly
 reduce the range of each spliced hash to the size of its array without modulo
 operations.
 
-\subsection{Expanding Columns}\label{sec:expanding_columns}
+\subsection{Expanding and Contracting Arrays}\label{sec:expanding_contracting_arrays}
+Sketchbook handles streams of unknown length by expanding and contracting CMS's
+arrays. Specifically, it keeps the size of each array close to the the value of
+a \emph{Size Function}, which is a function of the stream's length that
+controls an accuracy-memory tradeoff. Sketchbook achieves this by maintaining a
+chain of CMSs with exponentially increasing array sizes, as illustrated in
+\Cref{fig:sketchbook_chain}. It handles new insertions and deletions by
+directing them to the last CMS in the chain. Whenever the size function doubles
+in value, Sketchbook expands by adding a new CMS to the chain with arrays
+double the size of the last CMS's. This allows Sketchbook to process new
+insertions and deletions, which comprise the majority of the stream's updates
+until the next expansion, with twice the accuracy. Whenever the size function
+halves in value, Sketchbook contracts by applying the updates of the last CMS
+to the penultimate CMS and discarding the last CMS. Although insertions and
+deletions only modify the last CMS, queries must aggregate the estimates of all
+CMSs in the chain, and are thus slower. Sketchbook addresses this issue by
+aggregating all older CMSs into the last one, allowing queries to probe the
+last CMS only. The memory footprint of the chain is domniated by the last CMS,
+which takes up at least half of the space. When keys are only inserted into the
+stream, Sketchbook improves its memory consumption by only keeping the
+aggregate CMS and discarding all the others.
 
-\textbf{Expansion Rate Function.} 
-Introduce the expansion rate function~$C(N)$. The idea is to maintain~$C(N)$
-columns in the sketch at all times to ``emulate'' the case where we knew~$N$
-and started with a sketch with~$C(N)$ columns. The hope is to approximately
-achieve the same error as this sketch, i.e., $N/C(N)$.
+\begin{figure}
+    \centering
+    \pgfdeclarelayer{background layer}
+    \pgfsetlayers{background layer,main}
+    \begin{tikzpicture}
+        \def\arraycount{3}
+        \def\arrayw{1}
+        \def\arrayh{0.15}
+        \def\arraysep{0.1}
+        \def\cmssep{0.5}
+        \def\cmstitlesep{0.1}
+        \def\arrowsep{0.2*\cmssep}
+        \def\midy{0.5*\arraycount*\arraysep-0.5*\arraysep+0.5*\arraycount*\arrayh}
+        \def\counterw{0.2*\arrayw}
+        \def\countercount{5} % Have to change this thing manually in the for loops, sadly
+
+        \node[inner sep=0pt,rotate=90] (chain_label) at (-0.5*\cmssep,\midy) {\small Chain of CMSs};
+
+        % First CMS
+        \foreach \i in {1, ..., \arraycount} {
+            \draw (0,\i*\arraysep+\i*\arrayh-\arrayh-\arraysep) rectangle (\arrayw,\i*\arraysep+\i*\arrayh-\arraysep);
+            \foreach \j in {1, ..., 5} {
+                \draw (\j*\counterw,\i*\arraysep+\i*\arrayh-\arrayh-\arraysep) rectangle (\j*\counterw,\i*\arraysep+\i*\arrayh-\arraysep);
+            }
+        }
+        \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt,mirror}] (0,0) -- (\arrayw,0)
+            node[pos=0.5,below=4pt,inner sep=1pt] {\small $w/2^l$};
+        \node[inner sep=0pt] (cms_0) at (0.5*\arrayw,\arraycount*\arraysep+\arraycount*\arrayh+\cmstitlesep) {\small CMS 0};
+
+        % Second CMS
+        \draw[-stealth] (\arrayw+\arrowsep,\midy) -- (\arrayw+\cmssep-\arrowsep,\midy);
+        \foreach \i in {1, ..., \arraycount} {
+            \draw (\arrayw+\cmssep,\i*\arraysep+\i*\arrayh-\arrayh-\arraysep) rectangle (3*\arrayw+\cmssep,\i*\arraysep+\i*\arrayh-\arraysep);
+            \foreach \j in {1, ..., 10} {
+                \draw (\arrayw+\cmssep+\j*\counterw,\i*\arraysep+\i*\arrayh-\arrayh-\arraysep) rectangle (\arrayw+\cmssep+\j*\counterw,\i*\arraysep+\i*\arrayh-\arraysep);
+            }
+        }
+        \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt,mirror}] (1*\arrayw+\cmssep,0) -- (3*\arrayw+\cmssep,0)
+            node[pos=0.5,below=4pt,inner sep=1pt] {\small $w/2^{(l-1)}$};
+        \node[inner sep=0pt] (cms_1) at (2*\arrayw+\cmssep,\arraycount*\arraysep+\arraycount*\arrayh+\cmstitlesep) {\small CMS 1};
+
+        \node[inner sep=3pt] (dots) at (3*\arrayw+2.5*\cmssep,\midy) {$\dots$};
+        \draw[-stealth] (3*\arrayw+\cmssep+\arrowsep,\midy) -- ([xshift=-\arrowsep]dots.west);
+
+        % Last CMS
+        \draw[-stealth] ([xshift=\arrowsep]dots.east) -- (3*\arrayw+4*\cmssep-\arrowsep,\midy);
+        \foreach \i in {1, ..., \arraycount} {
+            \draw (3*\arrayw+4*\cmssep,\i*\arraysep+\i*\arrayh-\arrayh-\arraysep) rectangle (5*\arrayw+4*\cmssep,\i*\arraysep+\i*\arrayh-\arraysep);
+            \foreach \j in {1, ..., 3} {
+                \draw (3*\arrayw+4*\cmssep+\j*\counterw,\i*\arraysep+\i*\arrayh-\arrayh-\arraysep) rectangle (3*\arrayw+4*\cmssep+\j*\counterw,\i*\arraysep+\i*\arrayh-\arraysep);
+            }
+            \foreach \j in {7, ..., 10} {
+                \draw (3*\arrayw+4*\cmssep+\j*\counterw,\i*\arraysep+\i*\arrayh-\arrayh-\arraysep) rectangle (3*\arrayw+4*\cmssep+\j*\counterw,\i*\arraysep+\i*\arrayh-\arraysep);
+            }
+            \node[inner sep=0pt] at (4*\arrayw+4*\cmssep,\i*\arraysep+\i*\arrayh-0.5*\arrayh-\arraysep) {\small $\dots$};
+        }
+        \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt,mirror}] (3*\arrayw+4*\cmssep,0) -- (5*\arrayw+4*\cmssep,0)
+            node[pos=0.5,below=5.65pt,inner sep=1pt] {\small $\, S(N) / 2 \leq w \leq 2 \cdot S(N)$};
+        \node[inner sep=0pt] (cms_l) at (4*\arrayw+4*\cmssep,\arraycount*\arraysep+\arraycount*\arrayh+\cmstitlesep) {\small CMS~$l$};
+
+        % Inserts and Deletes
+        \node[inner sep=1pt,align=center] (insert_and_delete) at (5*\arrayw+5*\cmssep,\arraycount*\arraysep+\arraycount*\arrayh+\cmstitlesep+0.2) {\small Inserts \\[-4pt] \small Deletes};
+        \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt,mirror}] (insert_and_delete.north west) -- (insert_and_delete.south west)
+            node[pos=0.5,left=1pt,inner sep=1pt] (insert_and_delete_brace_tip) {};
+        \draw[-stealth] plot[hobby] coordinates { (insert_and_delete_brace_tip.west) ($(insert_and_delete_brace_tip.west)+(-0.06*\counterw,-0.008)$) (3*\arrayw+4*\cmssep+8.5*\counterw,\arraycount*\arrayh+\arraycount*\arraysep-\arraysep) };
+    \end{tikzpicture}
+    \caption{Sketchbook maintains a chain of CMSs with exponentially larger
+    array sizes.}
+    \label{fig:sketchbook_chain}
+\end{figure}
+
+\textbf{Size Function.} 
+Sketchbook maintains arrays of~$w$ counters, with a~$w$ close to the size
+function~$S(N)$, a function of the number of total current keys in the
+stream~$N$. More specifically, it ensures that~$w \in [S(N) / 2, 2 \cdot
+S(N)]$, as shown in \Cref{fig:sketchbook_chain}. Doing so allows Sketchbook to
+track the majority of the~$N$ keys using approximately~$S(N)$ counters, thereby
+guaranteeing an error bound close to an ideal CMS that is allocated with arrays
+of size~$S(N)$ from the onset, i.e., $\frac{eN}{S(N)}$. For example,
+setting~$S(N)=N^\alpha$ for some~$\alpha \in (0,1)$ yields an accuracy bound
+of~$O(N/N^\alpha)=O(N^{1-\alpha})$, as shown in
+\Cref{sec:theoretical_analysis}. Using a faster growing~$S(N)$ improves
+Sketchbook's accuracy in exchange for an increased memory footprint. 
 
 \textbf{Chain of Sketches.} 
-Explain that we maintain a chain of sketches, with each sketch being twice the
-size of the sketch before it. Say that updates go to the final sketch in the
-chain, as it is the most accurate, but queries have to check all sketches.
-Explain that this sketch acts like a single, unified sketch the size of the
-last sketch in the chain, and connect it back to the size intuition above.
-Point out that the space is good since the total size of the chain is dominated
-by the last sketch. We use the same hash function across all sketches to save
-CPU.
+Sketchbook uses the same hash functions for the arrays 
+The chain of CMSs, depicted in \Cref{fig:sketchbook_chain}, simulates a single,
+unified sketch the size of the last sketch in the chain. We use the same hash
+function across all sketches to save CPU.
 
 \textbf{Expansions.} 
 To expand, we add a new sketch double the size of the previous one each time
