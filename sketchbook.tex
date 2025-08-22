@@ -331,7 +331,7 @@ section.
 CMS often uses far more memory than necessary by using (P1)~fixed-length
 counters and (P2)~fixed-size arrays.
 
-\textbf{(P1)~Fixed-Length Counters.}
+\hypertarget{problem:fixed_length_counters}{\textbf{(P1)~Fixed-Length Counters.}}
 CMS uses fixed-length counters. To prevent overflows, each counter must be long
 enough to fit the maximum counter value, which may be of the same magnitude as
 the total key count~$N$. Since workloads are often skewed, most counters are
@@ -359,7 +359,7 @@ the integration of other orthogonal techniques like Bayesian inference for
 improving accuracy~\cite{BayesianSketches} and convolution for join size
 estimation~\cite{ConvolutionSketch}. 
 
-\textbf{(P2)~Fixed-Size Sketch.}
+\hypertarget{problem:fixed_size_sketch}{\textbf{(P2)~Fixed-Size Sketch.}}
 Many applications monitor continually changing streams. In such scenarios, the
 total key count~$N$ can grow over time and is therefore unknown upfront. Since
 the error of a fixed-size CMS (and other sketches) scales linearly with~$N$,
@@ -375,61 +375,66 @@ guaranteeing sub-linear errors.
 %Counting attribute values in SQL tables for OLTP or HTAP workloads and periodically collecting network activity reports for administration are examples of such applications. 
 
 \textbf{Summary.}
-Although much research has gone into resolving~(P1) with space-efficient
+Although much research has gone into
+resolving~\hyperlink{problem:fixed_length_counters}{(P1)} with space-efficient
 counters, existing sketches either (i)~suffer from the accuracy issues of
 counter sharing, (ii)~are slow, or (iii)~have accuracy drops when deleting
-keys. Moreover, no work to date has attempted to address~(P2). Is it possible
-to design a sketch that resolves~(P1) and (P2) while maintaining high
-performance and accurate support of deletions?
+keys. Moreover, no work to date has attempted to
+address~\hyperlink{problem:fixed_size_sketch}{(P2)}. Is it possible to design a
+sketch that resolves~\hyperlink{problem:fixed_length_counters}{(P1)} and
+\hyperlink{problem:fixed_size_sketch}{(P2)} while maintaining high performance
+and accurate support of deletions?
 
 \section{Sketchbook}\label{sec:sketchbook} 
 We present Sketchbook, a framework for improving the memory efficiency of
-frequency estimation sketches that provides a tunable tradeoff between accuracy
-and memory while maintaining high performance and deletion support.
-\Cref{sec:varlen_counters} describes how Sketchbook encodes variable-length
-counters without sharing bits, as well as its use of rank and select
-primitives~\cite{Poppy,FlorianRankandSelect,CompactPATTrees,RankandSelectDict,GQF}
-for fast access. \Cref{sec:expanding_contracting_arrays} details how Sketchbook accurately
-handles streams of unknown length~(P2) with a low memory footprint by expanding
-each array along with the stream. We first describe Sketchbook as applied to
-CMS. We generalize it to other sketches in Sections~\ref{sec:cs} and
-\ref{sec:mg}.
+frequency estimation sketches while maintaining high performance and deletion
+support. \Cref{sec:varlen_counters} describes how to encode variable-length
+counters without sharing bits to address
+problem~\hyperlink{problem:fixed_length_counters}{(P1)}, and how to use rank
+and select primitives for fast access. \Cref{sec:expanding_contracting_arrays}
+shows how to expand the sketch with the stream while controlling both accuracy
+and space, thereby addressing
+problem~\hyperlink{problem:fixed_size_sketch}{(P2)}. We first describe
+Sketchbook as applied to CMS. We generalize it to other sketches in
+Sections~\ref{sec:cs} and \ref{sec:mg}.
 
 \subsection{Variable-Length Counters}\label{sec:varlen_counters}
 Sketchbook partitions each of CMS's arrays into contiguous and equal-sized
-\emph{Chunks} (of size 63 by default) and encodes each in a cache line.
-\Cref{fig:counter_chunk} illustrates the layout of a chunk. Within each chunk,
-Sketchbook allocates an array of short \emph{Stub Counters} (each 6 bits long
-by default) to store the counters while reducing the unused leading zeros.
-Since most counter values are small, they fit in their stub counters and
-benefit from their compact binary encoding. Sketchbook handles the counters
-that overflow by encoding their overflowing higher-order bits in an array of
-less space-efficient, variable-length \emph{Extensions}, stored in the
-remaining space (70 bits by default) of the cache line. Sketchbook still stores
-the lower-order bits of these counters in their stub counters, as depicted in
-\Cref{fig:counter_chunk}. In the rare event that the extensions array runs out
-of space, Sketchbook ``spills'' the counters' higher-order bits by storing them
-in an external array of large counters, as illustrated in
-\Cref{fig:counter_chunk_spilled}. To facilitate decoding, Sketchbook tracks
-overflowing counters using a bitmap and establishes a one-to-one mapping
-between these counters and their extensions by keeping the extensions in the
-same order. Sketchbook quickly finds a counter's extension by traversing this
-one-to-one mapping using rank and select primitives.
+\emph{Chunks} of 63 counters by default. It encodes each chunk in a 512-bit
+cache line. \Cref{fig:counter_chunk} illustrates the layout of a chunk. Within
+each chunk, Sketchbook allocates an array of short counters (6 bits long by
+default), called \emph{Stub Counters}, to store the counters while reducing the
+unused leading zeros. Since most counter values are small, they fit in their
+stub counters, similarly to Counter~0 in \Cref{fig:counter_chunk}. These
+counters thus benefit from the compact binary encoding of the stub counters.
+Sketchbook handles the counters that overflow by encoding their overflowing
+higher-order bits in an array of less space-efficient, variable-length
+\emph{Extensions}. These overflowing counters are tracked using a bitmap and
+their extensions are stored in the remaining space (70 bits by default) of the
+cache line. The lower-order bits of these counters are still stored in their
+stub counters, as illustrated by Counter~1 in \Cref{fig:counter_chunk}. To
+facilitate decoding, Sketchbook establishes a one-to-one mapping between
+overflowing counters and their extensions by keeping the extensions in the same
+order as the counters. It quickly finds a counter's extension by traversing
+this one-to-one mapping using rank and select primitives.
+
+%In the rare event that the extensions array runs out of space, Sketchbook ``spills'' the counters' higher-order bits by storing them in an external array of large counters, as illustrated in \Cref{fig:counter_chunk_spilled}.
 
 \textbf{Chunking.}
-Sketchbook encodes chunks of~$m_c$ counters in 512-bit cache lines. It
-maximizes~$m_c$ to pack as many counters as possible in the cache line while
-ensuring that, with high probability, their stub counters leave enough space to
-fit their extensions. The expected total length of the extensions decreases
-with more skew in the workload\footnote{This is because most extensions
-correspond to moderately large counter values. With more skew, these extensions
-shrink and dwindle in number, overpowering the increasing extension lengths of
-the larger counter values.}, making them more likely to fit with a
-larger~$m_c$. In general, the optimal~$m_c$ need not be a power of two. This
-makes dividing a counter's position within its array in CMS by~$m_c$ costly,
-thus slowing down the process of locating its chunk. Later in this section, we
-show how to utilize fixed-point arithmetic to remove this cost. Henceforth, we
-focus on encoding a chunk of size~$m_c=63$.
+To improve space efficiency, Sketchbook packs as many counters as possible
+within each cache line. That is, it maximizes the number of counters per
+chunk~$m_c$ while ensuring that the stub counters and the bitmap leave enough
+space to fit the extensions with high probability. We use~$m_c=63$ in our
+implementation and examples, as we have found it to work well for most
+workloads and configurations\footnote{While~$m_c=64$ may seem like a more
+natural choice, it leads to an overly tight space for the extensions and also
+leaves a bit unused within the cache line.}, though tuning~$m_c$ to the
+workload's skew can yield a slight gain in space efficiency.\footnote{A
+larger~$m_c$ becomes viable with more skew in the workload since it decreases
+the expected total length of the extensions and makes them more likely to fit
+in less space. This is because most extensions correspond to moderately large
+counter values. With more skew, these extensions shrink and dwindle in number,
+overpowering the longer extensions of the larger counter values.} 
 
 \begin{figure}
     \centering
@@ -439,173 +444,178 @@ focus on encoding a chunk of size~$m_c=63$.
         \def\arrayh{0.3}
         \def\stubw{0.09*\arrayw}
         \def\stubcountl{2}
-        \def\stubcountr{2}
         \def\overflowbitmapw{0.18*\arrayw}
-        \def\extensionsarrayw{0.24*\arrayw}
+        \def\extensionsarrayw{0.3*\arrayw}
         \def\bitw{0.025*\arrayw}
         \def\extensionw{2*\bitw}
-        \def\extensioncount{3}
+        \def\extensioncount{4}
+        \def\labely{-2.25*\arrayh}
 
         \draw[black] (0,0) rectangle (\arrayw,\arrayh);
 
         % Overflow Bitmap
         \draw[very thick] (\overflowbitmapw,0) -- (\overflowbitmapw,\arrayh);
         \node[inner sep=0pt] (overflow_bitmap) at (0.5*\overflowbitmapw,0.5*\arrayh) {\small $0 1 0 1 \dots 0 1 1$};
-        \node[inner sep=0pt] (overflow_bitmap_label) at (0.5*\overflowbitmapw,1.75*\arrayh) {\small \verb|overflows|};
+        \node[inner sep=0pt] (overflow_bitmap_label) at (0.5*\overflowbitmapw,\labely) {\small Overflows Bitmap};
         \draw[decorate,decoration={brace,mirror,raise=1pt,amplitude=2pt}] (0,0) -- (\overflowbitmapw,0)
-            node[pos=0.5,below=4pt,inner sep=1pt] (overflows_length) {\small 63 Bits};
+            node[pos=0.5,below=4pt,inner sep=1pt] (overflows_length) {\small $m_c$ Bits};
 
-        % Spill Bit and Unused Part
+        % Mode Flag
         \draw[very thick] (\arrayw-\extensionsarrayw-\bitw,0) -- (\arrayw-\extensionsarrayw-\bitw,\arrayh);
         \node[inner sep=1.5pt] (mode_bit) at (\arrayw-\extensionsarrayw-0.5*\bitw,0.5*\arrayh) {\small $0$};
-        %\draw[pattern=north east lines,pattern color=gray!50] (\arrayw-\extensionsarrayw-\bitw,0) rectangle (\arrayw-\extensionsarrayw,\arrayh);
-        \draw[decorate,decoration={brace,mirror,aspect=0.65,raise=1pt,amplitude=2pt}] (\arrayw-\extensionsarrayw,0) -- (\arrayw,0)
-            node[pos=0.65,below=4pt,inner sep=1pt] (mode_unused_extensions_length) {\small 70 Bits};
-        %\draw[densely dotted] (\arrayw-\extensionsarrayw-2*\bitw,0) -- (\arrayw-\extensionsarrayw-2*\bitw,-2.5*\arrayh);
-        %\draw[densely dotted] (\arrayw,0) -- (\arrayw,-2.5*\arrayh);
+        \draw[decorate,decoration={brace,mirror,raise=1pt,amplitude=2pt}] (\arrayw-\extensionsarrayw,0) -- (\arrayw,0)
+            node[pos=0.5,below=4pt,inner sep=1pt] (mode_unused_extensions_length) {\small 70 Bits};
+        \node[inner sep=1pt] (mode_label) at (\arrayw-\extensionsarrayw-0.5*\bitw,\labely-0.01) {\small Mode};
+        \draw[-stealth] (mode_bit.south) -- (mode_label.north);
 
         % Extensions
         \draw[very thick] (\arrayw-\extensionsarrayw,0) -- (\arrayw-\extensionsarrayw,\arrayh);
         \foreach \i in {1, ..., \extensioncount} {
-            \draw[black] (\arrayw-\extensionsarrayw+\i*\extensionw,0) -- (\arrayw-\extensionsarrayw+\i*\extensionw,\arrayh);
+            \ifnum \i = 3 {
+                \draw[black] (\arrayw-\extensionsarrayw+\i*\extensionw,0) -- (\arrayw-\extensionsarrayw+\i*\extensionw,\arrayh);
+            }
+            \else {
+                \draw[black,dotted] (\arrayw-\extensionsarrayw+\i*\extensionw,0) -- (\arrayw-\extensionsarrayw+\i*\extensionw,\arrayh);
+            }
+            \fi
         }
-        \node[inner sep=1.75pt] (extension_0) at (\arrayw-\extensionsarrayw+0.5*\extensionw,0.5*\arrayh) {\small $01$};
-        \node[inner sep=0pt] (extension_1) at (\arrayw-\extensionsarrayw+1.5*\extensionw,0.5*\arrayh) {\small $11$};
-        \node[inner sep=0pt] (extension_2) at (\arrayw-\extensionsarrayw+2.5*\extensionw,0.5*\arrayh) {\small $00$};
+        \node[inner sep=1.75pt] (extension_0) at (\arrayw-\extensionsarrayw+0.5*\extensionw,0.5*\arrayh) {\small $10$};
+        \node[inner sep=0pt] (extension_1) at (\arrayw-\extensionsarrayw+1.5*\extensionw,0.5*\arrayh) {\small $01$};
+        \node[inner sep=1.75pt] (extension_2) at (\arrayw-\extensionsarrayw+2.5*\extensionw,0.5*\arrayh) {\small $11$};
+        \node[inner sep=0pt] (extension_3) at (\arrayw-\extensionsarrayw+3.5*\extensionw,0.5*\arrayh) {\small $01$};
         \node[inner sep=0pt] (extension_dots) at (\arrayw-0.5*\extensionsarrayw+0.5*\extensioncount*\extensionw,0.5*\arrayh) {\small $\dots$};
-        %\draw[decorate,decoration={brace,raise=1pt,amplitude=2pt}] (\arrayw-\extensionsarrayw+0.01,\arrayh) -- (\arrayw-0.01,\arrayh)
-        %    node[pos=0.5,above=5pt,inner sep=1pt] (extensions_label) {\small Extensions};
-        \node[inner sep=0pt] (extensions_label) at (\arrayw-0.5*\extensionsarrayw+0.01,1.75*\arrayh) {\small \verb|extensions|};
-        \draw[decorate,decoration={brace,mirror,raise=1pt,amplitude=2pt}] (\arrayw-\extensionsarrayw,-0.5*\arrayh) -- (\arrayw-\extensionsarrayw+\extensionw,-0.5*\arrayh)
-            node[pos=0.5,below=4pt,inner sep=1pt] (extension_length) {\small 2 Bits};
-        \draw[densely dotted] (\arrayw-\extensionsarrayw,0) -- (\arrayw-\extensionsarrayw,-0.5*\arrayh);
-        \draw[densely dotted] (\arrayw-\extensionsarrayw+\extensionw,0) -- (\arrayw-\extensionsarrayw+\extensionw,-0.5*\arrayh);
+        \node[inner sep=0pt] (extensions_label) at (\arrayw-0.5*\extensionsarrayw+0.01,\labely) {\small Extensions};
+        \node[inner sep=1pt] (delimiter_label) at (\arrayw-\extensionsarrayw+4.5*\extensionw,2*\arrayh) {\small Delimiter};
+        \draw[-stealth] plot[hobby] coordinates { (extension_2.north) ($(extension_2.north)+(0.4*\extensionw,0.9*\arrayh)$) (delimiter_label.west) };
 
         % Stub Counters
         \foreach \i in {1, ..., \stubcountl} {
             \draw[black] (\overflowbitmapw+\i*\stubw,0) -- (\overflowbitmapw+\i*\stubw,\arrayh);
         }
-        \foreach \i in {1, ..., \stubcountr} {
-            \draw[black] (\arrayw-\bitw-\extensionsarrayw-\i*\stubw,0) -- (\arrayw-\bitw-\extensionsarrayw-\i*\stubw,\arrayh);
-        }
-        \node[inner sep=1pt] (stub_0) at (\overflowbitmapw+0.5*\stubw,0.5*\arrayh) {\small $31$};
+        \node[inner sep=1.6pt] (stub_0) at (\overflowbitmapw+0.5*\stubw,0.5*\arrayh) {\small $31$};
         \node[inner sep=1.6pt] (stub_1) at (\overflowbitmapw+1.5*\stubw,0.5*\arrayh) {\small $20$};
-        \node[inner sep=1pt] (stub_end_0) at (\arrayw-\bitw-\extensionsarrayw-0.5*\stubw,0.5*\arrayh) {\small $23$};
-        \node[inner sep=1pt] (stub_end_1) at (\arrayw-\bitw-\extensionsarrayw-1.5*\stubw,0.5*\arrayh) {\small $40$};
-        \node[inner sep=1pt] (stub_dots) at (0.5*\overflowbitmapw+0.5*\stubcountl*\stubw+0.5*\arrayw-0.5*\bitw-0.5*\extensionsarrayw-0.5*\stubcountr*\stubw,0.5*\arrayh) {\small $\dots$};
+        \node[inner sep=1pt] (stub_dots) at (0.5*\overflowbitmapw+0.5*\stubcountl*\stubw+0.5*\arrayw-0.5*\bitw-0.5*\extensionsarrayw,0.5*\arrayh) {\small $\dots$};
         %\draw[decorate,decoration={brace,raise=1pt,amplitude=2pt}] (\overflowbitmapw+0.01,\arrayh) -- (\arrayw-\extensionsarrayw-2*\bitw-0.01,\arrayh)
         %    node[pos=0.5,above=5pt,inner sep=1pt] (stub_label) {\small Stub Counters};
-        \node[inner sep=0pt] (stub_label) at (0.5*\overflowbitmapw+0.5*\arrayw-0.5*\extensionsarrayw-0.5*\bitw,1.75*\arrayh) {\small \verb|stubs|};
+        \node[inner sep=0pt] (stub_label) at (0.5*\overflowbitmapw+0.5*\arrayw-0.5*\extensionsarrayw-0.5*\bitw,\labely) {\small Stub Counters};
         \draw[decorate,decoration={brace,mirror,raise=1pt,amplitude=2pt}] (\overflowbitmapw+\stubw,0) -- (\overflowbitmapw+2*\stubw,0)
             node[pos=0.5,below=4pt,inner sep=1pt] (stub_length) {\small $m_s$ Bits};
 
-        % Example Counter
-        \def\counterw{3.2}
+        % Example Counters
+        \def\counterw{2.25}
         \def\counterh{0.3}
-        \def\countery{1.5}
-        \def\counterlowfrac{0.3}
-        \draw[black] (0.5*\arrayw-0.5*\counterw,\countery) rectangle (0.5*\arrayw+0.5*\counterw,\countery+\counterh);
-        \draw (0.5*\arrayw+0.5*\counterw-\counterlowfrac*\counterw,\countery) -- (0.5*\arrayw+0.5*\counterw-\counterlowfrac*\counterw,\countery+\counterh);
+        \def\countersep{0.5}
+        \def\counterx{0.5*\arrayw-0.5*\countersep-0.5*\counterw}
+        \def\countery{1.0}
+        \def\counterlow{0.38*\counterw}
 
-        \node[inner sep=1.5pt] (counter_lower_bits) at (0.5*\arrayw+0.5*\counterw-0.5*\counterlowfrac*\counterw,\countery+0.5*\counterh) {\small $001010$};
-        %\node[inner sep=0pt,right=0.1 of counter_lower_bits] (counter_low_label)  {\small Low Part};
-        \draw[-stealth] plot[hobby] coordinates { (counter_lower_bits.south) ($(counter_lower_bits.south)+(-0.05,-0.07)$) ($(stub_1.north)+(0.15,0.4)$) (stub_1.north) };
+        \draw (\counterx-0.5*\counterw+\counterlow,\countery) -- (\counterx-0.5*\counterw+\counterlow,\countery+\counterh);
+        \node[inner sep=1.5pt] (counter_0_lower_bits) at (\counterx-0.5*\counterw+0.5*\counterlow,\countery+0.5435*\counterh) {\small $111111$};
+        \draw[-stealth] (counter_0_lower_bits.south) -- (stub_0.north);
+        \node[inner sep=1.5pt] (counter_0_higher_bits) at (\counterx+0.5*\counterlow,\countery+0.5*\counterh) {\small $0000000\dots$};
+        \node[inner sep=0pt] (counter_0_label) at (\counterx,\countery+1.75*\counterh) {\small Counter 0};
 
-        \node[inner sep=1.5pt] (counter_higher_bits) at (0.5*\arrayw-0.5*\counterlowfrac*\counterw,\countery+0.5*\counterh) {\small $\dots0000000000001$};
-        %\node[inner sep=0pt,left=0.1 of counter_higher_bits] (counter_high_label) {\small High Part};
-        \draw[-stealth] plot[hobby] coordinates { (counter_higher_bits.south) ($(counter_higher_bits.south)+(0.05,-0.07)$) ($(extension_0.north)+(-0.15,0.4)$) (extension_0.north) };
+        \def\counterx{0.5*\arrayw+0.5*\countersep+0.5*\counterw}
 
-        \node[inner sep=0pt] (counter_label) at (0.5*\arrayw,\countery+1.75*\counterh) {\small Counter 1};
+        \draw (\counterx-0.5*\counterw+\counterlow,\countery) -- (\counterx-0.5*\counterw+\counterlow,\countery+\counterh);
+        \node[inner sep=1.5pt] (counter_1_lower_bits) at (\counterx-0.5*\counterw+0.5*\counterlow,\countery+0.5*\counterh) {\small $001010$};
+        \draw[-stealth] (counter_1_lower_bits.south) -- (stub_1.north);
+        \node[inner sep=1.5pt] (counter_1_higher_bits) at (\counterx+0.5*\counterlow,\countery+0.5*\counterh) {\small $1010000\dots$};
+        \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt}] (\arrayw-\extensionsarrayw,\arrayh) -- (\arrayw-\extensionsarrayw+3*\extensionw,\arrayh)
+            node[pos=0.5,above=2pt,inner sep=0pt] (counter_1_extensions_brace) { };
+        \draw[-stealth] (counter_1_higher_bits.south) -- (counter_1_extensions_brace.north);
+        \node[inner sep=0pt] (counter_1_label) at (\counterx,\countery+1.75*\counterh) {\small Counter 1};
+
+        \def\axisl{0.5*\arrayw-0.8*\counterw}
+        \def\axisr{0.5*\arrayw+0.8*\counterw}
+        \def\axisy{\countery+3*\counterh}
+        \draw[-stealth] (\axisl,\axisy) -- (\axisr,\axisy);
+        \node[inner sep=2pt,anchor=east] (lower_order_bits_label) at (\axisl,\axisy+0.02) {\small Lower-Order};
+        \node[inner sep=2pt,anchor=west] (higher_order_bits_label) at (\axisr,\axisy) {\small Higher-Order};
+        \node[inner sep=2pt,anchor=south] (axis_label) at (0.5*\axisl+0.5*\axisr,\axisy) {\small Bits};
     \end{tikzpicture}
     \caption{Sketchbook encodes a chunk of~$m_c=63$ counters in a cache line.
     It encodes the~$m_s=6$ lower-order bits of each counter in a stub counter
     and stores the remaining higher-order bits in extensions comprised of~2-bit
-    digits.}
+    representations of base-3 digits.}
     \label{fig:counter_chunk}
 \end{figure}
 
-\textbf{Encoding Counters.} 
-Sketchbook stores the counters in an array of~$m_s$-bit stub counters called
-\verb|stubs|. \Cref{fig:counter_chunk} illustrates the layout of a chunk and
-the \verb|stubs| array within. Sketchbook tunes~$m_s$ based on the workload's
-skew so that most counter values fit in their stub counters while limiting the
-number of unused leading zeros. Increasing~$m_s$ reduces overflows and shortens
-the extensions, but increases the number of leading zeros and elongates the
-\verb|stubs| array, leaving less space for the extensions. Sketchbook
-co-tunes~$m_s$ with the chunk size~$m_c$ to balance these goals. We use~$m_s=6$
-in our examples, as we have found it suitable for many realistic workloads.
+\textbf{Stub Counters.} 
+We use a stub counter length of~$m_s=6$ bits, as we have found it suitable for
+many scenarios. As before, co-tuning\footnote{Increasing~$m_s$ reduces
+overflows and shortens the extensions, but increases the total size of the stub
+counters, leaving less space for the extensions. This necessitates co-tuning,
+as $m_c$ may have to be reduced to enable a larger~$m_s$.}~$m_s$ with the
+number of counters in a chunk~$m_c$ based on the workload's skew can slightly
+reduce the memory footprint.
 
 %Later in this section, we discuss how the fixed length of the stub counters allows Sketchbook to quickly update them, enabling fast insertions and deletions of keys.
 
-Sketchbook tracks the counters that overflow their stub counters using
-an~$m_c${\nobreakdash-}bit \verb|overflows| bitmap, where
-the~$i${\nobreakdash-}th bit is~1 if the~$i${\nobreakdash-}th counter has
-overflowed and~0 otherwise. The lower-order bits of each overflowing counter
-are stored in its stub counter, while its overflowing higher-order bits are
-encoded in an extension formed from~2{\nobreakdash-}bit
-\emph{Digits}.\footnote{We show in \Cref{sec:theoretical_analysis} that 2-bit
-digits allow an extension's length to be close to the bit-length of the value
-it represents.} Sketchbook uses the remaining space at the end of the cache
-line to store an \verb|extensions| array. \Cref{fig:counter_chunk} illustrates
-the \verb|overflows| bitmap and the \verb|extensions| array. Even though
-extensions are stored in the same order as the counters (with the
-$i${\nobreakdash-}th extension belonging to the $i${\nobreakdash-}th
-overflowing counter), Sketchbook must still disambiguate where extensions begin
-and end to enable decoding. To this end, it reserves the all-1s digit, i.e.,
-the binary value~$(11)_2=3$, as a delimiter. Sketchbook encodes a value in an
-extension by representing it in base{\nobreakdash-}3, storing the resulting
-digits, and appending the delimiter. This yields an unambiguous encoding since
-digits in base{\nobreakdash-}3 are always smaller than~3, implying that their
-binary form differs from~$(11)_2$, i.e., the delimiter. Formally, a value~$v$
-is encoded using~$\left\lfloor \log_3 v \right\rfloor + 2$ digits,
-with~$\left\lfloor v/3^j \right\rfloor \mod 3$ as the $j$-th digit and the
-delimiter as the last. For example, the value~2 is represented by the
-extension~$\langle (10)_2, (11)_2 \rangle$. In contrast, 3 has two digits in
-base{\nobreakdash-}3 and is therefore represented by~$\langle (00)_2, (01)_2,
-(11)_2 \rangle$. 
+\textbf{Overflows Bitmap.}
+A chunk tracks the counters that overflow their stub counters using
+an~$m_c${\nobreakdash-}bit overflows bitmap, where the~$i${\nobreakdash-}th bit
+is~1 if the~$i${\nobreakdash-}th counter has overflowed and~0 otherwise.
+\Cref{fig:counter_chunk} illustrates an example of this bitmap.
 
-We prove in \Cref{sec:theoretical_analysis} that a chunk uses~$1+m_s$ bits to
-encode a counter~$c$ if it fits in its stub counter and~$\approx m_s+2+1.26
-\cdot \log_2 c$ bits otherwise. We also prove in
-\Cref{sec:theoretical_analysis} that a well-chosen~$m_s$ drastically reduces
-the total length of the extensions, allowing them to fit in 1-2 machine words.
+\textbf{Extensions.}
+An extension stores the overflowing higher-order bits of a counter by encoding
+their value in base-3 and representing each resulting digit in two bits. More
+specifically, it represents the base-3 digits~$(0)_3$, $(1)_3$, and $(2)_3$
+as~$00$, $01$, and $10$, respectively. To facilitate decoding, Sketchbook must
+disambiguate where each extension begins and ends. It achieves this by
+appending the unused combination of bits~$11$ to each extension as a delimiter.
+\Cref{fig:counter_chunk} shows an example. Formally, an extension encodes the
+value~$v$ by representing its~$\left\lfloor \log_3 v \right\rfloor + 1$ base-3
+digits, with~$\left\lfloor v/3^j \right\rfloor \mod 3$ as the $j$-th digit, and
+finally appending delimiter. For example, the value~2 is represented by the
+extension~$\langle 10, 11 \rangle$. In contrast, 5, which is the value of the
+higher-order bits of Counter~1 in \Cref{fig:counter_chunk}, has two digits in
+base{\nobreakdash-}3 and is therefore represented by~$\langle 10, 01, 11
+\rangle$. 
 
-\textbf{Locating a Run.}
-If the~$i${\nobreakdash-}th counter has overflowed, Sketchbook must locate its
-extension to decode it.  To this end, it scans the \verb|extensions| array and
-skips the extensions of the preceding overflowing counters, which come before
-the target extension. Sketchbook determines the number of extensions to skip by
-scanning the \verb|overflows| bitmap and counting the~1s before
-the~$i${\nobreakdash-}th bit. For example, in
+Encoding extensions in this way allows a chunk to encode a counter value~$c$ in
+$1+m_s$ bits if it fits in its stub counter and close to~$m_s+2+1.26 \cdot
+\log_2 c$ bits otherwise, as proven in \Cref{sec:theoretical_analysis}.
+
+\textbf{Locating an Extension.}
+If the~$i${\nobreakdash-}th counter in a chunk has overflowed, Sketchbook must
+locate its extension to decode it. To this end, it scans the extensions array
+and skips the extensions of preceding overflowing counters, leveraging the
+shared ordering of the extensions and the counters. Sketchbook determines the
+number of counters whose extensions must be skipped by scanning the overflows
+bitmap and counting the~1s before the~$i${\nobreakdash-}th bit. For example, in
 \Cref{fig:extension_location_example}, there is a single~1 before the 3rd bit
-in the \verb|overflows| bitmap. Thus, Sketchbook locates the 3rd counter's
-extension by skipping the first extension.
+in the overflows bitmap, implying that one extension must be skipped to locate
+the 3rd counter's extension, shown in gray.
 
-Sketchbook leverages rank and select primitives to avoid scanning overheads of
-the above procedure. Given a bitmap~$B$, $\text{rank}(i,B)$ counts the number
-of~1s before the $i$-th bit, and $\text{select}(i,B)$ returns the position of
-the~$i${\nobreakdash-}th 1. Later in this section, we show how Sketchbook
-efficiently implements these primitives using specialized CPU
-instructions~\cite{GQF}. Sketchbook counts the number of extensions to skip by
-evaluating~$\text{rank}(i,$~\verb|overflows|$)$. It locates the target
-extension by treating the \verb|extensions| array as a bitmap and deriving an
-\verb|ends| bitmap from it that has a~1 at the end of each delimiter. It then
-evaluates~$\text{select}(\text{rank}(i,$~\verb|overflows|$),$~\verb|ends|$)$ to
-locate the end of the target extension, which it decodes with a right-to-left
-scan. Sketchbook derives the \verb|ends| bitmap by computing
+\textbf{Fast Access Using Rank and Select.}
+Sketchbook leverages rank and select primitives to avoid the scanning overheads
+of the procedure above. Given a bitmap~$B$, $\text{rank}(i,B)$ counts the
+number of~1s before the $i$-th bit, and $\text{select}(i,B)$ returns the
+position of the~$i${\nobreakdash-}th 1. Later in this section, we show how to
+implement these primitives efficiently using specialized CPU instructions.
+Sketchbook counts the number of extensions to skip by applying rank to the
+overflows bitmap to evaluate~$\text{rank}(i,$~overflows$)$. It locates the
+target extension by treating the extensions array as a bitmap and using it to
+derive a delimiters bitmap that indicates the location of (the second bit of)
+each delimiter with a~1. It then applies select to this bitmap to
+evaluate~$\text{select}(\text{rank}(i,$~overflows$),$~delimiters$)$, locating
+the end of the target extension and decoding it with a right-to-left scan.
+Sketchbook derives the delimiters bitmap by computing
 \begin{center}
-    \verb|ends| $=$ \verb|extensions| \verb|&| $($\verb|extensions >> |1$)$ \verb|&| $0101\dots0101$,
+    delimiters $=$ extensions \& $($extensions >‌> 1$)$ \& $0101\dots0101$,
 \end{center}
-where \verb|&| is the bitwise and operator and \verb|>>| is the right shift
-operator. Here, the first~\verb|&| yields a bitmap with a~1 at the second bit
-of each delimiter and a~0 at the second bit of any other digit. As other bits
-in this bitmap are irrelevant for locating the target extension, Sketchbook
-masks out them out with the second~\verb|&|. These operations are efficient, as
-the \verb|extensions| array is typically 1-2 machine words long.
-\Cref{fig:extension_location_example} shows an example of computing an
-\verb|ends| bitmap, as well as an example of using rank and select to find the
-3rd counter's extension. Here, $\text{rank}(3,$~\verb|overflows|$)=1$, leading
-to Sketchbook evaluating~$\text{select}(1,$~\verb|ends|$)=11$ to determine the
+where \& is the bitwise-and operator and >‌> is the right shift operator.
+Here, the first~\& yields a bitmap with a~1 at the second bit of each delimiter
+and a~0 at the second bit of other digits. As other bits in this bitmap are
+irrelevant for locating the target extension, Sketchbook masks them out with
+the second~\&. These operations are efficient since the extensions array is 70
+bits long, allowing it to fit in two machine words.
+\Cref{fig:extension_location_example} shows an example of computing the
+delimiters bitmap, as well as an example of using rank and select to find the
+3rd counter's extension. Here, $\text{rank}(3,$~overflows$)=1$, leading to
+Sketchbook evaluating~$\text{select}(1,$~delimiters$)=11$ to conclude that the
 target extension ends at the~11th bit.
 
 \begin{figure}
@@ -626,14 +636,16 @@ target extension ends at the~11th bit.
         \def\extensioncount{7}
         \def\partsep{0.1*\arrayw}
 
+        \def\labely{-6.5*\arrayh}
+
         % Overflow Bitmap
         \draw[black] (0,0) rectangle (\overflowbitmapw,\arrayh);
         \draw (\overflowbitmapw,0) -- (\overflowbitmapw+\bitw,0);
         \draw (\overflowbitmapw,\arrayh) -- (\overflowbitmapw+\bitw,\arrayh);
         \draw[very thick] (\overflowbitmapw,0) -- (\overflowbitmapw,\arrayh);
         \node[inner sep=0pt] (overflow_bitmap) at (0.5*\overflowbitmapw,0.5*\arrayh) {\small $0 1 0 \text{\textbf{1}} \dots 0 1 1$};
-        \node[inner sep=0pt] (overflow_bitmap_label) at (0.5*\overflowbitmapw,1.75*\arrayh) {\small \verb|overflows|};
-        \node[inner sep=1pt] (rank_value) at (0.5*\overflowbitmapw,-0.75*\arrayh) {\small $\text{rank}(3,$ \verb|overflows|$)=1$};
+        \node[inner sep=0pt] (overflow_bitmap_label) at (0.5*\overflowbitmapw,\labely) {\small Overflows};
+        \node[inner sep=1pt] (rank_value) at (0.5*\overflowbitmapw,-0.75*\arrayh) {\small $\text{rank}(3,$~Overflows$)=1$};
 
         % Middle Dots
         \node[inner sep=0pt] (middle_dots) at (\overflowbitmapw+\bitw+0.5*\partsep,0.5*\arrayh) {\small $\dots$};
@@ -644,38 +656,47 @@ target extension ends at the~11th bit.
         \draw (\overflowbitmapw+\bitw+\partsep,0) -- (\overflowbitmapw+\bitw+\partsep+\bitw,0);
         \draw (\overflowbitmapw+\bitw+\partsep,\arrayh) -- (\overflowbitmapw+\bitw+\partsep+\bitw,\arrayh);
         \foreach \i in {1, ..., \extensioncount} {
-            \draw[black] (\overflowbitmapw+\bitw+\partsep+\bitw+\i*\extensionw,0) -- (\overflowbitmapw+\bitw+\partsep+\bitw+\i*\extensionw,\arrayh);
+            \ifnum \i = 3 {
+                \draw[black] (\overflowbitmapw+\bitw+\partsep+\bitw+\i*\extensionw,0) -- (\overflowbitmapw+\bitw+\partsep+\bitw+\i*\extensionw,\arrayh);
+            }
+            \else \ifnum \i = 6 {
+                \draw[black] (\overflowbitmapw+\bitw+\partsep+\bitw+\i*\extensionw,0) -- (\overflowbitmapw+\bitw+\partsep+\bitw+\i*\extensionw,\arrayh);
+            }
+            \else {
+                \draw[black,dotted] (\overflowbitmapw+\bitw+\partsep+\bitw+\i*\extensionw,0) -- (\overflowbitmapw+\bitw+\partsep+\bitw+\i*\extensionw,\arrayh);
+            }
+            \fi \fi
         }
 
         \begin{scope}[name prefix=extension_]
-            \node[inner sep=0pt] (0) at (\overflowbitmapw+\bitw+\partsep+\bitw+0.51*\extensionw,0.5*\arrayh) {\small $01$};
-            \node[inner sep=0pt] (1) at (\overflowbitmapw+\bitw+\partsep+\bitw+1.5*\extensionw,0.5*\arrayh) {\small $11$};
-            \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt}] (\overflowbitmapw+\bitw+\partsep+\bitw,\arrayh) -- (\overflowbitmapw+\bitw+\partsep+\bitw+2*\extensionw,\arrayh)
+            \node[inner sep=0pt] (0) at (\overflowbitmapw+\bitw+\partsep+\bitw+0.51*\extensionw,0.5*\arrayh) {\small $10$};
+            \node[inner sep=0pt] (1) at (\overflowbitmapw+\bitw+\partsep+\bitw+1.5*\extensionw,0.5*\arrayh) {\small $01$};
+            \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt}] (\overflowbitmapw+\bitw+\partsep+\bitw,\arrayh) -- (\overflowbitmapw+\bitw+\partsep+\bitw+3*\extensionw,\arrayh)
                 node[pos=0.5,above=4pt,inner sep=1pt] (stub_length) {\small Skipped};
+            \node[inner sep=0pt] (2) at (\overflowbitmapw+\bitw+\partsep+\bitw+2.5*\extensionw,0.5*\arrayh) {\small $11$};
 
-            \node[inner sep=0pt] (2) at (\overflowbitmapw+\bitw+\partsep+\bitw+2.5*\extensionw,0.5*\arrayh) {\small $00$};
             \node[inner sep=0pt] (3) at (\overflowbitmapw+\bitw+\partsep+\bitw+3.5*\extensionw,0.5*\arrayh) {\small $01$};
             \node[inner sep=0pt] (4) at (\overflowbitmapw+\bitw+\partsep+\bitw+4.5*\extensionw,0.5*\arrayh) {\small $10$};
-            \node[inner sep=0pt] (5) at (\overflowbitmapw+\bitw+\partsep+\bitw+5.5*\extensionw,0.5*\arrayh) {\small $11$};
             % Highlight the example extension
             \begin{pgfonlayer}{background layer}
-                \draw[fill=gray!20] (\overflowbitmapw+\bitw+\partsep+\bitw+2*\extensionw,0) rectangle (\overflowbitmapw+\bitw+\partsep+\bitw+6*\extensionw,\arrayh);
+                \draw[fill=gray!20] (\overflowbitmapw+\bitw+\partsep+\bitw+3*\extensionw,0) rectangle (\overflowbitmapw+\bitw+\partsep+\bitw+6*\extensionw,\arrayh);
             \end{pgfonlayer}
+            \node[inner sep=0pt] (5) at (\overflowbitmapw+\bitw+\partsep+\bitw+5.5*\extensionw,0.5*\arrayh) {\small $11$};
 
             \node[inner sep=0pt] (6) at (\overflowbitmapw+\bitw+\partsep+\bitw+6.5*\extensionw,0.5*\arrayh) {\small $01$};
 
             \node[inner sep=0pt] (dots) at (\overflowbitmapw+\bitw+\partsep+\bitw+0.5*\extensioncount*\extensionw+0.5*\extensionsarrayw,0.5*\arrayh) {\small $\dots$};
-            \node[inner sep=0pt] (label) at (\overflowbitmapw+\bitw+\partsep+\bitw+0.5*\extensionsarrayw,1.75*\arrayh) {\small \verb|extensions|};
+            \node[inner sep=0pt] (label) at (\overflowbitmapw+\bitw+\partsep+\bitw+0.5*\extensionsarrayw,\labely) {\small Extensions};
         \end{scope}
 
         % Select Optimization
         \begin{scope}[name prefix=shifted_extension_]
             \def\offy{1.25*\arrayh}
             \node[inner sep=0pt] (ampersand) at (\overflowbitmapw+\bitw+\partsep+\bitw-0.5*\extensionw,0.5*\arrayh-\offy) {\small \&};
-            \node[inner sep=0pt] (0) at (\overflowbitmapw+\bitw+\partsep+\bitw+0.51*\extensionw,0.5*\arrayh-\offy) {\small $00$};
-            \node[inner sep=0pt] (1) at (\overflowbitmapw+\bitw+\partsep+\bitw+1.5*\extensionw,0.5*\arrayh-\offy) {\small $11$};
-            \node[inner sep=0pt] (2) at (\overflowbitmapw+\bitw+\partsep+\bitw+2.5*\extensionw,0.5*\arrayh-\offy) {\small $10$};
-            \node[inner sep=0pt] (3) at (\overflowbitmapw+\bitw+\partsep+\bitw+3.5*\extensionw,0.5*\arrayh-\offy) {\small $00$};
+            \node[inner sep=0pt] (0) at (\overflowbitmapw+\bitw+\partsep+\bitw+0.51*\extensionw,0.5*\arrayh-\offy) {\small $01$};
+            \node[inner sep=0pt] (1) at (\overflowbitmapw+\bitw+\partsep+\bitw+1.5*\extensionw,0.5*\arrayh-\offy) {\small $00$};
+            \node[inner sep=0pt] (2) at (\overflowbitmapw+\bitw+\partsep+\bitw+2.5*\extensionw,0.5*\arrayh-\offy) {\small $11$};
+            \node[inner sep=0pt] (3) at (\overflowbitmapw+\bitw+\partsep+\bitw+3.5*\extensionw,0.5*\arrayh-\offy) {\small $10$};
             \node[inner sep=0pt] (4) at (\overflowbitmapw+\bitw+\partsep+\bitw+4.5*\extensionw,0.5*\arrayh-\offy) {\small $11$};
             \node[inner sep=0pt] (5) at (\overflowbitmapw+\bitw+\partsep+\bitw+5.5*\extensionw,0.5*\arrayh-\offy) {\small $01$};
             \node[inner sep=0pt] (6) at (\overflowbitmapw+\bitw+\partsep+\bitw+6.5*\extensionw,0.5*\arrayh-\offy) {\small $10$};
@@ -701,17 +722,17 @@ target extension ends at the~11th bit.
         \begin{scope}[name prefix=ends]
             \def\offy{3.75*\arrayh}
             \node[inner sep=0pt] (0) at (\overflowbitmapw+\bitw+\partsep+\bitw+0.51*\extensionw,0.5*\arrayh-\offy) {\small $00$};
-            \node[inner sep=0pt] (1) at (\overflowbitmapw+\bitw+\partsep+\bitw+1.5*\extensionw,0.5*\arrayh-\offy) {\small $01$};
-            \node[inner sep=0pt] (2) at (\overflowbitmapw+\bitw+\partsep+\bitw+2.5*\extensionw,0.5*\arrayh-\offy) {\small $00$};
+            \node[inner sep=0pt] (1) at (\overflowbitmapw+\bitw+\partsep+\bitw+1.5*\extensionw,0.5*\arrayh-\offy) {\small $00$};
+            \node[inner sep=0pt] (2) at (\overflowbitmapw+\bitw+\partsep+\bitw+2.5*\extensionw,0.5*\arrayh-\offy) {\small $01$};
             \node[inner sep=0pt] (3) at (\overflowbitmapw+\bitw+\partsep+\bitw+3.5*\extensionw,0.5*\arrayh-\offy) {\small $00$};
             \node[inner sep=0pt] (4) at (\overflowbitmapw+\bitw+\partsep+\bitw+4.5*\extensionw,0.5*\arrayh-\offy) {\small $00$};
             \node[inner sep=0pt] (5) at (\overflowbitmapw+\bitw+\partsep+\bitw+5.5*\extensionw,0.5*\arrayh-\offy) {\small $0\text{\textbf{1}}$};
             \node[inner sep=0pt] (6) at (\overflowbitmapw+\bitw+\partsep+\bitw+6.5*\extensionw,0.5*\arrayh-\offy) {\small $00$};
             \node[inner sep=0pt] (dots) at (\overflowbitmapw+\bitw+\partsep+\bitw+0.5*\extensioncount*\extensionw+0.5*\extensionsarrayw,0.5*\arrayh-\offy) {\small $\dots$};
-            \node[inner sep=0pt,right=0.2 of dots] (label) {\small \verb|ends|};
+            \node[inner sep=0pt,right=0.2 of dots] (label) {\small Delimiters};
         \end{scope}
 
-        \node[inner sep=1pt,anchor=west] (select_value) at (\overflowbitmapw+\bitw+\partsep+\bitw,-5.0*\arrayh) {\small $\text{select}(1,$ \verb|ends|$)=11$};
+        \node[inner sep=1pt,anchor=west] (select_value) at (\overflowbitmapw+\bitw+\partsep+\bitw,-5.0*\arrayh) {\small $\text{select}(1,$ Delimiters$)=11$};
         \draw[-stealth] ($(rank_value.south east)+(-3pt,0)$) |- (select_value.west);
     \end{tikzpicture}
     \caption{Sketchbook applies rank and select primitives to locate an
@@ -722,49 +743,49 @@ target extension ends at the~11th bit.
 \textbf{Spilling.} 
 In the unlikely event that many hot keys hash to the same chunk, many of the
 chunk's counters will overflow, increasing the total length of the extensions
-beyond the size of the \verb|extensions| array. Sketchbook handles such cases
-by spilling the overflowing higher-order bits to an external array of long
-counters called \verb|spills|, with \verb|spills[|$i$\verb|]| storing
-the~$i${\nobreakdash-}th counter's higher-order bits.
+beyond the size of the extensions array. Sketchbook handles such cases by
+storing the overflowing higher-order bits in an external array of long
+\emph{Spill Counters}. That is, it stores the~$i${\nobreakdash-}th counter's
+higher-order bits in the~$i${\nobreakdash-}th spill counter.
 \Cref{fig:counter_chunk_spilled} illustrates an example. Sketchbook indicates
-that it has spilled a chunk by employing a~\verb|mode| flag in the chunk and
-setting it to~1, as depicted in \Cref{fig:counter_chunk_spilled}. To access the
-higher-order bits, Sketchbook empties the \verb|extensions| array and stores a
-pointer to the \verb|spills| array in it. This requires the \verb|extensions|
-array to have enough space for representing a general pointer, which is
-possible in 48 bits on modern machines. Sketchbook tunes the chunk's size~$m_c$
-to satisfy this requirement. The space after the pointer in the
-\verb|extensions| array is left unused, as shown in
-\Cref{fig:counter_chunk_spilled}. 
+that it has spilled a chunk by employing a mode flag in the chunk and setting
+it to~1, as depicted in \Cref{fig:counter_chunk_spilled}. To access the
+higher-order bits, Sketchbook empties the extensions array and stores a pointer
+to the array of spill counters in it. The extra space after the pointer in the
+extensions array is left unused, as shown in \Cref{fig:counter_chunk_spilled}. 
 
 %To simplify the implementation, Sketchbook never ``unspills'' a chunk.
 %Inspired by frontyard-backyard hash tables~\cite{Backyarding1,Backyarding2,BackyardCuckooHashing,CacheObliviousDictionaries,IcebergHashing},
 %Here, as the stub counter length is~$m_s=6$, the value of the 0th counter is decoded by concatenating the binary representations of \verb|stub[|$0$\verb|]| and \verb|spills[|$0$\verb|]|, yielding $63 + 2^{m_s} \cdot 100 = 6463$. 
 
-A well-chosen stub counter length~$m_s$ makes spilling very unlikely, as it
-significantly reduces the total length of the extensions and allows them to fit
-in the \verb|extensions| array with high probability. Therefore, the added
-memory overhead of the \verb|spills| arrays is negligible, as also observed in
-our evaluation in \Cref{sec:evaluation}.
+We show in \Cref{sec:theoretical_analysis} that a good choice of stub counter
+length~$m_s$, such as the default of~$m_s=6$, makes spilling very unlikely, as
+it significantly reduces the total length of the extensions and allows them to
+fit in the extensions array with high probability. Therefore, the added memory
+overhead of the spill counters is negligible, as also observed in our
+evaluation in \Cref{sec:evaluation}.
 
 \begin{figure}
     \centering
     \begin{tikzpicture}
+
         \def\arraycount{3}
         \def\arrayw{8.5}
         \def\arrayh{0.3}
-        \def\spillarrayw{0.75*\arrayw}
+        \def\spillarrayw{0.6*\arrayw}
         \def\spillarrayh{1.0*\arrayh}
         \def\spillarrayoffsetx{0.05*\arrayw}
         \def\spillarrayoffsety{-1.9*\arrayh}
         \def\stubw{0.09*\arrayw}
         \def\spillw{1.5*\stubw}
+        \def\stubw{0.09*\arrayw}
         \def\stubcountl{2}
-        \def\stubcountr{2}
         \def\overflowbitmapw{0.18*\arrayw}
-        \def\extensionsarrayw{0.24*\arrayw}
+        \def\extensionsarrayw{0.3*\arrayw}
         \def\bitw{0.025*\arrayw}
         \def\extensionw{2*\bitw}
+        \def\extensioncount{4}
+        \def\labely{-2.25*\arrayh}
         \def\ptrw{8*\bitw}
         \def\extensioncount{3}
 
@@ -778,43 +799,33 @@ our evaluation in \Cref{sec:evaluation}.
         \draw[very thick] (\arrayw-\extensionsarrayw-\bitw,0) -- (\arrayw-\extensionsarrayw-\bitw,\arrayh);
         %\draw[pattern=north east lines,pattern color=gray!50] (\arrayw-\extensionsarrayw-\bitw,0) rectangle (\arrayw-\extensionsarrayw,\arrayh);
         \node[inner sep=1.5pt] (mode_bit) at (\arrayw-\extensionsarrayw-0.5*\bitw,0.5*\arrayh) {\small $1$};
-        \node[inner sep=1pt,above=0.4*\arrayh of mode_bit] (mode_bit_label) {\small \verb|mode|};
+        \node[inner sep=1pt,below=0.4*\arrayh of mode_bit] (mode_bit_label) {\small Mode};
 
         % Spill Pointer
         \draw[pattern=north east lines,pattern color=gray!50] (\arrayw-\extensionsarrayw+\ptrw,0) rectangle (\arrayw,\arrayh);
         \draw[very thick] (\arrayw-\extensionsarrayw,0) -- (\arrayw-\extensionsarrayw,\arrayh);
         \node[inner sep=1.23pt] (spill_ptr) at (\arrayw-\extensionsarrayw+0.5*\ptrw,0.5*\arrayh) {\small Pointer};
-        \draw[decorate,decoration={brace,mirror,aspect=0.8,raise=1pt,amplitude=2pt}] (\arrayw-\extensionsarrayw,0) -- (\arrayw-\extensionsarrayw+\ptrw,0)
-            node[pos=0.8,below=4pt,inner sep=1pt] (spill_ptr_length) {\small 48 Bits};
+        %\draw[decorate,decoration={brace,mirror,aspect=0.8,raise=1pt,amplitude=2pt}] (\arrayw-\extensionsarrayw,0) -- (\arrayw-\extensionsarrayw+\ptrw,0)
+        %    node[pos=0.8,below=4pt,inner sep=1pt] (spill_ptr_length) {\small 48 Bits};
 
         % Stub Counters
         \foreach \i in {1, ..., \stubcountl} {
             \draw[black] (\overflowbitmapw+\i*\stubw,0) -- (\overflowbitmapw+\i*\stubw,\arrayh);
         }
-        \foreach \i in {1, ..., \stubcountr} {
-            \draw[black] (\arrayw-\bitw-\extensionsarrayw-\i*\stubw,0) -- (\arrayw-\bitw-\extensionsarrayw-\i*\stubw,\arrayh);
-        }
         \node[inner sep=1pt] (stub_0) at (\overflowbitmapw+0.5*\stubw,0.5*\arrayh) {\small $63$};
         \node[inner sep=1pt] (stub_1) at (\overflowbitmapw+1.5*\stubw,0.5*\arrayh) {\small $40$};
-        \node[inner sep=1pt] (stub_end_0) at (\arrayw-\bitw-\extensionsarrayw-0.5*\stubw,0.5*\arrayh) {\small $10$};
-        \node[inner sep=1pt] (stub_end_1) at (\arrayw-\bitw-\extensionsarrayw-1.5*\stubw,0.5*\arrayh) {\small $2$};
-        \node[inner sep=1pt] (stub_dots) at (0.5*\overflowbitmapw+0.5*\stubcountl*\stubw+0.5*\arrayw-0.5*\bitw-0.5*\extensionsarrayw-0.5*\stubcountr*\stubw,0.5*\arrayh) {\small $\dots$};
+        \node[inner sep=1pt] (stub_dots) at (0.5*\overflowbitmapw+0.5*\stubcountl*\stubw+0.5*\arrayw-0.5*\bitw-0.5*\extensionsarrayw,0.5*\arrayh) {\small $\dots$};
 
         % Spill Counters
         \draw[black] (\spillarrayoffsetx,\spillarrayoffsety) rectangle (\spillarrayoffsetx+\spillarrayw,\spillarrayoffsety-\spillarrayh);
         \foreach \i in {1, ..., \stubcountl} {
             \draw[black] (\spillarrayoffsetx+\i*\spillw,\spillarrayoffsety) -- (\spillarrayoffsetx+\i*\spillw,\spillarrayoffsety-\spillarrayh);
         }
-        \foreach \i in {1, ..., \stubcountr} {
-            \draw[black] (\spillarrayoffsetx+\spillarrayw-\i*\spillw,\spillarrayoffsety) -- (\spillarrayoffsetx+\spillarrayw-\i*\spillw,\spillarrayoffsety-\spillarrayh);
-        }
         \node[inner sep=1pt] (spill_0) at (\spillarrayoffsetx+0.5*\spillw,\spillarrayoffsety-0.5*\spillarrayh) {\small $1$};
         \node[inner sep=1pt] (spill_1) at (\spillarrayoffsetx+1.5*\spillw,\spillarrayoffsety-0.5*\spillarrayh) {\small $100$};
-        \node[inner sep=1pt] (spill_end_0) at (\spillarrayoffsetx+\spillarrayw-0.5*\spillw,\spillarrayoffsety-0.5*\spillarrayh) {\small $2$};
-        \node[inner sep=1pt] (spill_end_1) at (\spillarrayoffsetx+\spillarrayw-1.5*\spillw,\spillarrayoffsety-0.5*\spillarrayh) {\small $50$};
-        \node[inner sep=1pt] (spill_dots) at (\spillarrayoffsetx+0.5*\spillarrayw+0.5*\stubcountl*\spillw-0.5*\stubcountr*\spillw,\spillarrayoffsety-0.5*\spillarrayh) {\small $\dots$};
+        \node[inner sep=1pt] (spill_dots) at (\spillarrayoffsetx+0.5*\spillarrayw+0.5*\stubcountl*\spillw,\spillarrayoffsety-0.5*\spillarrayh) {\small $\dots$};
         \draw[-stealth] (spill_ptr.south) |- (\spillarrayoffsetx+\spillarrayw,\spillarrayoffsety-0.5*\spillarrayh);
-        \node[inner sep=0pt] (spill_label) at (\spillarrayoffsetx+0.5*\spillarrayw,\spillarrayoffsety+0.7*\arrayh) {\small \verb|spills|};
+        \node[inner sep=0pt] (spill_label) at (\spillarrayoffsetx+0.5*\spillarrayw,\spillarrayoffsety-3.0*\arrayh) {\small Spill Counters};
         \draw[decorate,decoration={brace,mirror,raise=1pt,amplitude=2pt}] (\spillarrayoffsetx,\spillarrayoffsety-\spillarrayh) -- (\spillarrayoffsetx+\spillw,\spillarrayoffsety-\spillarrayh)
             node[pos=0.5,below=4pt,inner sep=1pt] (spill_unused_extensions_length) {\small 32 or 64 Bits};
     \end{tikzpicture}
@@ -824,60 +835,63 @@ our evaluation in \Cref{sec:evaluation}.
 \end{figure}
 
 \textbf{Decoding Counters.}
-Sketchbook decodes the $i${\nobreakdash-}th counter in a chunk by probing
-the~$i$-th bit in the \verb|overflows| bitmap to see if the counter has
-overflowed. If it has not, Sketchbook returns \verb|stub[|$i$\verb|]|.
-Otherwise, Sketchbook decodes the counter by fetching its higher-order bits and
-concatenating them with its lower-order bits stored in \verb|stub[|$i$\verb|]|.
-To this end, Sketchbook reads the \verb|mode| bit to see if the chunk has been
-spilled. If not, Sketchbook retrieves the counter's higher-order bits by
-locating and decoding its extension. Letting~$v_j$ denote
-the~$j${\nobreakdash-}th digit in this extension, Sketchbook decodes the
-extension as~$v=3^0 \cdot v_0 + 3^1 \cdot v_1 + \dots$. If the chunk was
-spilled, Sketchbook retrieves the higher-order bits from
-\verb|spills[|$i$\verb|]|. For example, in \Cref{fig:counter_chunk} (where stub
-counters are~$m_s=6$ bits long), Sketchbook
-returns~\verb|stub[|$0$\verb|]|~$=31$ as the value of the~0th counter since
-the~0th bit of the \verb|overflows| bitmap is~0. For the~1st counter, since
-the~1st bit of the \verb|overflows| bitmap is~1, Sketchbook locates its
-extension and decodes it as~$v=3^0 \cdot 1=1$. Concatenating~$v$ with
-\verb|stub[|$1$\verb|]| then yields~$( v, $ \verb|stub[|$1$\verb|]|$)_2 =
-(1101000)_2 = 84$ as the counter's value.
+To decode one of CMS's counters, Sketchbook first determines the chunk it lies
+in by dividing the counter's position by the chunk size~$m_c$. Yet,
+straightforward division by~$m_c$ is costly, as it is not a power of two. Later
+in this section, we show how to utilize fixed-point arithmetic to remove this
+cost. 
 
-\textbf{Incrementing and Decrementing Counters.}
-When a newly inserted key maps to the~$i${\nobreakdash-}th counter, Sketchbook
-increments the counter by incrementing~\verb|stub[|$i$\verb|]|, as it either
-stores the entire counter or its lower-order bits. Most of the time,
-\verb|stub[|$i$\verb|]| will not overflow due to the increment, allowing
-Sketchbook to return early and achieve high throughput. When
-\verb|stub[|$i$\verb|]| overflows, Sketchbook moves a carry to the counter's
-higher-order bits. If the chunk has been spilled, this amounts to incrementing
-\verb|spills[|$i$\verb|]|. If not, Sketchbook updates the counter's extension.
-To this end, Sketchbook checks the~$i${\nobreakdash-}th bit of the
-\verb|overflows| bitmap to see if the counter has an extension. If it does not,
-Sketchbook creates a new extension representing the value~1 for the counter and
-reflects this in the \verb|overflows| bitmap by setting
-its~$i${\nobreakdash-}th bit to~1. Sketchbook places this extension in the
-appropriate position (after the extensions of previous counters, the location
-of which is determined using rank and select) within the \verb|extensions|
-array, shifting subsequent extensions to the right to make room. If the counter
-already had an extension, Sketchbook updates it by incrementing the first digit
-and propagating a carry to the other digits as necessary. This carry may
-propagate beyond the end of the extension, causing Sketchbook to add a new
-digit to the extension and shift subsequent extensions to the right to make
-room for it. 
+Letting the target counter be the~$i${\nobreakdash-}th counter in its chunk,
+Sketchbook decodes it by probing the~$i$-th bit in the overflows bitmap to
+check if it has overflowed. If it has not, Sketchbook returns the value of
+the~$i${\nobreakdash-}th stub counter, i.e., stub[$i$]. Otherwise,
+the~$i${\nobreakdash-}th counter is decoded by fetching its higher-order bits
+and concatenating them with its lower-order bits in stub[$i$]. To this end,
+Sketchbook reads the chunk's mode flag to see if it has been spilled. If not,
+the counter's higher-order bits are retrieved from its extension. Letting~$v_j$
+denote the~$j${\nobreakdash-}th digit in this extension, the extension is
+decoded as~$v=3^0 \cdot v_0 + 3^1 \cdot v_1 + \dots$. If the chunk was spilled,
+Sketchbook retrieves the higher-order bits from the~$i${\nobreakdash-}th spill
+counter. For example, in \Cref{fig:counter_chunk} (where stub counters
+are~$m_s=6$ bits long), Sketchbook returns~stub[$0$]~$=31$ as the value of
+the~0th counter since the~0th bit of the overflows bitmap is~0. For the~1st
+counter, since the~1st bit of the overflows bitmap is~1, Sketchbook locates its
+extension and decodes it as~$v=3^0 \cdot 2 + 3^1 \cdot 1=5$. Concatenating the
+binary representations of~$v$ and stub[$1$] yields~$($stub[$1$]$, v )_2 =
+(001010101)_2 = 180$ as the counter's value.
+
+\textbf{Incrementing Counters.}
+When an insertion maps to the~$i${\nobreakdash-}th counter of a chunk,
+Sketchbook increments it by incrementing the lower-order bits stored in
+stub[$i$]. Most of the time, stub[$i$] will not overflow due to the increment,
+allowing the insertion to return early and achieve high throughput. When
+stub[$i$] overflows, Sketchbook moves a carry to the counter's higher-order
+bits. If the chunk has been spilled, this amounts to incrementing
+the~$i${\nobreakdash-}th spill counter. If not, the corresponding extension
+must be updated. To this end, Sketchbook checks the~$i${\nobreakdash-}th bit of
+the overflows bitmap to see if the counter already has an extension. If it does
+not, a new extension representing the value~1 is created for the counter, and
+the~$i${\nobreakdash-}th bit in the overflows bitmap is set to~1 to reflect
+this. Sketchbook places this extension after the extensions of preceding
+counters in the extensions array, the location of which is determined using
+rank and select, shifting subsequent extensions to the right to make room. If
+the counter already had an extension, Sketchbook updates it by incrementing the
+first digit and propagating a carry to the other digits as necessary. This
+carry may propagate beyond the end of the extension, causing Sketchbook to add
+a new digit and shift subsequent extensions to the right to make room. 
 
 %As the \verb|extensions| array typically fits in 1-2 machine words, bitwise operations enable incrementing an extension in constant time.
 
-Analogously, when a deletion maps to the~$i${\nobreakdash-}th counter,
-Sketchbook decrements it by decrementing~\verb|stub[|$i$\verb|]|.
-If~\verb|stub[|$i$\verb|]| underflows, Sketchbook borrows from the counter's
-higher-order bits by decrementing its extension (propagating a borrow through
-its digits) or its spill counter. As a result, it may remove a digit from the
-counter's extension, in which case it shifts subsequent extensions to the left
-to keep the \verb|extensions| array tightly packed. If Sketchbook removes the
-entire extension, the counter no longer overflows, which Sketchbook reflects in
-the \verb|overflows| bitmap by setting its~$i${\nobreakdash-}th bit back to~0.
+\textbf{Decrementing Counters.}
+Analogously, when a deletion maps to the~$i${\nobreakdash-}th counter in a
+chunk, Sketchbook decrements the lower-order bits stored in~stub[$i$]. If
+stub[$i$] underflows, Sketchbook borrows from the counter's higher-order bits
+by decrementing its extension (propagating a borrow through its digits) or its
+spill counter. As a result, it may remove a digit from the counter's extension,
+in which case it shifts subsequent extensions to the left to keep the
+extensions array tightly packed. If the entire extension is removed, the
+counter no longer overflows, which leads to the~$i${\nobreakdash-}th bit in the
+overflows bitmap being set back to~0.
 
 \textbf{Optimization~1: Fast Division.}
 Determining the $i${\nobreakdash-}th counter's chunk is expensive, as it
@@ -1032,7 +1046,7 @@ aggregate CMS and discarding all the others.
 \textbf{Size Function.} 
 Sketchbook maintains arrays of~$w$ counters, with a~$w$ close to the size
 function~$S(N)$, a function of the number of total current keys in the
-stream~$N$. More specifically, it ensures that~$w \in [S(N) / 2, 2 \cdot
+stream~$N$. Specifically, it ensures that~$w \in [S(N) / 2, 2 \cdot
 S(N)]$, as shown in \Cref{fig:sketchbook_chain}. Doing so allows Sketchbook to
 track the majority of the~$N$ keys using approximately~$S(N)$ counters, thereby
 guaranteeing an error bound close to an ideal CMS that is allocated with arrays
