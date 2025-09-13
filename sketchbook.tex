@@ -1089,17 +1089,17 @@ this error bound is the best any frequency estimation sketch can achieve
 without knowing the stream's length.
 
 \textbf{Expansions.} 
-Whenever~$N$ increases enough to double the value of~$w^*(N)$, \sketchcms
-expands by adding a new sketch to the chain with arrays double the size of the
-arrays in the last sketch. This ensures that the size of each array in the last
-sketch is always in the range~$[w^*(N)/2,w^*(N)]$, as depicted in
-\Cref{fig:sketchbook_chain}. When~$w^*(N)=N^\alpha/\epsilon$, the number of
-insertions directed to the final sketch before an expansion occurs constitutes
-the majority of the total count of keys in the stream~$N$.\footnote{More
-generally, this holds when~$w^*(N)$ is an increasing concave function of~$N$.}
-This, in conjunction with the exponentially increasing array sizes of the
-sketches, controls the total error as the sum of a geometric series of error
-terms with one term per sketch.
+Whenever~$N$ increases enough to double the value of the size
+function~$w^*(N)$, \sketchcms expands by adding a new sketch to the chain with
+arrays double the size of the arrays in the previous last sketch. This ensures
+that the size of each array in the last sketch is always in the
+range~$[w^*(N)/2,w^*(N)]$, as depicted in \Cref{fig:sketchbook_chain}.
+When~$w^*(N)=N^\alpha/\epsilon$, the number of insertions directed to the last
+sketch before an expansion occurs constitutes the majority of the total count
+of keys in the stream~$N$.\footnote{More generally, this holds when~$w^*(N)$ is
+an increasing concave function of~$N$.} This, in conjunction with the
+exponentially increasing array sizes of the sketches, controls the total error
+as the sum of a geometric series of error terms with one term per sketch.
 
 \begin{figure}
     \centering
@@ -1111,8 +1111,8 @@ terms with one term per sketch.
         \def\arrayh{0.15}
         \def\arraysep{0.1}
         \def\cmssep{0.5}
-        \def\cmstitlesep{1.1}
-        \def\insertdeletesep{2.25}
+        \def\cmstitlesep{1.5}
+        \def\insertdeletesep{1.75}
         \def\hashsep{\insertdeletesep-0.4}
         \def\arrowsep{0.2*\cmssep}
         \def\smallhashbracesep{0}
@@ -1133,7 +1133,7 @@ terms with one term per sketch.
         }
         %\draw[decorate,decoration={brace,raise=1pt,amplitude=2pt,mirror}] (0,0) -- (\arrayw,0)
         %    node[pos=0.5,below=4pt,inner sep=1pt] {\small $w/2$};
-        \node[inner sep=0pt,align=center] (cms_penultimate) at (0.5*\arrayw,-\arraysep-\cmstitlesep) {\small Penultimate Sketch \\[-4pt] \small Array Size~$w/2$};
+        \node[inner sep=0pt,align=center] (cms_penultimate) at (0.5*\arrayw,-\arraysep-\cmstitlesep) {\small Penultimate Sketch \\[-4pt] \small Array Size 8};
 
         % Last CMS
         \draw[-stealth] (\arrayw+\arrowsep,\midy) -- (\arrayw+\cmssep-\arrowsep,\midy);
@@ -1144,95 +1144,84 @@ terms with one term per sketch.
                 \draw (\arrayw+\cmssep+\j*\counterw,\i*\arraysep+\i*\arrayh-\arrayh-\arraysep) rectangle (\arrayw+\cmssep+\j*\counterw,\i*\arraysep+\i*\arrayh-\arraysep);
             }
         }
-        %\draw[decorate,decoration={brace,raise=1pt,amplitude=2pt,mirror}] (1*\arrayw+\cmssep,0) -- (3*\arrayw+\cmssep,0)
-        %    node[pos=0.5,below=4pt,inner sep=4pt] {\small $w$};
-        \node[inner sep=0pt,align=center] (cms_last) at (2*\arrayw+\cmssep,-\arraysep-\cmstitlesep) {\small Last Sketch \\[-4pt] \small Array Size~$w$};
+        \node[inner sep=0pt,align=center] (cms_last) at (2*\arrayw+\cmssep,-\arraysep-\cmstitlesep) {\small Last Sketch \\[-4pt] \small Array Size 16};
 
         % Insert/Delete
         \node[inner sep=0pt] (insert_delete_label) at (2*\arrayw+\cmssep,\arraycount*\arraysep+\arraycount*\arrayh+\insertdeletesep) {\small Insert/Delete $x,y$};
-        \node[inner sep=0pt] (insert_delete_hashes) at (2*\arrayw+\cmssep,\arraycount*\arraysep+\arraycount*\arrayh+\hashsep) {\small $h_1(x)=\dots10 \, 0 \, 011 \; \; h_1(y)=\dots10 \, 1 \, 011$};
+        \node[inner sep=0pt] (insert_delete_hashes) at (2*\arrayw+\cmssep,\arraycount*\arraysep+\arraycount*\arrayh+\hashsep) {\small $h_1(x)=\dots10 \, 1 \, 011$};
 
         % Hashing Arrows
-        \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt,mirror}] ($(insert_delete_hashes.south)+(-19.25pt,-\largehashbracesep)$) -- ($(insert_delete_hashes.south)+(-2.5pt,-\largehashbracesep)$)
-            node[pos=0.5,below=2pt,inner sep=0pt] (x_last_hash) { };
-        \draw[densely dotted] ($(insert_delete_hashes.south)+(-19.25pt,-\largehashbracesep)$) -- ($(insert_delete_hashes.south)+(-19.25pt,8pt)$);
-        \draw[densely dotted] ($(insert_delete_hashes.south)+(-2.5pt,-\largehashbracesep)$) -- ($(insert_delete_hashes.south)+(-2.5pt,8pt)$);
-
         \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt,mirror}] ($(insert_delete_hashes.south east)+(-16.8pt,-\largehashbracesep)$) -- ($(insert_delete_hashes.south east)+(-0.5pt,-\largehashbracesep)$)
-            node[pos=0.5,below=2pt,inner sep=0pt] (y_last_hash) { };
+            node[pos=0.5,below=2pt,inner sep=0pt] (x_last_hash) { };
         \draw[densely dotted] ($(insert_delete_hashes.south east)+(-16.8pt,-\largehashbracesep)$) -- ($(insert_delete_hashes.south east)+(-16.8pt,8pt)$);
         \draw[densely dotted] ($(insert_delete_hashes.south east)+(-0.5pt,-\largehashbracesep)$) -- ($(insert_delete_hashes.south east)+(-0.5pt,8pt)$);
 
         \def\elbowy{\arraycount*\arraysep+\arraycount*\arrayh+\hashsep-2.35*\largehashbracesep}
-        \draw (x_last_hash) |- node[below=1pt,pos=0.5,inner sep=0pt] {\small $\log_2 w$ Bits} (\arrayw+\cmssep+3.5*\counterw,\elbowy);
-        \draw[-stealth] (\arrayw+\cmssep+3.5*\counterw,\elbowy) -- (\arrayw+\cmssep+3.5*\counterw,\arraycount*\arraysep+\arraycount*\arrayh-\arraysep);
-        \draw (y_last_hash) |- node[below=1pt,pos=0.65,inner sep=0pt] {\small $\log_2 w$ Bits} (\arrayw+\cmssep+11.5*\counterw,\elbowy);
-        \draw[-stealth] (\arrayw+\cmssep+11.5*\counterw,\elbowy) -- (\arrayw+\cmssep+11.5*\counterw,\arraycount*\arraysep+\arraycount*\arrayh-\arraysep);
-
-
-        \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt,mirror}] ($(insert_delete_hashes.south)+(-14.25pt,-\smallhashbracesep)$) -- ($(insert_delete_hashes.south)+(-2.5pt,-\smallhashbracesep)$)
-            node[pos=0.5,below=2pt,inner sep=0pt] (x_penultimate_hash) { };
-        \draw[densely dotted] ($(insert_delete_hashes.south)+(-14.25pt,-\smallhashbracesep)$) -- ($(insert_delete_hashes.south)+(-14.25pt,8pt)$);
+        \draw (x_last_hash) |- (\arrayw+\cmssep+11.5*\counterw,\elbowy);
+        \draw[-stealth] (\arrayw+\cmssep+11.5*\counterw,\elbowy) -- node[right=1pt,pos=0.2,inner sep=0pt] {\small 4 Bits} (\arrayw+\cmssep+11.5*\counterw,\arraycount*\arraysep+\arraycount*\arrayh-\arraysep);
 
         \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt,mirror}] ($(insert_delete_hashes.south east)+(-12.5pt,-\smallhashbracesep)$) -- ($(insert_delete_hashes.south east)+(-0.5pt,-\smallhashbracesep)$)
-            node[pos=0.5,below=2pt,inner sep=0pt] (y_penultimate_hash) { };
+            node[pos=0.5,below=2pt,inner sep=0pt] (x_penultimate_hash) { };
         \draw[densely dotted] ($(insert_delete_hashes.south east)+(-12.5pt,-\smallhashbracesep)$) -- ($(insert_delete_hashes.south east)+(-12.5pt,8pt)$);
 
         \def\elbowy{\arraycount*\arraysep+\arraycount*\arrayh+\hashsep-1.25*\largehashbracesep}
-        \draw (x_penultimate_hash) |- node[below=2pt,pos=0.86,inner sep=0pt] {\small $\log_2 (w/2)$ Bits} (3.5*\counterw,\elbowy);
-        \draw (y_penultimate_hash) |- (3.5*\counterw,\elbowy);
-        \draw[-stealth] (3.5*\counterw,\elbowy) -- (3.5*\counterw,\arraycount*\arraysep+\arraycount*\arrayh-\arraysep);
+        \draw (x_penultimate_hash) |- (3.5*\counterw,\elbowy);
+        \draw[-stealth] (3.5*\counterw,\elbowy) -- node[right=1pt,pos=0.448,inner sep=0pt] {\small 3 Bits} (3.5*\counterw,\arraycount*\arraysep+\arraycount*\arrayh-\arraysep);
 
         % Transfer
-        \draw[-stealth] plot[hobby] coordinates { (\arrayw+\cmssep+11.5*\counterw,\arraycount*\arraysep+\arraycount*\arrayh-\arraysep) (\arrayw/2+\cmssep/2+7.5*\counterw,\arraycount*\arraysep+\arraycount*\arrayh+3.2*\arraysep) (3.5*\counterw,\arraycount*\arraysep+\arraycount*\arrayh-\arraysep) };
-        \draw[-stealth] plot[hobby] coordinates { (\arrayw+\cmssep+3.5*\counterw,\arraycount*\arraysep+\arraycount*\arrayh-\arraysep) (\arrayw/2+\cmssep/2+3.5*\counterw,\arraycount*\arraysep+\arraycount*\arrayh+1.45*\arraysep) (3.5*\counterw,\arraycount*\arraysep+\arraycount*\arrayh-\arraysep) };
-        \node[inner sep=0pt] (single_transfer_label) at (\arrayw+\cmssep/2,\arraycount*\arraysep+\arraycount*\arrayh+4*\arraysep) {\small Add};
-
-        \draw[gray,decorate,decoration={brace,raise=1pt,amplitude=2pt,mirror}] (\arrayw+\cmssep,-2*\arraysep) -- (2*\arrayw+\cmssep,-2*\arraysep)
+        \node[inner sep=0pt,anchor=north] (msb_0) at (1.5*\arrayw+\cmssep,-\arraysep) {\small MSB 0};
+        \node[inner sep=0pt,anchor=north] (msb_1) at (2.5*\arrayw+\cmssep,-\arraysep) {\small MSB 1};
+        \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt,mirror}] (\arrayw+\cmssep,-4*\arraysep) -- (2*\arrayw+\cmssep,-4*\arraysep)
             node[pos=0.5,below=3pt,inner sep=0pt] (last_sketch_left_half) { };
-        \draw[gray,decorate,decoration={brace,raise=1pt,amplitude=2pt,mirror}] (2*\arrayw+\cmssep,-2*\arraysep) -- (3*\arrayw+\cmssep,-2*\arraysep)
+        \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt,mirror}] (2*\arrayw+\cmssep,-4*\arraysep) -- (3*\arrayw+\cmssep,-4*\arraysep)
             node[pos=0.5,below=3pt,inner sep=0pt] (last_sketch_right_half) { };
-        \draw[gray,decorate,decoration={brace,raise=1pt,amplitude=2pt,mirror}] (0,-2*\arraysep) -- (\arrayw,-2*\arraysep)
+        \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt,mirror}] (0,-1*\arraysep) -- (\arrayw,-1*\arraysep)
             node[pos=0.5,below=3pt,inner sep=0pt] (penultimate_sketch) { };
-        \draw[gray,-stealth] plot[hobby] coordinates { (last_sketch_left_half) (\arrayw+\cmssep/2,-4.9*\arraysep) (penultimate_sketch) };
-        \draw[gray,-stealth] plot[hobby] coordinates { (last_sketch_right_half) (1.5*\arrayw+\cmssep/2,-6*\arraysep) (penultimate_sketch) };
-        %\node[gray,inner sep=0pt] (total_transfer_label) at (\arrayw+\cmssep/2,-7*\arraysep) {\small Transfer};
+        \draw[-stealth] plot[hobby] coordinates { (last_sketch_left_half) (\arrayw+\cmssep/2,-6.35*\arraysep) (penultimate_sketch) };
+        \draw[-stealth] plot[hobby] coordinates { (last_sketch_right_half) (1.5*\arrayw+\cmssep/2,-9*\arraysep) (penultimate_sketch) };
+        \node[inner sep=0pt] (total_transfer_label) at (0.6*\arrayw,-6.5*\arraysep) {\small Add};
     \end{tikzpicture}
     \caption{\sketchcms uses fixed hash functions for all sketches in the chain
-    to enable transferring information between them during contractions.}
+    to enable transferring information from the last sketch during contractions
+    by adding its halves to the penultimate sketch.}
     \label{fig:contraction}
 \end{figure}
 
 \textbf{Contractions.} 
-Whenever deletions decrease~$N$ enough to halve the value of~$w^*(N)$,
-\sketchcms contracts to save memory. It does so by transferring the updates of
-the last sketch to the penultimate sketch and discarding the last sketch. This
-information transfer is challenging, as the keys are not stored in the
-sketches, barring us from rehashing them into the penultimate sketch. To
-overcome this issue, we use a fixed set of hash functions~$h_1,\dots,h_d$ for
-the arrays of all sketches. That is, we hash a key~$x$ to a counter in
-the~$i${\nobreakdash-}th array of a sketch by computing~$h_i(x)$ to derive a
-long hash from which we take the~$\log_2 w$ lower-order bits, where $w$ is the
-size of the array. \Cref{fig:contraction} illustrates this procedure for the
-last two sketches in the chain.
+Whenever deletions decrease~$N$ enough to halve the value of the size
+function~$w^*(N)$, \sketchcms contracts to save memory. It does so by
+transferring the updates of the last sketch to the penultimate sketch and
+discarding the last sketch. This information transfer is challenging, as the
+keys are not stored in the sketches, barring us from rehashing them into the
+penultimate sketch. We overcome this issue by using a fixed set of hash
+functions~$h_1,\dots,h_d$ for the arrays of all sketches. That is, we hash a
+key~$x$ to a counter in the~$i${\nobreakdash-}th array of a sketch by
+computing~$h_i(x)$ to derive a long hash. Letting~$w$ be the size of this
+array, we take the~$\log_2 w$ lower-order bits of~$x$'s hash to map it to its
+counter. \Cref{fig:contraction} shows this procedure for the last two sketches
+in the chain.
 
 This hashing scheme allows \sketchcms to determine the counter a key hashes to
-in the penultimate sketch by removing the most significant bit of its counter's
-offset in the last sketch. For example, for key~$y$ in \Cref{fig:contraction},
-since the~4 least significant bits of~$h_1(y)$ are 1011, it is hashed to
-the~11th counter in the first array of the last sketch. Removing the most
-significant bit of this counter's offset yields~011, implying that~$y$ hashes
-to the~3rd counter in the first array of the penultimate sketch.
+in the penultimate sketch by removing the most significant bit (MSB) of its
+counter's offset in the last sketch. For example, considering the first array
+of the last sketch in \Cref{fig:contraction}, all keys such as key~$x$ that
+have~1011 as the lower-order bits of their hash are hashed to the~11th counter.
+Removing the MSB of this counter's offset yields~011, implying that all those
+keys, including~$x$, hash to the~3rd counter in the first array of the
+penultimate sketch. Thus, adding the value of a counter in the last sketch to
+its corresponding counter in the penultimate sketch transfers the effects of
+all updates that hashed to it. Since the MSB of a counter's offset determines
+whether it is in the left or right half of the last sketch, adding each half of
+this sketch to the penultimate sketch as depicted at the bottom of
+\Cref{fig:contraction} transfers its updates.
 
-Applies to all counters in the last sketch, this corresponds to splitting the
-last sketch in half adding each half to the penultimate sketch, as depicted by
-the gray lines in \Cref{fig:contraction}.
-
-Give intuition that the error bound remains good, as the old sketches contain a
-small fraction of keys, and a lot of keys must be deleted for a contraction to
-occur. Also point out that now, the state of the sketches in the chain depends
-on the sequence of inserts and deletes done. Regardless of the sequence,
-however, the error bounds hold.
+As in the case of expansions, when~$w^*(N)=N^\alpha/\epsilon$, the majority of
+the stream's keys must be deleted to trigger a contraction. This amortizes the
+contraction cost, and, as we prove in \Cref{sec:theoretical_analysis}, ensures
+that the last sketch of the chain always tracks the majority of the keys in the
+stream. Therefore, the error bound is controlled as a sum of a geometric series
+as before, despite the state of each particular sketch in the chain depending
+on the sequence of insertions and deletions done.
 
 \textbf{Aggregating Sketches.}
 To optimize queries, we aggregate the updates of all sketches into the last
