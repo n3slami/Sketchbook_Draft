@@ -223,7 +223,7 @@ Misra-Gries~\cite{MisraGries} (\Cref{sec:mg}) and apply our techniques to them.
         $h_i(x)$ & Hash function mapping key~$x$ to a counter. \\
         $c$ & Number of counters in each chunk. \\
         $s$ & Length of each stub in bits. \\
-        $s(N)$ & Size function. \\
+        $w^*(N)$ & Size function. \\
         $\sigma_i(x)$ & Hash function defining key~$x$'s update direction ($\pm 1$). \\
         $N^{\text{res}(i)}$ & Total count of all but the~$i$ hottest keys. \\
         \cmidrule{1-2}
@@ -903,20 +903,20 @@ tightly packed.
 \textbf{Optimization~1: Fast Division.}
 Determining the chunk of a counter at offset~$i$ in an array is expensive, as
 it entails dividing~$i$ by the number of counters per chunk~$c$, which may not
-be a power of two. \sketchcms avoids this cost by simulating the division
-through fixed-point multiplication. Specifically, it computes the
+be a power of two. We avoid this cost by simulating the division through
+fixed-point multiplication. Specifically, we compute the
 expression~$\left\lfloor \left(i/2^{\lceil \log_2 c \rceil}\right) \cdot
 \left(2^{\lceil \log_2 c \rceil}/c\right) \right\rfloor = \left\lfloor i/c
-\right\rfloor$ by representing the multiplicands as fixed-point numbers. To
-this end, \sketchcms precomputes the latter multiplicand's fixed-point
+\right\rfloor$ by representing the multiplicands as fixed-point fractional
+numbers. To this end, we precompute the latter multiplicand's fixed-point
 representation with~$\left\lceil \log_2 w \right\rceil$ bits of precision,
-where~$w$ is the size of an array. For the former multiplicand, \sketchcms
-treats~$i$'s binary representation as a fixed-point fractional value with the
-decimal point being after the~$\left\lceil \log_2 c
-\right\rceil${\nobreakdash-}th bit. Finally, \sketchcms multiplies these values
-using standard integer multiplication and shifts the result~$\left\lceil \log_2
-w \right\rceil + \left\lceil \log_2 c \right\rceil$ bits to the right to remove
-the fractional bits and compute the answer.
+where~$w$ is the size of an array. For the former multiplicand, we treat~$i$'s
+binary representation as a fixed-point fractional value with the decimal point
+being after the~$\left\lceil \log_2 c \right\rceil${\nobreakdash-}th bit.
+Finally, we multiply these values using standard integer multiplication and
+shift the result~$\left\lceil \log_2 w \right\rceil + \left\lceil \log_2 c
+\right\rceil$ bits to the right to remove the fractional bits and compute the
+answer.
 
 \textbf{Optimization~2: Hardware Accelerated Rank and Select.}
 \sketchcms utilizes specialized CPU instructions to implement rank and select
@@ -973,26 +973,28 @@ compute a long hash. It splices the result into~$d$ sub-hashes of equal length
 and uses each as the hash value of an array. 
 
 \subsection{Expanding and Contracting Arrays}\label{sec:expanding_contracting_arrays}
-\sketchcms handles streams of unknown length by expanding and contracting its
-arrays. Specifically, it keeps the size of each array close to the value of
-a \emph{Size Function}, which is a function of the stream's length that
-controls an accuracy-memory tradeoff. It achieves this by maintaining a chain
-of sketches (each consisting of~$d$ arrays) with exponentially increasing array
-sizes, as illustrated in \Cref{fig:sketchbook_chain}. It handles new insertions
-and deletions by directing them to the last sketch in the chain. Whenever the
-size function doubles in value, \sketchcms expands by adding a new sketch to
-the chain with arrays double the size of the last sketch's. This allows for
-processing new insertions and deletions, which constitute the majority of the
-stream's updates until the next expansion, with twice the accuracy. Whenever
-the size function halves in value, \sketchcms contracts by applying the updates
-of the last sketch to the penultimate sketch and discarding the last sketch.
+\sketchcms generalizes CMS to handle streams of unknown length by maintaining a
+chain of sketches (each consisting of~$d$ arrays) with exponentially larger
+arrays, as illustrated in \Cref{fig:sketchbook_chain}. It directs insertions
+and deletions to the last sketch in the chain so that they benefit from its
+higher tracking accuracy. It expands and contracts as the stream evolves by
+adding and removing sketches from the chain, respectively. It does so to keep
+the size of the last sketch's arrays close to the value of a used-defined
+\emph{Size Function}~$w^*(N)$, which is an increasing function of the current
+total number of keys in the stream~$N$. This simulates processing the stream
+with a sketch preallocated from the onset with arrays of size~$w^*(N)$,
+yielding a similar accuracy guarantee with almost the same memory footprint.
+
 Although insertions and deletions only modify the last sketch, queries must
-aggregate the estimates of all sketches in the chain, and are thus slower.
-\sketchcms addresses this issue by aggregating all older sketches into the last
-one, allowing queries to probe the last sketch only. The memory footprint of
-the chain is domniated by the last sketch, which takes up at least half of the
-space. When keys are only inserted into the stream, only the aggregate sketch
-is kept in memory to improve memory consumption.
+consult all sketches in the chain to aggregate their estimates, and are thus
+slower. \sketchcms addresses this issue by aggregating the updates of all
+sketches into the last one, allowing queries to probe the last sketch only.
+This is enabled by using the same hash function for all sketches in the chain.
+The memory footprint of the chain is domniated by the last sketch, which takes
+up at least half of the space. As we will discuss shortly, the old sketches in
+the chain are needed for implementing contractions. When keys are only inserted
+into the stream and no contractions occur, we improve the memory footprint by
+discarding the old sketches and only keeping the aggregated one.
 
 \begin{figure}
     \centering
@@ -1000,40 +1002,40 @@ is kept in memory to improve memory consumption.
     \pgfsetlayers{background layer,main}
     \begin{tikzpicture}
         \def\arraycount{3}
-        \def\arrayw{1}
+        \def\arrayw{0.9}
         \def\arrayh{0.15}
         \def\arraysep{0.1}
         \def\cmssep{0.5}
         \def\cmstitlesep{0.1}
         \def\arrowsep{0.2*\cmssep}
         \def\midy{0.5*\arraycount*\arraysep-0.5*\arraysep+0.5*\arraycount*\arrayh}
-        \def\counterw{0.2*\arrayw}
-        \def\countercount{5} % Have to change this thing manually in the for loops, sadly
+        \def\counterw{0.25*\arrayw}
+        \def\countercount{4} % Have to change this thing manually in the for loops, sadly
 
-        \node[inner sep=0pt,rotate=90] (chain_label) at (-0.5*\cmssep,\midy) {\small Chain of CMSs};
+        \node[inner sep=0pt,rotate=90] (chain_label) at (-0.75*\cmssep,\midy) {\small Chain of Sketches};
 
         % First CMS
         \foreach \i in {1, ..., \arraycount} {
             \draw (0,\i*\arraysep+\i*\arrayh-\arrayh-\arraysep) rectangle (\arrayw,\i*\arraysep+\i*\arrayh-\arraysep);
-            \foreach \j in {1, ..., 5} {
+            \foreach \j in {1, ..., 4} {
                 \draw (\j*\counterw,\i*\arraysep+\i*\arrayh-\arrayh-\arraysep) rectangle (\j*\counterw,\i*\arraysep+\i*\arrayh-\arraysep);
             }
         }
         \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt,mirror}] (0,0) -- (\arrayw,0)
             node[pos=0.5,below=4pt,inner sep=1pt] {\small $w/2^l$};
-        \node[inner sep=0pt] (cms_0) at (0.5*\arrayw,\arraycount*\arraysep+\arraycount*\arrayh+\cmstitlesep) {\small CMS 0};
+        \node[inner sep=0pt] (cms_0) at (0.5*\arrayw,\arraycount*\arraysep+\arraycount*\arrayh+\cmstitlesep) {\small Sketch 0};
 
         % Second CMS
         \draw[-stealth] (\arrayw+\arrowsep,\midy) -- (\arrayw+\cmssep-\arrowsep,\midy);
         \foreach \i in {1, ..., \arraycount} {
             \draw (\arrayw+\cmssep,\i*\arraysep+\i*\arrayh-\arrayh-\arraysep) rectangle (3*\arrayw+\cmssep,\i*\arraysep+\i*\arrayh-\arraysep);
-            \foreach \j in {1, ..., 10} {
+            \foreach \j in {1, ..., 8} {
                 \draw (\arrayw+\cmssep+\j*\counterw,\i*\arraysep+\i*\arrayh-\arrayh-\arraysep) rectangle (\arrayw+\cmssep+\j*\counterw,\i*\arraysep+\i*\arrayh-\arraysep);
             }
         }
         \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt,mirror}] (1*\arrayw+\cmssep,0) -- (3*\arrayw+\cmssep,0)
             node[pos=0.5,below=4pt,inner sep=1pt] {\small $w/2^{(l-1)}$};
-        \node[inner sep=0pt] (cms_1) at (2*\arrayw+\cmssep,\arraycount*\arraysep+\arraycount*\arrayh+\cmstitlesep) {\small CMS 1};
+        \node[inner sep=0pt] (cms_1) at (2*\arrayw+\cmssep,\arraycount*\arraysep+\arraycount*\arrayh+\cmstitlesep) {\small Sketch 1};
 
         \node[inner sep=3pt] (dots) at (3*\arrayw+2.5*\cmssep,\midy) {$\dots$};
         \draw[-stealth] (3*\arrayw+\cmssep+\arrowsep,\midy) -- ([xshift=-\arrowsep]dots.west);
@@ -1041,58 +1043,200 @@ is kept in memory to improve memory consumption.
         % Last CMS
         \draw[-stealth] ([xshift=\arrowsep]dots.east) -- (3*\arrayw+4*\cmssep-\arrowsep,\midy);
         \foreach \i in {1, ..., \arraycount} {
-            \draw (3*\arrayw+4*\cmssep,\i*\arraysep+\i*\arrayh-\arrayh-\arraysep) rectangle (5*\arrayw+4*\cmssep,\i*\arraysep+\i*\arrayh-\arraysep);
+            \draw (3*\arrayw+4*\cmssep,\i*\arraysep+\i*\arrayh-\arrayh-\arraysep) rectangle (5.75*\arrayw+4*\cmssep,\i*\arraysep+\i*\arrayh-\arraysep);
             \foreach \j in {1, ..., 3} {
                 \draw (3*\arrayw+4*\cmssep+\j*\counterw,\i*\arraysep+\i*\arrayh-\arrayh-\arraysep) rectangle (3*\arrayw+4*\cmssep+\j*\counterw,\i*\arraysep+\i*\arrayh-\arraysep);
             }
             \foreach \j in {7, ..., 10} {
                 \draw (3*\arrayw+4*\cmssep+\j*\counterw,\i*\arraysep+\i*\arrayh-\arrayh-\arraysep) rectangle (3*\arrayw+4*\cmssep+\j*\counterw,\i*\arraysep+\i*\arrayh-\arraysep);
             }
-            \node[inner sep=0pt] at (4*\arrayw+4*\cmssep,\i*\arraysep+\i*\arrayh-0.5*\arrayh-\arraysep) {\small $\dots$};
+            \node[inner sep=0pt] at (4.25*\arrayw+4*\cmssep,\i*\arraysep+\i*\arrayh-0.5*\arrayh-\arraysep) {\small $\dots$};
         }
-        \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt,mirror}] (3*\arrayw+4*\cmssep,0) -- (5*\arrayw+4*\cmssep,0)
-            node[pos=0.5,below=5.65pt,inner sep=1pt] {\small $\, s(N) / 2 \leq w \leq 2 \cdot s(N)$};
-        \node[inner sep=0pt] (cms_l) at (4*\arrayw+4*\cmssep,\arraycount*\arraysep+\arraycount*\arrayh+\cmstitlesep) {\small CMS~$l$};
+        \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt,mirror}] (3*\arrayw+4*\cmssep,0) -- (5.75*\arrayw+4*\cmssep,0)
+            node[pos=0.425,below=5.65pt,inner sep=1pt] {\small $\, w^*(N) / 2 \leq w \leq w^*(N)$};
+        \node[inner sep=0pt] (cms_l) at (4.375*\arrayw+4*\cmssep,\arraycount*\arraysep+\arraycount*\arrayh+\cmstitlesep) {\small Sketch~$l$};
 
         % Inserts and Deletes
-        \node[inner sep=1pt,align=center] (insert_and_delete) at (5*\arrayw+5*\cmssep,\arraycount*\arraysep+\arraycount*\arrayh+\cmstitlesep+0.2) {\small Inserts \\[-4pt] \small Deletes};
+        \node[inner sep=1pt,align=center] (insert_and_delete) at (5.475*\arrayw+5*\cmssep,\arraycount*\arraysep+\arraycount*\arrayh+\cmstitlesep+0.2) {\small Inserts \\[-4pt] \small Deletes};
         \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt,mirror}] (insert_and_delete.north west) -- (insert_and_delete.south west)
             node[pos=0.5,left=1pt,inner sep=1pt] (insert_and_delete_brace_tip) {};
         \draw[-stealth] plot[hobby] coordinates { (insert_and_delete_brace_tip.west) ($(insert_and_delete_brace_tip.west)+(-0.06*\counterw,-0.008)$) (3*\arrayw+4*\cmssep+8.5*\counterw,\arraycount*\arrayh+\arraycount*\arraysep-\arraysep) };
     \end{tikzpicture}
-    \caption{\sketchcms maintains a chain of CMSs with exponentially larger
-    array sizes.}
+    \caption{\sketchcms maintains a chain of sketches with exponentially larger
+    arrays.}
     \label{fig:sketchbook_chain}
 \end{figure}
 
 \textbf{Size Function.} 
-\sketchcms maintains arrays of~$w$ counters, with a~$w$ close to the size
-function~$s(N)$, a function of the number of total current keys in the
-stream~$N$. Specifically, it ensures that~$w \in [s(N) / 2, 2 \cdot
-s(N)]$, as shown in \Cref{fig:sketchbook_chain}. Doing so allows \sketchcms to
-track the majority of the~$N$ keys using approximately~$s(N)$ counters, thereby
-guaranteeing an error bound close to an ideal CMS that is allocated with arrays
-of size~$s(N)$ from the onset, i.e., $\frac{eN}{s(N)}$. For example,
-setting~$s(N)=N^\alpha$ for some~$\alpha \in (0,1)$ yields an accuracy bound
-of~$O(N/N^\alpha)=O(N^{1-\alpha})$, as shown in
-\Cref{sec:theoretical_analysis}. Using a faster growing~$s(N)$ improves
-accuracy in exchange for an increased memory footprint. 
+The size function~$w^*(N)$ controls an accuracy-memory tradeoff: the
+faster~$w^*(N)$ grows with respect to~$N$, the sooner \sketchcms expands,
+allowing it to track more of the stream's keys at a higher accuracy in exchange
+for a higher memory footprint. In practice, we recommend
+setting~$w^*(N)=N^\alpha/\epsilon$ for a constant~$\epsilon$ and $\alpha \in
+[0,1)$. This exposes a tuning continuum that yields sketches much smaller than
+the stream's length. We prove in \Cref{sec:theoretical_analysis} that this
+choice of size function allows \sketchcms to achieve an error bound
+of~$O(N/w^*(N))=O(\epsilon \cdot N^{1-\alpha})$. We also show that having~$d$
+arrays in each sketch in the chain ensures a confidence of~$1-e^{-d}$. These
+match the error and confidence of a sketch preallocated with~$d$ arrays of
+size~$w^*(N)$, which is known to be optimal~\cite{CountMin}.
 
-\textbf{Chain of Sketches.} 
-\sketchcms uses the same hash functions for the arrays 
-The chain of CMSs, depicted in \Cref{fig:sketchbook_chain}, simulates a single,
-unified sketch the size of the last sketch in the chain. We use the same hash
-function across all sketches to save CPU.
+Interestingly, the above error bound does not hold when we set~$\alpha=1$,
+which corresponds to expecting an~$O(\epsilon)$ error due
+to~$w^*(N)=N/\epsilon$. In this scenario, \sketchcms achieves an error bound
+of~$O(\epsilon \cdot \log N)$. In \Cref{sec:theoretical_analysis}, we prove
+this error bound is the best any frequency estimation sketch can achieve
+without knowing the stream's length.
 
 \textbf{Expansions.} 
-To expand, we add a new sketch double the size of the previous one each time
-the expansion function doubles. Give intuition about how this maintains
-approximately~$C(N)$ columns/slots at any point in time with the hope of
-achieving the same behavior as a sketch of size~$C(N)$ allocated with knowledge
-of~$N$. Doing so controls the total error as the sum of a geometric series.
+Whenever~$N$ increases enough to double the value of~$w^*(N)$, \sketchcms
+expands by adding a new sketch to the chain with arrays double the size of the
+arrays in the last sketch. This ensures that the size of each array in the last
+sketch is always in the range~$[w^*(N)/2,w^*(N)]$, as depicted in
+\Cref{fig:sketchbook_chain}. When~$w^*(N)=N^\alpha/\epsilon$, the number of
+insertions directed to the final sketch before an expansion occurs constitutes
+the majority of the total count of keys in the stream~$N$.\footnote{More
+generally, this holds when~$w^*(N)$ is an increasing concave function of~$N$.}
+This, in conjunction with the exponentially increasing array sizes of the
+sketches, controls the total error as the sum of a geometric series of error
+terms with one term per sketch.
+
+\begin{figure}
+    \centering
+    \pgfdeclarelayer{background layer}
+    \pgfsetlayers{background layer,main}
+    \begin{tikzpicture}
+        \def\arraycount{3}
+        \def\arrayw{2}
+        \def\arrayh{0.15}
+        \def\arraysep{0.1}
+        \def\cmssep{0.5}
+        \def\cmstitlesep{1.1}
+        \def\insertdeletesep{2.25}
+        \def\hashsep{\insertdeletesep-0.4}
+        \def\arrowsep{0.2*\cmssep}
+        \def\smallhashbracesep{0}
+        \def\largehashbracesep{0.3}
+        \def\midy{0.5*\arraycount*\arraysep-0.5*\arraysep+0.5*\arraycount*\arrayh}
+        \def\countercount{8} % Have to change this thing manually in the for loops, sadly
+        \def\counterw{\arrayw/\countercount}
+
+        \node[inner sep=3pt] (chain_dots) at (-1.5*\cmssep,\midy) {$\dots$};
+        \draw[-stealth] ([xshift=\arrowsep]chain_dots.east) -- (-\arrowsep,\midy);
+
+        % Penultimate CMS
+        \foreach \i in {1, ..., \arraycount} {
+            \draw (0,\i*\arraysep+\i*\arrayh-\arrayh-\arraysep) rectangle (\arrayw,\i*\arraysep+\i*\arrayh-\arraysep);
+            \foreach \j in {1, ..., 8} {
+                \draw (\j*\counterw,\i*\arraysep+\i*\arrayh-\arrayh-\arraysep) rectangle (\j*\counterw,\i*\arraysep+\i*\arrayh-\arraysep);
+            }
+        }
+        %\draw[decorate,decoration={brace,raise=1pt,amplitude=2pt,mirror}] (0,0) -- (\arrayw,0)
+        %    node[pos=0.5,below=4pt,inner sep=1pt] {\small $w/2$};
+        \node[inner sep=0pt,align=center] (cms_penultimate) at (0.5*\arrayw,-\arraysep-\cmstitlesep) {\small Penultimate Sketch \\[-4pt] \small Array Size~$w/2$};
+
+        % Last CMS
+        \draw[-stealth] (\arrayw+\arrowsep,\midy) -- (\arrayw+\cmssep-\arrowsep,\midy);
+        \foreach \i in {1, ..., \arraycount} {
+            \draw (\arrayw+\cmssep,\i*\arraysep+\i*\arrayh-\arrayh-\arraysep) rectangle (2*\arrayw+\cmssep,\i*\arraysep+\i*\arrayh-\arraysep);
+            \draw[fill=gray!20] (2*\arrayw+\cmssep,\i*\arraysep+\i*\arrayh-\arrayh-\arraysep) rectangle (3*\arrayw+\cmssep,\i*\arraysep+\i*\arrayh-\arraysep);
+            \foreach \j in {1, ..., 16} {
+                \draw (\arrayw+\cmssep+\j*\counterw,\i*\arraysep+\i*\arrayh-\arrayh-\arraysep) rectangle (\arrayw+\cmssep+\j*\counterw,\i*\arraysep+\i*\arrayh-\arraysep);
+            }
+        }
+        %\draw[decorate,decoration={brace,raise=1pt,amplitude=2pt,mirror}] (1*\arrayw+\cmssep,0) -- (3*\arrayw+\cmssep,0)
+        %    node[pos=0.5,below=4pt,inner sep=4pt] {\small $w$};
+        \node[inner sep=0pt,align=center] (cms_last) at (2*\arrayw+\cmssep,-\arraysep-\cmstitlesep) {\small Last Sketch \\[-4pt] \small Array Size~$w$};
+
+        % Insert/Delete
+        \node[inner sep=0pt] (insert_delete_label) at (2*\arrayw+\cmssep,\arraycount*\arraysep+\arraycount*\arrayh+\insertdeletesep) {\small Insert/Delete $x,y$};
+        \node[inner sep=0pt] (insert_delete_hashes) at (2*\arrayw+\cmssep,\arraycount*\arraysep+\arraycount*\arrayh+\hashsep) {\small $h_1(x)=\dots10 \, 0 \, 011 \; \; h_1(y)=\dots10 \, 1 \, 011$};
+
+        % Hashing Arrows
+        \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt,mirror}] ($(insert_delete_hashes.south)+(-19.25pt,-\largehashbracesep)$) -- ($(insert_delete_hashes.south)+(-2.5pt,-\largehashbracesep)$)
+            node[pos=0.5,below=2pt,inner sep=0pt] (x_last_hash) { };
+        \draw[densely dotted] ($(insert_delete_hashes.south)+(-19.25pt,-\largehashbracesep)$) -- ($(insert_delete_hashes.south)+(-19.25pt,8pt)$);
+        \draw[densely dotted] ($(insert_delete_hashes.south)+(-2.5pt,-\largehashbracesep)$) -- ($(insert_delete_hashes.south)+(-2.5pt,8pt)$);
+
+        \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt,mirror}] ($(insert_delete_hashes.south east)+(-16.8pt,-\largehashbracesep)$) -- ($(insert_delete_hashes.south east)+(-0.5pt,-\largehashbracesep)$)
+            node[pos=0.5,below=2pt,inner sep=0pt] (y_last_hash) { };
+        \draw[densely dotted] ($(insert_delete_hashes.south east)+(-16.8pt,-\largehashbracesep)$) -- ($(insert_delete_hashes.south east)+(-16.8pt,8pt)$);
+        \draw[densely dotted] ($(insert_delete_hashes.south east)+(-0.5pt,-\largehashbracesep)$) -- ($(insert_delete_hashes.south east)+(-0.5pt,8pt)$);
+
+        \def\elbowy{\arraycount*\arraysep+\arraycount*\arrayh+\hashsep-2.35*\largehashbracesep}
+        \draw (x_last_hash) |- node[below=1pt,pos=0.5,inner sep=0pt] {\small $\log_2 w$ Bits} (\arrayw+\cmssep+3.5*\counterw,\elbowy);
+        \draw[-stealth] (\arrayw+\cmssep+3.5*\counterw,\elbowy) -- (\arrayw+\cmssep+3.5*\counterw,\arraycount*\arraysep+\arraycount*\arrayh-\arraysep);
+        \draw (y_last_hash) |- node[below=1pt,pos=0.65,inner sep=0pt] {\small $\log_2 w$ Bits} (\arrayw+\cmssep+11.5*\counterw,\elbowy);
+        \draw[-stealth] (\arrayw+\cmssep+11.5*\counterw,\elbowy) -- (\arrayw+\cmssep+11.5*\counterw,\arraycount*\arraysep+\arraycount*\arrayh-\arraysep);
+
+
+        \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt,mirror}] ($(insert_delete_hashes.south)+(-14.25pt,-\smallhashbracesep)$) -- ($(insert_delete_hashes.south)+(-2.5pt,-\smallhashbracesep)$)
+            node[pos=0.5,below=2pt,inner sep=0pt] (x_penultimate_hash) { };
+        \draw[densely dotted] ($(insert_delete_hashes.south)+(-14.25pt,-\smallhashbracesep)$) -- ($(insert_delete_hashes.south)+(-14.25pt,8pt)$);
+
+        \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt,mirror}] ($(insert_delete_hashes.south east)+(-12.5pt,-\smallhashbracesep)$) -- ($(insert_delete_hashes.south east)+(-0.5pt,-\smallhashbracesep)$)
+            node[pos=0.5,below=2pt,inner sep=0pt] (y_penultimate_hash) { };
+        \draw[densely dotted] ($(insert_delete_hashes.south east)+(-12.5pt,-\smallhashbracesep)$) -- ($(insert_delete_hashes.south east)+(-12.5pt,8pt)$);
+
+        \def\elbowy{\arraycount*\arraysep+\arraycount*\arrayh+\hashsep-1.25*\largehashbracesep}
+        \draw (x_penultimate_hash) |- node[below=2pt,pos=0.86,inner sep=0pt] {\small $\log_2 (w/2)$ Bits} (3.5*\counterw,\elbowy);
+        \draw (y_penultimate_hash) |- (3.5*\counterw,\elbowy);
+        \draw[-stealth] (3.5*\counterw,\elbowy) -- (3.5*\counterw,\arraycount*\arraysep+\arraycount*\arrayh-\arraysep);
+
+        % Transfer
+        \draw[-stealth] plot[hobby] coordinates { (\arrayw+\cmssep+11.5*\counterw,\arraycount*\arraysep+\arraycount*\arrayh-\arraysep) (\arrayw/2+\cmssep/2+7.5*\counterw,\arraycount*\arraysep+\arraycount*\arrayh+3.2*\arraysep) (3.5*\counterw,\arraycount*\arraysep+\arraycount*\arrayh-\arraysep) };
+        \draw[-stealth] plot[hobby] coordinates { (\arrayw+\cmssep+3.5*\counterw,\arraycount*\arraysep+\arraycount*\arrayh-\arraysep) (\arrayw/2+\cmssep/2+3.5*\counterw,\arraycount*\arraysep+\arraycount*\arrayh+1.45*\arraysep) (3.5*\counterw,\arraycount*\arraysep+\arraycount*\arrayh-\arraysep) };
+        \node[inner sep=0pt] (single_transfer_label) at (\arrayw+\cmssep/2,\arraycount*\arraysep+\arraycount*\arrayh+4*\arraysep) {\small Add};
+
+        \draw[gray,decorate,decoration={brace,raise=1pt,amplitude=2pt,mirror}] (\arrayw+\cmssep,-2*\arraysep) -- (2*\arrayw+\cmssep,-2*\arraysep)
+            node[pos=0.5,below=3pt,inner sep=0pt] (last_sketch_left_half) { };
+        \draw[gray,decorate,decoration={brace,raise=1pt,amplitude=2pt,mirror}] (2*\arrayw+\cmssep,-2*\arraysep) -- (3*\arrayw+\cmssep,-2*\arraysep)
+            node[pos=0.5,below=3pt,inner sep=0pt] (last_sketch_right_half) { };
+        \draw[gray,decorate,decoration={brace,raise=1pt,amplitude=2pt,mirror}] (0,-2*\arraysep) -- (\arrayw,-2*\arraysep)
+            node[pos=0.5,below=3pt,inner sep=0pt] (penultimate_sketch) { };
+        \draw[gray,-stealth] plot[hobby] coordinates { (last_sketch_left_half) (\arrayw+\cmssep/2,-4.9*\arraysep) (penultimate_sketch) };
+        \draw[gray,-stealth] plot[hobby] coordinates { (last_sketch_right_half) (1.5*\arrayw+\cmssep/2,-6*\arraysep) (penultimate_sketch) };
+        %\node[gray,inner sep=0pt] (total_transfer_label) at (\arrayw+\cmssep/2,-7*\arraysep) {\small Transfer};
+    \end{tikzpicture}
+    \caption{\sketchcms uses fixed hash functions for all sketches in the chain
+    to enable transferring information between them during contractions.}
+    \label{fig:contraction}
+\end{figure}
+
+\textbf{Contractions.} 
+Whenever deletions decrease~$N$ enough to halve the value of~$w^*(N)$,
+\sketchcms contracts to save memory. It does so by transferring the updates of
+the last sketch to the penultimate sketch and discarding the last sketch. This
+information transfer is challenging, as the keys are not stored in the
+sketches, barring us from rehashing them into the penultimate sketch. To
+overcome this issue, we use a fixed set of hash functions~$h_1,\dots,h_d$ for
+the arrays of all sketches. That is, we hash a key~$x$ to a counter in
+the~$i${\nobreakdash-}th array of a sketch by computing~$h_i(x)$ to derive a
+long hash from which we take the~$\log_2 w$ lower-order bits, where $w$ is the
+size of the array. \Cref{fig:contraction} illustrates this procedure for the
+last two sketches in the chain.
+
+This hashing scheme allows \sketchcms to determine the counter a key hashes to
+in the penultimate sketch by removing the most significant bit of its counter's
+offset in the last sketch. For example, for key~$y$ in \Cref{fig:contraction},
+since the~4 least significant bits of~$h_1(y)$ are 1011, it is hashed to
+the~11th counter in the first array of the last sketch. Removing the most
+significant bit of this counter's offset yields~011, implying that~$y$ hashes
+to the~3rd counter in the first array of the penultimate sketch.
+
+Applies to all counters in the last sketch, this corresponds to splitting the
+last sketch in half adding each half to the penultimate sketch, as depicted by
+the gray lines in \Cref{fig:contraction}.
+
+Give intuition that the error bound remains good, as the old sketches contain a
+small fraction of keys, and a lot of keys must be deleted for a contraction to
+occur. Also point out that now, the state of the sketches in the chain depends
+on the sequence of inserts and deletes done. Regardless of the sequence,
+however, the error bounds hold.
 
 \textbf{Aggregating Sketches.}
-Having to work with the entire chain and to query all sketches in it is slow.
+To optimize queries, we aggregate the updates of all sketches into the last
+one.
 To avoid this cost, we create an aggregate sketch that takes into account all
 sketches in the chain. Explain the sketch doubling method for CMS and CS and
 that it allows us to keep using the same hash function across time. To save
@@ -1104,22 +1248,6 @@ old ones.
 Point out that for MG, as it doesn't use hashing and is more of an associative
 array, we expand on a slot-by-slot basis to exactly match~$C(N)$, yielding
 potentially higher accuracy. 
-
-\textbf{Contractions.} 
-Explain that we have to shrink the sketch to save memory if too many keys are
-deleted. Specifically, when the expansion rate function is halved, we
-reconstruct the final sketch in the chain by ``subtracting out'' the other
-sketches from the aggregate sketch. As a result of this subtraction, some
-counters may be positive, signifying inserts, and some may become negative,
-signifying deletes. As such, it behaves like an ``update sketch,'' which
-``fold'' onto itself to make it the same size as the previous sketch in the
-chain and add them to propagate back the updates. 
-
-Give intuition that the error bound remains good, as the old sketches contain a
-small fraction of keys, and a lot of keys must be deleted for a contraction to
-occur. Also point out that now, the state of the sketches in the chain depends
-on the sequence of inserts and deletes done. Regardless of the sequence,
-however, the error bounds hold.
 
 \textbf{Physical Storage.}
 If we only want to support inserts, we physically manifest only the aggregate
