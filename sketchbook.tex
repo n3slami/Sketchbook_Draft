@@ -401,46 +401,44 @@ addressing problem~\hyperlink{problem:fixed_length_counters}{(P1)}.
 \Cref{sec:expanding_contracting_arrays} shows how to expand the sketch along
 with the stream's length to control both accuracy and space, resolving
 problem~\hyperlink{problem:fixed_size_sketch}{(P2)}. We first describe \sketch\
-as applied to CMS, denoted as \sketchcms. We discuss its application to other
-sketches in Sections~\ref{sec:cs} and \ref{sec:mg}.
+as applied to CMS, denoted as \sketchcms. We apply it to other sketches in
+Sections~\ref{sec:cs}~and~\ref{sec:mg}.
 
 \subsection{Variable-Length Counters}\label{sec:varlen_counters}
 \sketchcms generalizes CMS to support variable-length counters by partitioning
 each counter array into contiguous \emph{Chunks}. Each chunk occupies a 512-bit
 cache line. Since real-world workloads are skewed, most counters in a chunk
-will have small values. Hence, \sketchcms stores the counters as short integers
-called \emph{Stubs}. It elongates counters whose values overflow their stubs
-with variable-length \emph{Extensions}, stored in the same chunk. While the
-extensions require slightly more metadata to encode due to their
-variable-length nature, the space saved from encoding most counters as short
-stubs far outweighs this overhead. \sketchcms tracks overflowing counters using
-an overflows bitmap with one bit per counter. It stores their extensions in the
-chunk's remaining space, called the extension pool. It quickly finds the
-extension of an overflowing counter using a bit manipulation workflow
-leveraging rank and select operations. Counter~0 and Counter~1 in
+have small values. Hence, \sketchcms stores the counters as short integers
+called \emph{Stubs}. It elongates a counter whose value overflows its stub with
+a variable-length \emph{Extension}, stored in the same chunk. While the
+extensions require slightly more space due to the need for delimiters, the
+space saved by encoding most counters as short stubs far outweighs this
+overhead. \sketchcms tracks overflowing counters using an overflows bitmap with
+one bit per counter. It stores their extensions contiguously in the remaining
+space towards the end of the chunk, called the chunk's extension pool. It
+quickly finds the extension of an overflowing counter using a bit manipulation
+workflow leveraging rank and select operations. Counter~0 and Counter~1 in
 \Cref{fig:counter_chunk} are examples of a non-overflowing and overflowing
 counter within a chunk, respectively.
 
 \textbf{Parameters.}
-\sketchcms has two parameters: the number of counters per chunk~$c$ and the
-number of bits per stub~$s$. With more skewed workloads, having a larger~$c$
-and a smaller~$s$ reduces space consumption. The reason is that skew reduces
-the average length of the extensions, leaving more space in a chunk for having
-more counters. This reduction is due to skew shrinking many moderately long
-extensions and growing only a few long ones. Moreover, skew decreases most
-counter values, allowing them to fit in shorter stubs. For more uniform
-workloads, having a moderate~$c$ and a larger~$s$ is more effective. 
+\sketchcms has two tunable parameters: the number of counters per chunk~$c$ and
+the length, in bits, of each stub~$s$. With more skewed workloads, having more
+counters per chunk~$c$ and a shorter stub length~$s$ reduces space consumption.
+The reason is that skew decreases most counter values while increasing only a
+few of them, thus reducing the average length of the extensions and leaving
+more space in a chunk for having more counters. It also enables chunks to use
+shorter stubs to store most counters.
 
-In the extreme case where the workload is fully uniform, all counter values are
-expected to be similar. We exploit this by setting~$s$ so that all counters fit
-in their stubs. This allows us to remove the overflows bitmap from all chunks
-and increase~$c$ to fill them with stubs, yielding a configuration that
-corresponds to a standard CMS. 
+We discuss how to adapt the tuning of these parameters to the workload as the
+stream evolves in \Cref{sec:expanding_contracting_arrays}. We illustrate the
+impact of this procedure on the memory footprint in \Cref{sec:evaluation}.
 
-We discuss how to adapt the tuning of~$c$ and $s$ to the workload as the stream
-grows in \Cref{sec:expanding_contracting_arrays}, and illustrate the impact of
-this procedure on the memory footprint in \Cref{sec:evaluation}. To ease
-exposition, we set~$c=64$ and $s=6$ in our examples.
+In particular, when the workload is fully uniform and all counter values are
+expected to be similar, we adaptively tune the length of the stubs so that all
+counters fit in them. This allows us to remove the overflows bitmap from all
+chunks and pack them with stubs, yielding a configuration that corresponds to a
+standard CMS. 
 
 \begin{figure}
     \centering
@@ -536,76 +534,78 @@ exposition, we set~$c=64$ and $s=6$ in our examples.
         \def\axisl{0.5*\arrayw-0.8*\counterw}
         \def\axisr{0.5*\arrayw+0.8*\counterw}
         \def\axisy{\countery+3*\counterh}
-        \draw[-stealth] (\axisl,\axisy) -- (\axisr,\axisy);
-        \node[inner sep=2pt,anchor=east] (lower_order_bits_label) at (\axisl,\axisy+0.02) {\small Lower-Order};
-        \node[inner sep=2pt,anchor=west] (higher_order_bits_label) at (\axisr,\axisy) {\small Higher-Order};
-        \node[inner sep=2pt,anchor=south] (axis_label) at (0.5*\axisl+0.5*\axisr,\axisy) {\small Bits};
+        %\draw[-stealth] (\axisl,\axisy) -- (\axisr,\axisy);
+        %\node[inner sep=2pt,anchor=east] (lower_order_bits_label) at (\axisl,\axisy+0.02) {\small Lower-Order};
+        %\node[inner sep=2pt,anchor=west] (higher_order_bits_label) at (\axisr,\axisy) {\small Higher-Order};
+        %\node[inner sep=2pt,anchor=south] (axis_label) at (0.5*\axisl+0.5*\axisr,\axisy) {\small Bits};
     \end{tikzpicture}
-    \caption{\sketchcms encodes a chunk of~$c$ $(=64)$ counters in a cache line.
-    It encodes the~$s$ $(=6)$ lower-order bits of each counter in a stub and
-    stores its remaining higher-order bits in extensions comprised of base-3
-    digits, each represented using two bits.}
+    \caption{\sketchcms encodes a chunk of~$c$ $(=64)$ counters in a cache
+    line. It encodes the~$s$ $(=6)$ lower-order bits of each counter in a stub
+    and stores its remaining higher-order bits in extensions comprised of 2-bit
+    fragments representing base-3 digits. Here, the bits in the binary
+    representations and the fragments increase in significance from left to
+    right.}
     \label{fig:counter_chunk}
 \end{figure}
 
 \textbf{Extensions.}
-The higher-order bits of each overflowing counter are stored in an extension
-that encodes their value in base-3 and represents each digit using two bits.
-Specifically, it represents the base-3 digits~$(0)_3$, $(1)_3$, and $(2)_3$
-as~$00$, $10$, and $01$, respectively. It stores these digits in increasing
-order of significance from left to right. Formally, an extension encodes a
-value~$v$ using~$\left\lfloor \log_3 v \right\rfloor + \nolinebreak 1$ base-3 digits, where
-the~$j${\nobreakdash-}th digit is~$v_j=\left\lfloor v/3^j \right\rfloor \mod
-3$. We decode~$v$ back into its decimal representation by computing the
-sum~$3^0 \cdot v_0 + 3^1 \cdot v_1 + \dots$. \sketchcms delimits each extension
-by appending to it the unused combination of bits~$11$. 
+We form extensions from 2{\nobreakdash-}bit \emph{Fragments} to encode the
+higher-order bits of overflowing counters succinctly and to extend them at the
+finest possible granularity. We use the fragment~$11$ as a delimiter at the end
+of each extension. We use the other three combinations of bits to encode each
+extension's value in base 3. Specifically, we represent the
+base{\nobreakdash-}3 digits~$(0)_3$, $(1)_3$, and $(2)_3$ as the
+fragments~$00$, $10$, and $01$, respectively. We store fragments in increasing
+order of their digits' significance from left to right. Formally, we encode a
+value~$v$ in an extension by representing each of its~$\left\lfloor \log_3 v
+\right\rfloor + \nolinebreak 1$ digits in a fragment, with
+the~$j${\nobreakdash-}th digit being~$v_j=\left\lfloor v/3^j \right\rfloor \mod
+3$. We decode~$v$ back into decimal by computing the sum~$3^0 \cdot v_0 + 3^1
+\cdot v_1 + \dots$.
 
 For example, the value~5, which is the value of the higher-order bits of
-Counter~1 in \Cref{fig:counter_chunk}, has two digits in base{\nobreakdash-}3.
-It is therefore encoded as the extension~$\langle (2)_3, (1)_3,
-\text{delimiter} \rangle=\langle 01, 10, 11 \rangle$. Decoding this extension
-yields~$3^0 \cdot 2 + 3^1 \cdot 1 = 5$, as expected.
+Counter~1 in \Cref{fig:counter_chunk}, has two digits in base 3. It is
+therefore encoded as the extension~$\langle (2)_3, (1)_3, \text{delimiter}
+\rangle=\langle 01, 10, 11 \rangle$. Decoding this extension yields~$3^0 \cdot
+2 + 3^1 \cdot 1 = 5$, as expected.
 
-%To facilitate decoding, \sketchcms must disambiguate the beginning and end of each extension.
-
-The use of 2-bit representations of base-3 digits allows for extending counters
-at the finest possible granularity (compared to using larger bases and digits).
-This allows a chunk's extensions to fit in 1-2 machine words in most cases. We
-prove in \Cref{sec:theoretical_analysis} that using these extensions in
-conjunction with short stubs enables a chunk to encode counter values in space
-close to the length of their binary encoding.
+Forming a chunk's extensions from 2-bit fragments allows them to fit in 1-2
+machine words in most cases. We prove in \Cref{sec:theoretical_analysis} that
+using these extensions in conjunction with short stubs enables a chunk to
+encode each counter's value in space close to the length of its binary
+encoding.
 
 \textbf{Locating an Extension.}
 To decode an overflowing counter, \sketchcms must locate its extension. To this
-end, it keeps the extensions in the same order as that of the overflowing
-counters. It locates the~$i${\nobreakdash-}th counter's extension by counting
-the number of preceding bits set to~1s in the overflows bitmap. This is
-equivalent to the number of overflowing counters preceding
-the~$i${\nobreakdash-}th counter, denoted by~$m$. Skipping over the first~$m$
-extensions in the extension pool leads to the position of the target extension.
+end, it keeps the extensions in the same order as that of the counters. It
+locates the~$i${\nobreakdash-}th counter's extension by counting the number of
+preceding bits set to~1s in the overflows bitmap. This is equivalent to the
+number of overflowing counters preceding the~$i${\nobreakdash-}th counter,
+denoted by~$m$. Skipping over the first~$m$ extensions in the extension pool
+leads to the position of the target extension.
 
-\Cref{fig:extension_location_example} illustrates the process of decoding the
-3rd counter in a chunk during an update or a query. Since the 3rd bit in the
+\Cref{fig:extension_location_example} illustrates the process of identifying
+the 3rd counter's extension in a chunk. Here, since the 3rd bit in the
 overflows bitmap is~1, the 3rd counter has an extension. As there is one bit
 set to~1 preceding the 3rd bit in the overflows bitmap, we skip one extension
 to locate the 3rd counter's extension, shown in gray.
 
 \textbf{Fast Access Using Rank and Select.}
-\sketchcms quickly locates an extension by leveraging rank and select
+\sketchcms quickly locates the extension of an overflowing counter using rank
+and select
 operations~\cite{Poppy,FlorianRankandSelect,CompactPATTrees,RankandSelectDict,GQF}.
 Given a bitmap~$B$, the $\texttt{rank}(i,B)$ operation counts the number of~1s
 strictly before the $i$-th bit, and the $\text{select}(i,B)$ operation returns
 the position of the~$i${\nobreakdash-}th 1. Later in this section, we show how
 to use specialized CPU instructions to implement these operations efficiently. 
 
-%The goal is to locate the delimiter at the end of the counter's extension. This enables decoding the extension via a right-to-left scan until hitting the previous delimiter.
 The first step is to determine~$m$, the number of overflowing counters to the
 left of the~$i${\nobreakdash-}th counter. As this is the number of 1s before
 the $i${\nobreakdash-}th bit in the overflows bitmap, \sketchcms applies the
 rank operation to evaluate~$m=\texttt{rank}(i,$~overflows$)$.
 
 The second step is to identify the target extension's delimiter by skipping
-over the~$m$ delimiters before it. We do this using several bit manipulation
+over the~$m$ delimiters preceding it. We do this using several bit manipulation
 techniques. First, we convert the extension pool into a so-called
 \emph{Delimiters Bitmap}. This bitmap contains one bit set to~1 at the position
 of every delimiter and~0s everywhere else, as illustrated at the bottom right
@@ -614,17 +614,18 @@ bitwise-and of the extension pool with a version of itself shifted to the right
 by one bit. The result is a bitmap with a~1 at the end of any two
 consecutive~1s in the original extension pool, as illustrated in
 \Cref{fig:extension_location_example}. This means that every bit in this bitmap
-corresponding to the second bit of a delimiter or digit is set to 1 and 0,
-respectively, as desired from the delimiters bitmap. We mask out all other bits
-to 0s. Thus, the delimiters bitmap is derived as
+corresponding to the second bit of a fragment is set to 1 if the fragment is a
+delimiter and is set to 0 otherwise. We mask out all other bits to 0s. In sum,
+the delimiters bitmap is derived as
 \begin{center}
     delimiters $=$ extensions \& $($extensions >‌> 1$)$ \& $0101\dots0101$.
 \end{center}
 Finally, we use the select operation to
 evaluate~$\texttt{select}(m,$~delimiters$)$, which skips over the first~$m$
-delimiters and returns the position of the subsequent delimiter, i.e., the
-delimiter of the target extension. The bitwise operations above are efficient,
-as we have found that a chunk's extensions often fit in 1-2 machine words.
+delimiters and returns the position of the~$m${\nobreakdash-}th delimiter. We
+sequentially apply the bitwise operations above to each machine word comprising
+the chunk's extensions. This is efficient, as a chunk's extensions often fit in
+1-2 words.
 
 \Cref{fig:extension_location_example} shows an example of locating the 3rd
 counter's extension using rank and select. Here,
@@ -775,7 +776,7 @@ extension ends at the~11th bit.
 In the rare event that many hot keys hash to the same chunk, many of the
 chunk's counters will overflow, potentially growing the cumulative length of
 the extensions beyond the size of the chunk. \sketchcms handles this case by
-allocating an external array of long integers called \emph{Tails} for the
+allocating an external array of 32-bit integers called \emph{Tails} for the
 chunk, with one tail integer per counter. It stores the~$i${\nobreakdash-}th
 counter's higher-order bits in the~$i${\nobreakdash-}th tail. Each chunk
 contains a mode flag indicating if it has a tails array, as depicted in
@@ -785,19 +786,12 @@ the extension pool is large enough to accommodate this pointer (i.e., at least
 48 bits\footnote{The upper 16 bits a general 64-bit pointer are unused on
 modern machines. As such, we only store the lower 48 bits of the pointer.})
 when tuning the number of counters per chunk~$c$ and the stub size~$s$. Any
-extra space after the pointer is left unused, as shown in
-\Cref{fig:counter_chunk_with_tails}. 
+extra space after the pointer is left unused.
 
-%To simplify the implementation, \sketchcms never removes the tails array in a chunk.
-%Inspired by frontyard-backyard hash tables~\cite{Backyarding1,Backyarding2,BackyardCuckooHashing,CacheObliviousDictionaries,IcebergHashing},
-%Here, as the stub counter length is~$s=6$, the value of the 0th counter is decoded by concatenating the binary representations of \verb|stub[|$0$\verb|]| and \verb|tails[|$0$\verb|]|, yielding $63 + 2^s \cdot 100 = 6463$. 
-
-In \Cref{sec:theoretical_analysis}, we prove that maintaining an appropriate
-stub length~$s$ while expanding the sketch with the stream's length
-significantly shortens the extensions, making it very unlikely for them to
-outgrow their chunks. As such, the tails arrays will be few in number, and
-their memory overhead will be negligible. We further confirm this in our
-evaluation in \Cref{sec:evaluation}.
+In the next subsection, we show that adaptively tuning the number of counters
+per chunk~$c$ and the stub length~$s$ ensures extensions rarely outgrow their
+chunks. This drastically reduces the number of tails arrays, making their
+memory overhead negligible.
 
 \begin{figure}
     \centering
@@ -875,30 +869,27 @@ evaluation in \Cref{sec:evaluation}.
 \textbf{Incrementing Counters.}
 When an insertion maps to the~$i${\nobreakdash-}th counter of a chunk,
 \sketchcms increments it by adding one to the lower-order bits stored in
-the~$i${\nobreakdash-}th stub, i.e., stub[$i$]. Most of the time, stub[$i$]
-will not overflow, allowing the insertion to return early and achieve high
-throughput. 
+the~$i${\nobreakdash-}th stub, i.e., stub[$i$]. Most of the time, stub[$i$]'s
+increment will not carry over to the higher-order bits of the counter, allowing
+the insertion to return early and achieve high throughput. 
 
-When stub[$i$] overflows, \sketchcms moves a carry to the counter's
-higher-order bits by incrementing the counter's extension or tail. For an
-extension, this entails incrementing the first digit and propagating a carry to
-the other digits as necessary. This carry may propagate beyond the end of the
-extension, leading to the addition of a new digit. \sketchcms makes room for
-this new digit by shifting subsequent extensions to the right. If
-the~$i${\nobreakdash-}th counter did not have an extension, a new extension
-encoding the value~1 is created for it. We use rank and select operations to
-determine the appropriate position of this extension in the extension pool.
-
-%As the extension pool typically fits in 1-2 machine words, bitwise operations
-%enable incrementing an extension in constant time.
+Whenever stub[$i$]'s increment carries over, \sketchcms adds one to the
+counter's extension or tail. For an extension, this entails incrementing its
+first digit and propagating a carry to the other digits as necessary. This
+carry may propagate beyond the end of the extension, leading to the addition of
+a new digit. \sketchcms makes room for the fragment representing this digit by
+shifting subsequent extensions to the right. If the~$i${\nobreakdash-}th
+counter did not have an extension, a new extension encoding the value~1 is
+created for it. We use rank and select operations to determine the appropriate
+position of this extension in the extension pool.
 
 \textbf{Decrementing Counters.}
 Analogously, when a deletion maps to the~$i${\nobreakdash-}th counter in a
 chunk, \sketchcms decrements the lower-order bits in~stub[$i$]. If stub[$i$]
-underflows, \sketchcms borrows from the counter's higher-order bits. This may
-trigger the removal of a digit from the counter's extension, in which case
-subsequent extensions are shifted to the left to keep the extension pool
-tightly packed. 
+borrows from the counter's higher-order bits as a result, \sketchcms decrements
+the corresponding extension or tail. This may trigger the removal of a digit
+from the counter's extension, in which case subsequent extensions are shifted
+to the left to keep the extension pool tightly packed. 
 
 \textbf{Optimization~1: Fast Division.}
 Determining the chunk of a counter at offset~$i$ in an array is expensive, as
@@ -941,18 +932,19 @@ is applied to 1-2 machine words, as the bitmaps \sketchcms operates over are
 
 \textbf{Optimization~3: Lookup Tables.}
 Since stubs are not byte-aligned, modifying them can be costly. This is because
-extracting a stub from the machine words containing it requires doing irregular
-reads and bit shifts. \sketchcms instead uses a single addition instruction to
-update the stub's words directly. It does this by precomputing two lookup
-tables. The first table stores the position of the word each stub lies in, and
-the second table stores the stub's position within its word. \sketchcms updates
-a stub by adding or subtracting one from the bit indicated by the second table
-in the word indicated by the first. For example, in the context of
+extracting and writing back a stub to the machine words containing it entails
+five extra bitwise operations on top of the addition operation. \sketchcms
+bypasses this cost by directly updating the stub's words using a single
+addition. It achieves this using two precomputed lookup tables. The first table
+stores the position of the word each stub lies in, and the second table stores
+the stub's position within its word. \sketchcms updates a stub by adding or
+subtracting one from the bit indicated by the second table in the word
+indicated by the first. For example, in the context of
 \Cref{fig:counter_chunk}, the first lookup table indicates that the~1st stub
 lies in the 1st word, which has a binary representation of~$111111101010\dots$.
 The second lookup table indicates that this stub starts at the~6th bit in the
-1st word, allowing us to increment it by adding~$000000100000\dots$, yielding
-the updated word~$111111011010\dots$.
+1st word, allowing us to increment it by adding~$000000100000\dots$, thus
+yielding the updated word~$111111011010\dots$.
 
 \textbf{Optimization~4: Prefetching.}
 We allow multiple chunks to be read in parallel within a single operation as
