@@ -368,19 +368,26 @@ improving accuracy~\cite{BayesianSketches,BFES} and convolution for join size
 estimation~\cite{ConvolutionSketch}. 
 
 \hypertarget{problem:fixed_size_sketch}{\textbf{(P2)~Fixed-Size Sketch.}}
-Many applications monitor continually changing streams. In such scenarios, the
-total key count~$N$ can grow over time and is therefore unknown upfront. Since
-the error of a fixed-size CMS (and other sketches) scales linearly with~$N$,
-practitioners are faced with the challenge of controlling the sketch's error by
-tuning the number of counters in each array without knowing the ultimate value
-of~$N$. The crux of the problem is that if there are too few counters in each
-array, the estimates will have significant errors. If there are too many
-counters, memory is wasted. Moreover, $N$ may fluctuate over time due to the
-stream having both insertions and deletions. The ideal sketch must scale its
-memory footprint with~$N$ to bound the error without wasting space, thereby
-guaranteeing sub-linear errors.
+The error of a fixed-size CMS (and other sketches) scales linearly with the
+total number of keys in the stream~$N$. While the ultimate value of~$N$ is
+known upfront in some applications, it is unknown in many others. For example,
+applications in network management often monitor traffic in fixed time
+windows~\cite{SketchBasedChangeDetection,WhatsNew,TrafficManagementSurvey}.
+Here, $N$ corresponds to the total number of packets sent in each time window,
+which varies significantly due to the bursty nature of the workloads. Several
+other applications, such as query optimizers, track frequencies of keys in the
+entirety of a continually changing
+stream~\cite{Compass,QueryOptimizationSketches}. The final value of~$N$ is also
+unknown in these contexts.
 
-%Counting attribute values in SQL tables for OLTP or HTAP workloads and periodically collecting network activity reports for administration are examples of such applications. 
+In these applications, practitioners face the challenge of controlling the
+sketch's error by tuning the number of counters in each array without knowing
+the ultimate value of~$N$. The crux of the problem is that if there are too few
+counters in each array, the estimates will have significant errors. If there
+are too many counters, memory is wasted. Moreover, $N$ may fluctuate over time
+due to the stream having both insertions and deletions. The ideal sketch must
+scale its memory footprint with~$N$ to bound the error without wasting space,
+thereby guaranteeing sub-linear errors.
 
 \textbf{Summary.}
 Although much research has gone into
@@ -395,59 +402,60 @@ and accurate support of deletions?
 
 \section{\sketch}\label{sec:sketchbook} 
 We present \sketch, a framework for generalizing a frequency estimation sketch
-to adapt its memory footprint to the workload's skew and the stream's length.
-\Cref{sec:accommodating_skew} shows how to adapt to skew by compactly encoding
-each counter as a short integer and extending it as it overflows, addressing
-problem~\hyperlink{problem:fixed_length_counters}{(P1)}.
+to optimize its memory footprint with respect to the stream's skew and its
+length. \Cref{sec:accommodating_skew} shows how to adapt to skew by compactly
+encoding each counter as a short integer and extending it as it overflows,
+addressing problem~\hyperlink{problem:fixed_length_counters}{(P1)}.
 \Cref{sec:accommodating_unknown_stream_lengths} shows how to control both
-accuracy and space for streams of unknown length by expanding and contracting
-the sketch, resolving problem~\hyperlink{problem:fixed_size_sketch}{(P2)}. Our
-techniques ensure a reduction in memory footprint while maintaining high
-performance and supporting deletions. We first describe \sketch\ as applied to
-the Count-Min Sketch~(CMS), denoted as \sketchcms. We apply it to other
-sketches in Sections~\ref{sec:cs}~and \ref{sec:mg}.
+accuracy and space for a stream of unknown length by expanding and contracting
+the sketch, resolving problem~\hyperlink{problem:fixed_size_sketch}{(P2)}. At
+the same time, \sketch\ maintains high performance and support for deletions.
+We first describe \sketch\ as applied to the Count-Min Sketch~(CMS), denoted as
+\sketchcms. We apply it to other sketches in Sections~\ref{sec:cs}~and
+\ref{sec:mg}.
 
 \subsection{Accommodating Skew}\label{sec:accommodating_skew}
-Under skewed workloads, few counter values are large, and most are small. In
-contrast, under more uniform workloads, most counter values are similar. To
-handle all workloads in the least space possible, \sketchcms generalizes CMS to
-support variable-length counters. It starts by storing the counters in
-fixed-size integers called \emph{Stubs}. It chooses the shortest length
-possible for the stubs based on the workload's skew so that they fit the values
-of most counters. It elongates a counter whose value overflows its stub with a
-dedicated variable-length \emph{Extension}. While the extensions require
-slightly more space due to the need for delimiters, the space saved by encoding
-most counters in short stubs far outweighs this overhead. \sketchcms quickly
-locates the extension of an overflowing counter using a bit manipulation
-workflow that leverages rank and select operations.
+Under skewed workloads with a few heavy hitters, most counter values in CMS's
+arrays are small, and few are large. In contrast, under more uniform workloads,
+most counter values are similar. To optimize the space used for storing each
+counter value in any workload, \sketchcms generalizes CMS to support
+variable-length counters. It does so by storing the counters as fixed-size
+integers called \emph{Stubs}. It elongates a counter whose value overflows its
+stub with a dedicated variable-length \emph{Extension}. Due to their need for
+delimiters, storing extensions entails a slight metadata overhead. We
+counteract this overhead by adaptively choosing the stub length based on the
+workload’s skew so that more counter values fit in their stubs without needing
+extensions. More precisely, we choose the shortest stub length that minimizes
+the total memory footprint of the stubs and the extensions. To improve cache
+behavior and quickly reconstruct a counter, \sketchcms colocates a stub and its
+corresponding extension in the same cache line. It quickly finds a stub's
+extension using a bit manipulation workflow that leverages rank and select
+operations.
 
 \textbf{Chunking.}
-To speed up manipulating counters, \sketchcms partitions each counter array
-into contiguous \emph{Chunks}, each occupying a 512-bit cache line. A chunk
-stores the stubs of its counters while tracking the counters that overflow
-their stubs using an \emph{Overflows Bitmap} with one bit per counter. A chunk
-also stores the extensions of the overflowing counters contiguously in the
-remaining space towards its end, called its \emph{Extension Pool}. Counter~0
-and Counter~1 in \Cref{fig:counter_chunk} are examples of a non-overflowing and
-overflowing counter within a chunk, respectively.
+To colocate stubs and their extensions in 512-bit cache lines, \sketchcms
+partitions each counter array into contiguous \emph{Chunks}, each occupying a
+cache line. A chunk stores its counters' stubs in a contiguous array and tracks
+the counters that overflow their stubs using an \emph{Overflows Bitmap} with
+one bit per counter. It stores the extensions of these overflowing counters
+contiguously in the remaining space towards its end, called its \emph{Extension
+Pool}. Counter~0 and Counter~1 in \Cref{fig:counter_chunk} are examples of a
+non-overflowing and overflowing counter within a chunk, respectively.
 
 \textbf{Parameters.}
-\sketchcms has two tunable parameters: the length, in bits, of each stub~$s$
-and the number of counters per chunk~$c$. With more skewed workloads, having a
-shorter stub length~$s$ and more counters per chunk~$c$ reduces space
-consumption. The reason is that skew shrinks most counter values, enabling the
-use of shorter stubs for storing them. Skew also reduces the average length of
-the extensions, leaving more space in a chunk to store more counters.
+\sketchcms has two parameters: the number of bits in each stub~$s$ and the
+number of counters per chunk~$c$. With more skewed workloads, having shorter
+stubs and more counters per chunk reduces space consumption. The reason is that
+skew shrinks most counter values, enabling the use of shorter stubs for storing
+them. Skew also reduces the average length of the extensions, leaving more
+space in a chunk to store more counters.
 
 We discuss how to adapt the tuning of these parameters to the workload as the
-stream evolves in \Cref{sec:accommodating_unknown_stream_lengths}. We illustrate the
-impact of this procedure on the memory footprint in \Cref{sec:evaluation}.
-
-In particular, when the workload is fully uniform and all counter values are
-expected to be similar, we adaptively tune the length of the stubs so that all
-counters fit in them. This allows us to remove the overflows bitmap from all
-chunks and pack them with stubs, yielding a configuration that corresponds to a
-standard CMS. 
+stream evolves in \Cref{sec:accommodating_unknown_stream_lengths}. When the
+workload is fully uniform, this procedure tunes the stub length so that all
+counter values fit in stubs, allowing it to remove the overflows bitmaps and
+yield the configuration of a standard CMS. We illustrate the impact of this
+procedure on the memory footprint in \Cref{sec:evaluation}.
 
 \begin{figure}
     \centering
@@ -557,12 +565,12 @@ standard CMS.
 We form extensions from 2{\nobreakdash-}bit \emph{Fragments} to encode the
 higher-order bits of overflowing counters succinctly and to extend them at the
 finest possible granularity. We use the fragment~$11$ as a delimiter at the end
-of each extension. We use the other three combinations of bits to encode each
-extension's value in base 3. Specifically, we represent the
-base{\nobreakdash-}3 digits~$(0)_3$, $(1)_3$, and $(2)_3$ as the
+of each extension. The other three combinations of bits are used to encode each
+extension's value in base 3. Specifically, the base{\nobreakdash-}3
+digits~$(0)_3$, $(1)_3$, and $(2)_3$ are represented as the
 fragments~\textit{00}, \textit{10}, and \textit{01}, respectively. We store
 fragments in increasing order of their digits' significance from left to right.
-Formally, we encode a value~$v$ in an extension by representing each of
+Formally, a value~$v$ is encoded in an extension by representing each of
 its~$\left\lfloor \log_3 v \right\rfloor + \nolinebreak 1$ digits in a
 fragment, with the~$j${\nobreakdash-}th digit being~$v_j=\left\lfloor v/3^j
 \right\rfloor \mod 3$. We decode~$v$ back into decimal by computing the
