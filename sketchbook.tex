@@ -995,19 +995,27 @@ and uses each as the hash value of an array.
 \subsection{Accommodating Unknown Stream Lengths}\label{sec:accommodating_unknown_stream_lengths}
 In many stream processing applications, the ultimate total key count~$N$ is
 unknown. Using CMS in these applications yields an error bound that grows
-linearly with the data's size, as CMS's error is determined by the ratio of~$N$
+linearly with the data's size, as its error is determined by the ratio of~$N$
 and the number of its counters. \sketchcms addresses this by generalizing CMS
-to expand and contract the number of its counters as the stream evolves.
-Specifically, it maintains a chain of sketches, each consisting of~$d$ counter
-arrays, as illustrated in \Cref{fig:sketchbook_chain}. The arrays of each
-sketch in the chain are twice as large as the arrays of the sketch preceding
-it. \sketchcms directs insertions and deletions to the last sketch in the chain
-so that they benefit from its higher tracking accuracy. It expands and
-contracts by adding and removing sketches from the chain, respectively. It does
-so to keep the size of the last sketch's counter arrays close to the value of a
-user-defined \emph{Size Function}~$w^*(N)$. This simulates processing the
-entire stream with a hypothetical sketch preallocated with arrays of
-size~$w^*(N)$ from the onset, yielding a similar accuracy guarantee. Because
+to expand the number of its counters as the stream evolves. Specifically, it
+maintains a chain of sketches, each consisting of~$d$ counter arrays. To adapt
+the accuracy to the length of the stream, \sketchcms expands by appending a
+larger sketch to the chain with its counters initialized to zeros. This
+sketch's arrays are twice as large as that of the sketch preceding it in the
+chain. \Cref{fig:sketchbook_chain} illustrates an example of such a chain with
+three sketches. Insertions and deletions are directed to the last sketch so
+that they benefit from its higher tracking accuracy. This spreads the updates
+across the sketches as expansions occur. A query takes into account all updates
+by aggregating the estimates of all sketches in the chain. That is, for
+each~$i$, it sums the values of the counters it hashes to in
+the~$i${\nobreakdash-}th array of all sketches. It then reports the minimum of
+these sums as the estimate.
+
+By expanding and contracting, \sketchcms keeps the size of the last sketch's
+counter arrays close to the value of a user-defined \emph{Size
+Function}~$w^*(N)$. In doing so, it simulates processing the entire stream with
+a hypothetical sketch preallocated from the onset with arrays of size~$w^*(N)$
+with perfect knowledge of~$N$, yielding a similar accuracy guarantee. Because
 the last sketch in the chain is the dominating factor in the chain's memory
 footprint, and since its arrays are sized similarly to the preallocated sketch,
 the total memory footprint of \sketchcms is approximately the same as that of
@@ -1068,6 +1076,9 @@ the preallocated sketch.
         %\draw[decorate,decoration={brace,raise=1pt,amplitude=2pt,mirror}] (3*\arrayw+2*\cmssep,0) -- (3*\arrayw+\lastsketcharrayw+2*\cmssep,0)
         %    node[pos=0.435,below=5.65pt,inner sep=1pt] {\small $\, w^*(N) / 2 \leq w \leq w^*(N)$};
 
+        % Expansion Line
+        \node[inner sep=1pt,anchor=west] (expansion_label) at (3*\arrayw+1.5*\cmssep,3*\arrayh+3*\arraysep) {\small Expansion};
+        \draw[densely dotted] (3*\arrayw+1.5*\cmssep,3*\arrayh+3*\arraysep) -- (3*\arrayw+1.5*\cmssep,-\arraysep);
 
         % Inserts, Deletes, and Queries
         \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt,mirror}] (3*\arrayw+1.9*\cmssep,-\arraysep/5) -- (3*\arrayw+\lastsketcharrayw+2.1*\cmssep,-\arraysep/5)
@@ -1095,7 +1106,7 @@ the preallocated sketch.
         \def\querytextx{3*\arrayw+\lastsketcharrayw+2.5*\cmssep}
         \node[inner sep=1pt,align=center] (query) at (\querytextx,\texty) {\small Query \\[-4pt] \small Result $=$ 4};
         \draw[-stealth] (\querytextx,\arrayh+\arrowoffsety) -- node[pos=0.5,below=1pt,rotate=90,inner sep=2pt] {\small Min} (query.south);
-        \def\sumarray{{0,4,6,8}}
+        \def\sumarray{{0,8,6,4}}
         \foreach \i in {1, ..., \arraycount} {
             \def\liney{\i*\arrayh+\i*\arraysep-\arraysep+\arrowoffsety}
             \pgfmathsetmacro{\sumresult}{\sumarray[\i]}
@@ -1172,9 +1183,9 @@ The size function~$w^*(N)$ exposes a rich spectrum of accuracy-memory
 tradeoffs: the faster~$w^*(N)$ grows with respect to the total number of keys
 in the stream~$N$, the sooner \sketchcms expands, thereby tracking more of the
 stream's keys at a higher accuracy in exchange for a higher memory footprint.
-We recommend using a size function of the form~$w^*(N)=N^\alpha/\epsilon$ and
-tuning the constants~$\alpha \in [0,1)$ and $\epsilon$ to balance accuracy with
-memory. Such a size function is known as a \emph{Sub-Linear Power}. We prove in
+We recommend setting the size function to a \emph{Sub-Linear Power} of the
+form~$w^*(N)=N^\alpha/\epsilon$ and tuning the constants~$\alpha \in [0,1)$ and
+$\epsilon$ to balance accuracy with memory. We prove in
 \Cref{sec:theoretical_analysis} that using a sub-linear power yields an error
 bound of~$O(N/w^*(N))=O(\epsilon \cdot N^{1-\alpha})$. This matches the error
 bound of a sketch preallocated with arrays of size~$w^*(N)$, which is known to
@@ -1298,7 +1309,7 @@ of~$O(N/w^*(N))$, as we prove in \Cref{sec:theoretical_analysis}.
             \node[inner sep=0pt] at (\j*\counterw-\counterw/2,\updatey) {\small $\countervalue$};
         }
         \draw[-stealth] plot[hobby] coordinates { (last_sketch_left_half) (\arrayw+\cmssep/2,-6.35*\arraysep) (penultimate_sketch) };
-        \draw[-stealth] plot[hobby] coordinates { (last_sketch_right_half) (1.5*\arrayw+\cmssep/2,-9*\arraysep) (penultimate_sketch) };
+        \draw[-stealth] plot[hobby] coordinates { (last_sketch_right_half) (1.5*\arrayw+\cmssep/2,-7.9*\arraysep) (penultimate_sketch) };
         \node[inner sep=0pt] (total_transfer_label) at (0.6*\arrayw,-7.5*\arraysep) {\small Add};
     \end{tikzpicture}
     \caption{\sketchcms uses fixed hash functions for all sketches in the chain
@@ -1347,7 +1358,7 @@ the chain depending on the sequence of insertions and deletions done.
         \def\arrayh{0.25}
         \def\arraysep{0.1}
         \def\cmssep{1.5}
-        \def\cmstitlesep{1.5}
+        \def\cmstitlesep{1.30}
         \def\insertdeletesep{1.4}
         \def\hashsep{\insertdeletesep-0.4}
         \def\arrowsep{0.2*\cmssep}
@@ -1445,11 +1456,11 @@ the chain depending on the sequence of insertions and deletions done.
         \draw[stealth-] plot[hobby] coordinates { (last_sketch_1_quarter) (1.5*\arrayw+\cmssep/2,-8.0*\arraysep) (penultimate_sketch) };
         \draw[stealth-] plot[hobby] coordinates { (last_sketch_2_quarter) (1.5*\arrayw+\cmssep/2,-8.75*\arraysep) (penultimate_sketch) };
         \draw[stealth-] plot[hobby] coordinates { (last_sketch_3_quarter) (1.5*\arrayw+\cmssep/2,-9.25*\arraysep) (penultimate_sketch) };
-        \node[inner sep=0pt] (total_transfer_label) at (5.25*\arrayw,-11.5*\arraysep) {\small Add};
+        \node[inner sep=0pt] (total_transfer_label) at (5.75*\arrayw,-10.5*\arraysep) {\small Add};
     \end{tikzpicture}
     \caption{\sketchcms aggregates an older sketch into the last sketch by
-    partitioning the last sketch based on the MSBs of the counter offsets and
-    adding the older sketch to each of the partitions.}
+    partitioning the latter based on the MSBs of the counter offsets and adding
+    the former to each partition.}
     \label{fig:aggregating_sketches}
 \end{figure}
 
