@@ -252,8 +252,8 @@ so, the error may deviate from its expectation. The probability that errors do
 not exceed the expectation ``too much'' is known as the sketch's
 \emph{Confidence}. A straight-forward application of Markov's inequality shows
 that the error does not exceed~$\frac{eN}{w}$ with a confidence of at
-least~$1-1/e$, i.e., $\Pr\left( |\hat{f}(x)-f(x)| \leq \frac{eN}{w} \right)
-\geq 1-1/e$ for any key~$x$. Here, we use Euler's constant~$e$ due to
+least~$1-e^{-1}$, i.e., $\Pr\left( |\hat{f}(x)-f(x)| \leq \frac{eN}{w} \right)
+\geq 1-e^{-1}$ for any key~$x$. Here, we use Euler's constant~$e$ due to
 convention. Any other constant would also work and would replace~$e$ in both
 the accuracy bound and the confidence. This implies that the smaller the
 constant becomes, i.e., the more accurate we expect the sketch to be, the lower
@@ -272,9 +272,9 @@ the probability of collisions and overestimation~\cite{CountMin}.}
 \Cref{fig:cms_overview} shows an example of insertions and queries applied to
 three counter arrays. Returning the minimum for queries boosts confidence
 exponentially, since it only carries severe errors when all estimates err
-significantly. CMS ensures an error of at most~$\frac{eN}{w}$ with a confidence
-of~$1-e^{-d}$, i.e., $\Pr\left( |\hat{f}(x)-f(x)| \leq \frac{eN}{w} \right)
-\geq 1-e^{-d}$ for any key~$x$.
+significantly. Thus, CMS guarantees an error of at most~$\frac{eN}{w}$ with a
+confidence of~$1-e^{-d}$, i.e., $\Pr\left( |\hat{f}(x)-f(x)| \leq \frac{eN}{w}
+\right) \geq 1-e^{-d}$ for any key~$x$.
 
 \begin{figure}
     \centering
@@ -337,14 +337,16 @@ still suffers from several memory inefficiencies, as we show in the following
 section.
 
 \section{Problem Analysis}\label{sec:problem_analysis}
-CMS often uses far more memory than necessary by using (P1)~fixed-length
-counters and (P2)~fixed-size arrays.
+CMS often uses far more memory than necessary by not accommodating (P1)~varying
+levels of skew and (P2)~unbounded~data~growth.
 
-\hypertarget{problem:fixed_length_counters}{\textbf{(P1)~Fixed-Length Counters.}}
-CMS uses fixed-length counters. To prevent overflows, each counter must be long
-enough to fit the maximum counter value, which may be of the same magnitude as
-the total key count~$N$. Since workloads are often skewed, most counters are
-typically small and many of their bits are unused.
+\hypertarget{problem:skew}{\textbf{(P1)~Varying Levels of Skew.}}
+Under uniform workloads, most counter values in CMS's arrays are similar. In
+contrast, under skewed workloads with a few heavy hitters, most counter values
+are small, and few are large. This causes CMS to waste a significant amount of
+memory, as it uses counters that are sufficiently long to accommodate the
+maximum counter value, despite most counter values being small and thus needing
+few bits for storage.
 
 Ideally, each counter should be just long enough to fit its value. This would
 save space, or, conversely, enable having more counters under the same memory
@@ -352,6 +354,63 @@ budget to improve accuracy. One approach is to compress the counters using
 algorithms such as compressive sensing~\cite{TreeSensing,BitSense} or
 hypergraph peeling~\cite{CodingSketch}. Yet, these methods introduce heavy
 decompression overheads to queries.
+
+\begin{figure}
+    \centering
+    \begin{tikzpicture}
+        \def\w{3}
+        \def\ox{-2}
+        \def\oy{-2}
+        \def\xaxislength{4}
+        \def\yaxislength{2}
+        \def\ooverlen{0.1}
+        \def\xkk{0.9}
+        \def\pkk{0.9}
+
+        % Axes
+        \draw[thick,-stealth] (\ox-\ooverlen,\oy) -- (\ox+\xaxislength,\oy);
+        \draw[thick,-stealth] (\ox,\oy-\ooverlen) -- (\ox,\oy+\yaxislength);
+        \node[inner sep=0pt,align=center] (x_label) at (\ox+\xaxislength+2*\ooverlen,\oy) {$N$};
+        \node[inner sep=0pt,align=center] (y_label) at (\ox+4*\ooverlen,\oy+\yaxislength) {\small Error};
+
+        % CMS
+        \node[inner sep=1pt,circle,fill=black,align=center] (start) at (\ox,\oy) {};
+        \node[inner sep=1pt,circle,fill=black,align=center] (cms_end) at (\ox+\xkk*\xaxislength,\oy+\pkk*\yaxislength/\w) {};
+        \draw (start) -- (cms_end);
+        \node[inner sep=0pt,right=2pt of cms_end,align=left] (cms_label) {\small CMS \\[-3pt] \small Error~$=N/w$};
+
+        % Counter Sharing
+        \node[inner sep=1pt,circle,fill=black,align=center] (counter_sharing_end) at (\ox+\xkk*\xaxislength,\oy+\pkk*\yaxislength) {};
+        \draw[dashed] plot[hobby] coordinates { (start) (\ox+0.15*\xaxislength,\oy+0.030*\yaxislength) (\ox+\xkk*\xaxislength-0.05*\xaxislength,\oy+\pkk*\yaxislength-0.09*\yaxislength) (counter_sharing_end) };
+        \node[inner sep=0pt,right=2pt of counter_sharing_end,align=left] (counter_sharing_label) {\small Counter Sharing \\[-2pt] \small Error~$\approx N \log N/(4 \cdot w)$};
+
+        % Focal Points and Lines
+        \def\intersectionx{\ox+0.25*\xaxislength}
+        \def\intersectiony{\oy+0.085*\yaxislength}
+        \node[inner sep=1pt,circle,fill=black,align=center] (intersection) at (\intersectionx,\intersectiony) {};
+
+        \draw[densely dotted] (\ox,\oy+\pkk*\yaxislength/\w) -- (cms_end);
+        \node[inner sep=2pt,anchor=east] (y_cms_end_label) at (\ox,\oy+\pkk*\yaxislength/\w) {\small $2^{32}$};
+
+        \draw[densely dotted] (\ox+\pkk*\xaxislength,\oy) -- (counter_sharing_end);
+        \node[inner sep=3pt,anchor=north] (x_end_label) at (\ox+\pkk*\xaxislength,\oy) {\small $w \cdot 2^{32}$};
+
+        \draw[densely dotted] (\ox,\oy+\pkk*\yaxislength) -- (counter_sharing_end);
+        \node[inner sep=2pt,anchor=east] (y_counter_sharing_label) at (\ox,\oy+\pkk*\yaxislength) {\small $w \cdot 2^{32}$};
+
+        \draw[densely dotted] (\ox,\intersectiony) -- (intersection);
+        \node[inner sep=3pt,anchor=north] (x_intersection_label) at (\intersectionx,\oy) {\small $\approx w \cdot 2^{24}$};
+
+        \draw[densely dotted] (\intersectionx,\oy) -- (intersection);
+        \node[inner sep=2pt,anchor=east] (y_intersection_label) at (\ox,\intersectiony) {\small $\approx 2^{24}$};
+    \end{tikzpicture}
+    \caption{While counter sharing methods initially improve on CMS by storing
+    each counter in approximately 8~bits, they tend to merge many counters as
+    the stream grows in length, yielding errors higher than that of CMS in the
+    long run. Here, we consider a CMS with arrays of~$w$ 32-bit counters, as
+    well as streams long enough to saturate all these counters.}
+    \label{fig:counter_sharing_deterioration}
+\end{figure}
 
 Another approach is to implement variable-length counters by using short
 counters upfront and allowing overflows to spill into ``shared'' counters. For
@@ -361,44 +420,58 @@ variants~\cite{BitSense,PyramidSketch,StingySketch,AdaptiveCounterSplicing,Count
 allocate a small number of counter fragments, each acting as the higher-order
 bits of multiple short counters. Counter sharing negatively impacts accuracy,
 as it blows up the estimates of keys mapping to a small counter that is merged
-with a large counter. Accuracy further deteriorates when keys are deleted, as
-counter sharing ambiguates how counters should be ``separated'' as they
-decrease. Moreover, counter sharing couples the counter values, complicating
-the integration of other orthogonal techniques like Bayesian inference for
-improving accuracy~\cite{BayesianSketches,BFES} and convolution for join size
-estimation~\cite{ConvolutionSketch}. 
+with a large counter. Worse yet, when the stream grows indefinitely, all
+counter values increase, triggering many such merges that blow up many
+counters. In the extreme case, all counters may be merged into one,
+deteriorating the sketch’s accuracy beyond that of CMS.
+\Cref{fig:counter_sharing_deterioration} illustrates this when these methods
+are given the same memory budget as CMS. Accuracy further deteriorates when
+keys are deleted, as counter sharing ambiguates how counters should be
+``separated'' as they decrease. Moreover, counter sharing couples the counter
+values, complicating the integration of other orthogonal techniques like
+Bayesian inference for improving accuracy~\cite{BayesianSketches,BFES} and
+convolution for join size estimation~\cite{ConvolutionSketch}. 
 
-\hypertarget{problem:fixed_size_sketch}{\textbf{(P2)~Fixed-Size Sketch.}}
-The error of a fixed-size CMS (and other sketches) scales linearly with the
-total number of keys in the stream~$N$. While the ultimate value of~$N$ is
-known upfront in some applications, it is unknown in many others. For example,
-applications in network management often monitor traffic in fixed time
+\hypertarget{problem:unbounded_data_growth}{\textbf{(P2)~Unbounded Data Growth.}}
+In many streaming applications, the stream continuously grows over time, and it
+is desirable to count each key from the beginning of the stream. For example,
+query optimizers track the number of times each key occurs in a table for join
+size estimation~\cite{Compass,QueryOptimizationSketches,ConvolutionSketch}.
+Here, the final total number of keys in the stream~$N$ is unknown, as more data
+may be inserted into the tables. At the same time, query optimizers seek to
+track the frequency of each key from the stream's beginning since every
+occurrence of a key equally impacts the join size, irrespective of when it was
+inserted. The ultimate value of~$N$ is also unknown in many other applications
+that track a key's count in fixed time windows. For example, network management
+systems detect anomalous or malicious activity by counting the packets
+originating from each source in fixed time
 windows~\cite{SketchBasedChangeDetection,WhatsNew,TrafficManagementSurvey}.
-Here, $N$ corresponds to the total number of packets sent in each time window,
-which varies significantly due to the bursty nature of the workloads. Several
-other applications, such as query optimizers, track frequencies of keys in the
-entirety of a continually changing
-stream~\cite{Compass,QueryOptimizationSketches}. The final value of~$N$ is also
-unknown in these contexts.
+Here, $N$ corresponds to the total number of packets sent in each window, which
+varies significantly due to the bursty nature of network traffic.
 
-In these applications, practitioners face the challenge of controlling the
-sketch's error by tuning the number of counters in each array without knowing
-the ultimate value of~$N$. The crux of the problem is that if there are too few
-counters in each array, the estimates will have significant errors. If there
-are too many counters, memory is wasted. Moreover, $N$ may fluctuate over time
-due to the stream having both insertions and deletions. The ideal sketch must
-scale its memory footprint with~$N$ to bound the error without wasting space,
-thereby guaranteeing sub-linear errors.
+The issue with using CMS (and other sketches) in these applications is that,
+due to its fixed size, its estimation error scales linearly with~$N$, i.e.,
+$N/w$. This forces practitioners to tune the number of counters in each array
+without knowing the ultimate value of~$N$ in hopes of controlling the error.
+The crux of the problem is that if there are too few counters in each array,
+the estimates will have significant errors. If there are too many counters,
+memory is wasted. To make matters worse, even if~$N$ is known upfront, having a
+large CMS for the entire stream wastes memory at the beginning when the stream
+is short. Deletions exacerbate this wastage, as they cause~$N$ to fluctuate
+over time. The ideal sketch must scale its memory footprint with~$N$ to bound
+the error without wasting space, thereby guaranteeing sub-linear errors. This
+scaling also enables adapting the sketch to workloads where the stream's skew
+and the number of its heavy hitters vary dynamically.
 
 \textbf{Summary.}
 Although much research has gone into
-resolving~\hyperlink{problem:fixed_length_counters}{(P1)} with space-efficient
+resolving~\hyperlink{problem:skew}{(P1)} with space-efficient
 counters, existing sketches either (i)~suffer from the accuracy issues of
 counter sharing, (ii)~are slow, or (iii)~have accuracy drops when deleting
 keys. Moreover, no work to date has attempted to
-address~\hyperlink{problem:fixed_size_sketch}{(P2)}. Is it possible to design a
-sketch that resolves~\hyperlink{problem:fixed_length_counters}{(P1)} and
-\hyperlink{problem:fixed_size_sketch}{(P2)} while maintaining high performance
+address~\hyperlink{problem:unbounded_data_growth}{(P2)}. Is it possible to design a
+sketch that resolves~\hyperlink{problem:skew}{(P1)} and
+\hyperlink{problem:unbounded_data_growth}{(P2)} while maintaining high performance
 and accurate support of deletions?
 
 \section{\sketch}\label{sec:sketchbook} 
@@ -406,29 +479,28 @@ We present \sketch, a framework for generalizing a frequency estimation sketch
 to optimize its memory footprint with respect to the stream's skew and its
 length. \Cref{sec:accommodating_skew} shows how to adapt to skew by compactly
 encoding each counter as a short integer and extending it as it overflows,
-addressing problem~\hyperlink{problem:fixed_length_counters}{(P1)}.
+addressing problem~\hyperlink{problem:skew}{(P1)}.
 \Cref{sec:accommodating_unknown_stream_lengths} shows how to control both
 accuracy and space for a stream of unknown length by expanding and contracting
-the sketch, resolving problem~\hyperlink{problem:fixed_size_sketch}{(P2)}. At
+the sketch, resolving problem~\hyperlink{problem:unbounded_data_growth}{(P2)}. At
 the same time, \sketch\ maintains high performance and support for deletions.
 We first describe \sketch\ as applied to the Count-Min Sketch~(CMS), denoted as
 \sketchcms. We apply it to other sketches in Sections~\ref{sec:cs}~and
 \ref{sec:mg}.
 
 \subsection{Accommodating Skew}\label{sec:accommodating_skew}
-Under skewed workloads with a few heavy hitters, most counter values in CMS's
-arrays are small, and few are large. In contrast, under more uniform workloads,
-most counter values are similar. To optimize the space used for storing each
-counter value in any workload, \sketchcms generalizes CMS to support
-variable-length counters. It does so by storing the counters as fixed-size
-integers called \emph{Stubs}. It elongates a counter whose value overflows its
-stub with a dedicated variable-length \emph{Extension}. Due to their need for
-delimiters, storing extensions entails a slight metadata overhead. We
-counteract this overhead by adaptively choosing the stub length based on the
-workload’s skew so that more counter values fit in their stubs without needing
-extensions. More precisely, we choose the shortest stub length that minimizes
-the total memory footprint of the stubs and the extensions. To improve cache
-behavior and quickly reconstruct a counter, \sketchcms colocates a stub and its
+Under skew, many counter values in CMS will be small and not use all the bits
+in their counters. To optimize the space used for storing these counter values
+in any workload, \sketchcms generalizes CMS to support variable-length
+counters. It does so by storing the counters as fixed-size integers called
+\emph{Stubs}. It elongates a counter whose value overflows its stub with a
+dedicated variable-length \emph{Extension}. Due to their need for delimiters,
+storing extensions entails a slight metadata overhead. We counteract this
+overhead by adaptively choosing the stub length based on the workload’s skew so
+that more counter values fit in their stubs without needing extensions. More
+precisely, we choose the shortest stub length that minimizes the total memory
+footprint of the stubs and the extensions. To improve cache behavior and
+quickly reconstruct a counter, \sketchcms colocates a stub and its
 corresponding extension in the same cache line. It quickly finds a stub's
 extension using a bit manipulation workflow that leverages rank and select
 operations.
@@ -618,36 +690,6 @@ left of the~$i${\nobreakdash-}th counter. As this is the number of 1s before
 the $i${\nobreakdash-}th bit in the overflows bitmap, \sketchcms applies the
 rank operation to evaluate~$m=\texttt{rank}(i,$~overflows$)$.
 
-The second step is to identify the target extension's delimiter by skipping
-over the~$m$ delimiters preceding it. We do this using several bit manipulation
-techniques. First, we convert the extension pool into a so-called
-\emph{Delimiters Bitmap}. This bitmap contains one bit set to~1 at the position
-of every delimiter and~0s everywhere else, as illustrated at the bottom right
-of \Cref{fig:extension_location_example}. To derive this bitmap, we take the
-bitwise-and of the extension pool with a version of itself shifted to the right
-by one bit. The result is a bitmap with a~1 at the end of any two
-consecutive~1s in the original extension pool, as illustrated in
-\Cref{fig:extension_location_example}. This means that every bit in this bitmap
-corresponding to the second bit of a fragment is set to 1 if the fragment is a
-delimiter and is set to 0 otherwise. We mask out all other bits to 0s. In sum,
-the delimiters bitmap is derived as
-\begin{center}
-    delimiters $=$ extensions \& $($extensions >‌> 1$)$ \& $0101\dots0101$.
-\end{center}
-Finally, we use the select operation to
-evaluate~$\texttt{select}(m,$~delimiters$)$, which skips over the first~$m$
-delimiters and returns the position of the~$m${\nobreakdash-}th delimiter. We
-sequentially apply the bitwise operations above to each machine word comprising
-the chunk's extensions. This is efficient, as a chunk's extensions often fit in
-1-2 words.
-
-\Cref{fig:extension_location_example} shows an example of locating the 3rd
-counter's extension using rank and select. Here,
-$\texttt{rank}(3,$~overflows$)=1$. Thus, after deriving the delimiters bitmap
-by manipulating the extension pool, \sketchcms
-evaluates~$\texttt{select}(1,$~delimiters$)=9$ to conclude that the target
-extension ends at the~9th bit.
-
 \begin{figure}
     \centering
     \pgfdeclarelayer{background layer}
@@ -779,6 +821,36 @@ extension ends at the~9th bit.
     overflowing counter's extension.}
     \label{fig:extension_location_example}
 \end{figure}
+
+The second step is to identify the target extension's delimiter by skipping
+over the~$m$ delimiters preceding it. We do this using several bit manipulation
+techniques. First, we convert the extension pool into a so-called
+\emph{Delimiters Bitmap}. This bitmap contains one bit set to~1 at the position
+of every delimiter and~0s everywhere else, as illustrated at the bottom right
+of \Cref{fig:extension_location_example}. To derive this bitmap, we take the
+bitwise-and of the extension pool with a version of itself shifted to the right
+by one bit. The result is a bitmap with a~1 at the end of any two
+consecutive~1s in the original extension pool, as illustrated in
+\Cref{fig:extension_location_example}. This means that every bit in this bitmap
+corresponding to the second bit of a fragment is set to 1 if the fragment is a
+delimiter and is set to 0 otherwise. We mask out all other bits to 0s. In sum,
+the delimiters bitmap is derived as
+\begin{center}
+    delimiters $=$ extensions \& $($extensions >‌> 1$)$ \& $0101\dots0101$.
+\end{center}
+Finally, we use the select operation to
+evaluate~$\texttt{select}(m,$~delimiters$)$, which skips over the first~$m$
+delimiters and returns the position of the~$m${\nobreakdash-}th delimiter. We
+sequentially apply the bitwise operations above to each machine word comprising
+the chunk's extensions. This is efficient, as a chunk's extensions often fit in
+1-2 words.
+
+\Cref{fig:extension_location_example} shows an example of locating the 3rd
+counter's extension using rank and select. Here,
+$\texttt{rank}(3,$~overflows$)=1$. Thus, after deriving the delimiters bitmap
+by manipulating the extension pool, \sketchcms
+evaluates~$\texttt{select}(1,$~delimiters$)=9$ to conclude that the target
+extension ends at the~9th bit.
 
 \textbf{Tails.}
 In the rare event that many hot keys hash to the same chunk, many of the
@@ -992,35 +1064,6 @@ their CPU overheads, \sketchcms applies a single hash function to the key to
 compute a long hash. It splices the result into~$d$ sub-hashes of equal length
 and uses each as the hash value of an array. 
 
-\subsection{Accommodating Unknown Stream Lengths}\label{sec:accommodating_unknown_stream_lengths}
-In many stream processing applications, the ultimate total key count~$N$ is
-unknown. Using CMS in these applications yields an error bound that grows
-linearly with the data's size, as its error is determined by the ratio of~$N$
-and the number of its counters. \sketchcms addresses this by generalizing CMS
-to expand the number of its counters as the stream evolves. Specifically, it
-maintains a chain of sketches, each consisting of~$d$ counter arrays. To adapt
-the accuracy to the length of the stream, \sketchcms expands by appending a
-larger sketch to the chain with its counters initialized to zeros. This
-sketch's arrays are twice as large as that of the sketch preceding it in the
-chain. \Cref{fig:sketchbook_chain} illustrates an example of such a chain with
-three sketches. Insertions and deletions are directed to the last sketch so
-that they benefit from its higher tracking accuracy. This spreads the updates
-across the sketches as expansions occur. A query takes into account all updates
-by aggregating the estimates of all sketches in the chain. That is, for
-each~$i$, it sums the values of the counters it hashes to in
-the~$i${\nobreakdash-}th array of all sketches. It then reports the minimum of
-these sums as the estimate.
-
-By expanding and contracting, \sketchcms keeps the size of the last sketch's
-counter arrays close to the value of a user-defined \emph{Size
-Function}~$w^*(N)$. In doing so, it simulates processing the entire stream with
-a hypothetical sketch preallocated from the onset with arrays of size~$w^*(N)$
-with perfect knowledge of~$N$, yielding a similar accuracy guarantee. Because
-the last sketch in the chain is the dominating factor in the chain's memory
-footprint, and since its arrays are sized similarly to the preallocated sketch,
-the total memory footprint of \sketchcms is approximately the same as that of
-the preallocated sketch.
-
 \begin{figure}
     \centering
     \pgfdeclarelayer{background layer}
@@ -1040,18 +1083,28 @@ the preallocated sketch.
         %\node[inner sep=0pt,rotate=90] (chain_label) at (-0.75*\cmssep,\midy) {\small Chain of Sketches};
 
         % First CMS
+        \def\counterarray{{3,1,3,1,4,0}}
         \foreach \i in {1, ..., \arraycount} {
             \draw (0,\i*\arraysep+\i*\arrayh-\arrayh-\arraysep) rectangle (\arrayw,\i*\arraysep+\i*\arrayh-\arraysep);
             \foreach \j in {1, ..., 2} {
+                \pgfmathtruncatemacro{\counterindex}{2*\i+\j-3}
+                \pgfmathparse{\counterarray[\counterindex]}
+                \let\countervalue\pgfmathresult
+                \node[inner sep=0pt] at (\j*\counterw-\counterw/2,\i*\arraysep+\i*\arrayh-\arrayh/2-\arraysep) {\small $\countervalue$};
                 \draw (\j*\counterw,\i*\arraysep+\i*\arrayh-\arrayh-\arraysep) rectangle (\j*\counterw,\i*\arraysep+\i*\arrayh-\arraysep);
             }
         }
 
         % Second CMS
         \draw[-stealth] (\arrayw+\arrowsep,\midy) -- (\arrayw+\cmssep-\arrowsep,\midy);
+        \def\counterarray{{0,4,1,7,3,2,3,4,5,1,4,2}}
         \foreach \i in {1, ..., \arraycount} {
             \draw (\arrayw+\cmssep,\i*\arraysep+\i*\arrayh-\arrayh-\arraysep) rectangle (3*\arrayw+\cmssep,\i*\arraysep+\i*\arrayh-\arraysep);
             \foreach \j in {1, ..., 4} {
+                \pgfmathtruncatemacro{\counterindex}{4*\i+\j-5}
+                \pgfmathparse{\counterarray[\counterindex]}
+                \let\countervalue\pgfmathresult
+                \node[inner sep=0pt] at (\arrayw+\cmssep+\j*\counterw-\counterw/2,\i*\arraysep+\i*\arrayh-\arrayh/2-\arraysep) {\small $\countervalue$};
                 \draw (\arrayw+\cmssep+\j*\counterw,\i*\arraysep+\i*\arrayh-\arrayh-\arraysep) rectangle (\arrayw+\cmssep+\j*\counterw,\i*\arraysep+\i*\arrayh-\arraysep);
             }
         }
@@ -1076,15 +1129,19 @@ the preallocated sketch.
         %\draw[decorate,decoration={brace,raise=1pt,amplitude=2pt,mirror}] (3*\arrayw+2*\cmssep,0) -- (3*\arrayw+\lastsketcharrayw+2*\cmssep,0)
         %    node[pos=0.435,below=5.65pt,inner sep=1pt] {\small $\, w^*(N) / 2 \leq w \leq w^*(N)$};
 
-        % Expansion Line
+        % Expansion Lines
+        \node[inner sep=1pt,anchor=north] (first_expansion_threshold) at (\arrayw+0.5*\cmssep,-\arraysep/2) {\small $N > 4$};
+        \draw[densely dotted] (\arrayw+0.5*\cmssep,3*\arrayh+3*\arraysep) -- (first_expansion_threshold.north);
+
         \node[inner sep=1pt,anchor=west] (expansion_label) at (3*\arrayw+1.5*\cmssep,3*\arrayh+3*\arraysep) {\small Expansion};
-        \draw[densely dotted] (3*\arrayw+1.5*\cmssep,3*\arrayh+3*\arraysep) -- (3*\arrayw+1.5*\cmssep,-\arraysep);
+        \node[inner sep=1pt,anchor=north] (second_expansion_threshold) at (3*\arrayw+1.5*\cmssep,-\arraysep/2) {\small $N > 16$};
+        \draw[densely dotted] (expansion_label.west) -- (second_expansion_threshold.north);
 
         % Inserts, Deletes, and Queries
-        \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt,mirror}] (3*\arrayw+1.9*\cmssep,-\arraysep/5) -- (3*\arrayw+\lastsketcharrayw+2.1*\cmssep,-\arraysep/5)
-            node[pos=0.5,below=2pt,inner sep=1pt] (insert_delete_target) {};
-        \node[inner sep=2pt] (insert_delete_label) at (3*\arrayw+2*\cmssep+\lastsketcharrayw/2,-1.25*\arraysep) {\small Insert/Delete};
-        \draw[-stealth] (insert_delete_label) -- (insert_delete_target);
+        %\draw[decorate,decoration={brace,raise=1pt,amplitude=2pt,mirror}] (3*\arrayw+1.9*\cmssep,-\arraysep/5) -- (3*\arrayw+\lastsketcharrayw+2.1*\cmssep,-\arraysep/5)
+        %    node[pos=0.5,below=2pt,inner sep=1pt] (insert_delete_target) {};
+        %\node[inner sep=2pt] (insert_delete_label) at (3*\arrayw+2*\cmssep+\lastsketcharrayw/2,-1.25*\arraysep) {\small Insert/Delete};
+        %\draw[-stealth] (insert_delete_label) -- (insert_delete_target);
 
         \def\showinsertdelete{0}
         \def\insertdeletetextx{2*\arrayw/3}
@@ -1123,9 +1180,7 @@ the preallocated sketch.
             \fi
         }
         \def\pa{1}
-        \def\vala{0}
         \def\pb{2}
-        \def\valb{4}
         \def\pc{1}
         \draw (\arrowoffsetx-\arcradius,3*\arrayh+2*\arraysep+\arrowoffsety) -| (\pa*\counterw+\counterw/2,3*\arrayh+2*\arraysep);
         \draw (\arrayw+\cmssep+\pb*\counterw+\counterw/2,3*\arrayh+2*\arraysep) -- (\arrayw+\cmssep+\pb*\counterw+\counterw/2,3*\arrayh+2*\arraysep+\arrowoffsety);
@@ -1133,16 +1188,12 @@ the preallocated sketch.
         \begin{pgfonlayer}{background layer}
             \def\arrayy{2*\arrayh+2*\arraysep}
             \draw[fill=gray!20] (\pa*\counterw,\arrayy) rectangle (\pa*\counterw+\counterw,\arrayy+\arrayh);
-            \node[inner sep=0pt] at (\pa*\counterw+\counterw/2,\arrayy+\arrayh/2) {\small \vala};
             \draw[fill=gray!20] (\arrayw+\cmssep+\pb*\counterw,\arrayy) rectangle (\arrayw+\cmssep+\pb*\counterw+\counterw,\arrayy+\arrayh);
-            \node[inner sep=0pt] at (\arrayw+\cmssep+\pb*\counterw+\counterw/2,\arrayy+\arrayh/2) {\small \valb};
             \draw[fill=gray!20] (3*\arrayw+2*\cmssep+\lastsketcharrayw-\pc*\counterw-\counterw,\arrayy) rectangle (3*\arrayw+2*\cmssep+\lastsketcharrayw-\pc*\counterw,\arrayy+\arrayh);
         \end{pgfonlayer}
 
         \def\pa{0}
-        \def\vala{3}
         \def\pb{0}
-        \def\valb{3}
         \def\pc{3}
         \draw (\arrowoffsetx-\arcradius,2*\arrayh+1*\arraysep+\arrowoffsety) -| (\pa*\counterw+\counterw/2,2*\arrayh+1*\arraysep);
         \draw (\arrayw+\cmssep+\pb*\counterw+\counterw/2,2*\arrayh+\arraysep) -- (\arrayw+\cmssep+\pb*\counterw+\counterw/2,2*\arrayh+\arraysep+\arrowoffsety);
@@ -1150,16 +1201,12 @@ the preallocated sketch.
         \begin{pgfonlayer}{background layer}
             \def\arrayy{\arrayh+\arraysep}
             \draw[fill=gray!20] (\pa*\counterw,\arrayy) rectangle (\pa*\counterw+\counterw,\arrayy+\arrayh);
-            \node[inner sep=0pt] at (\pa*\counterw+\counterw/2,\arrayy+\arrayh/2) {\small \vala};
             \draw[fill=gray!20] (\arrayw+\cmssep+\pb*\counterw,\arrayy) rectangle (\arrayw+\cmssep+\pb*\counterw+\counterw,\arrayy+\arrayh);
-            \node[inner sep=0pt] at (\arrayw+\cmssep+\pb*\counterw+\counterw/2,\arrayy+\arrayh/2) {\small \valb};
             \draw[fill=gray!20] (3*\arrayw+2*\cmssep+\lastsketcharrayw-\pc*\counterw-\counterw,\arrayy) rectangle (3*\arrayw+2*\cmssep+\lastsketcharrayw-\pc*\counterw,\arrayy+\arrayh);
         \end{pgfonlayer}
 
         \def\pa{1}
-        \def\vala{1}
         \def\pb{3}
-        \def\valb{7}
         \def\pc{6}
         \draw (\arrowoffsetx-\arcradius,\arrayh+\arrowoffsety) -| (\pa*\counterw+\counterw/2,\arrayh);
         \draw (\arrayw+\cmssep+\pb*\counterw+\counterw/2,\arrayh) -- (\arrayw+\cmssep+\pb*\counterw+\counterw/2,\arrayh+\arrowoffsety);
@@ -1167,9 +1214,7 @@ the preallocated sketch.
         \begin{pgfonlayer}{background layer}
             \def\arrayy{0}
             \draw[fill=gray!20] (\pa*\counterw,\arrayy) rectangle (\pa*\counterw+\counterw,\arrayy+\arrayh);
-            \node[inner sep=0pt] at (\pa*\counterw+\counterw/2,\arrayy+\arrayh/2) {\small \vala};
             \draw[fill=gray!20] (\arrayw+\cmssep+\pb*\counterw,\arrayy) rectangle (\arrayw+\cmssep+\pb*\counterw+\counterw,\arrayy+\arrayh);
-            \node[inner sep=0pt] at (\arrayw+\cmssep+\pb*\counterw+\counterw/2,\arrayy+\arrayh/2) {\small \valb};
             \draw[fill=gray!20] (3*\arrayw+2*\cmssep+\lastsketcharrayw-\pc*\counterw-\counterw,\arrayy) rectangle (3*\arrayw+2*\cmssep+\lastsketcharrayw-\pc*\counterw,\arrayy+\arrayh);
         \end{pgfonlayer}
     \end{tikzpicture}
@@ -1177,6 +1222,35 @@ the preallocated sketch.
     arrays.}
     \label{fig:sketchbook_chain}
 \end{figure}
+
+\subsection{Accommodating Unknown Stream Lengths}\label{sec:accommodating_unknown_stream_lengths}
+In many stream processing applications, the ultimate total key count~$N$ is
+unknown. Using CMS in these applications yields an error bound that grows
+linearly with the data's size, as its error is determined by the ratio of~$N$
+and the number of its counters. \sketchcms addresses this by generalizing CMS
+to expand the number of its counters as the stream evolves. Specifically, it
+maintains a chain of sketches, each consisting of~$d$ counter arrays. To adapt
+the accuracy to the length of the stream, \sketchcms expands by appending a
+larger sketch to the chain with its counters initialized to zeros. This
+sketch's arrays are twice as large as that of the sketch preceding it in the
+chain. \Cref{fig:sketchbook_chain} illustrates an example of such a chain with
+three sketches. Insertions and deletions are directed to the last sketch so
+that they benefit from its higher tracking accuracy. This spreads the updates
+across the sketches as expansions occur. A query takes into account all updates
+by aggregating the estimates of all sketches in the chain. That is, for
+each~$i$, it sums the values of the counters it hashes to in
+the~$i${\nobreakdash-}th array of all sketches. It then reports the minimum of
+these sums as the estimate.
+
+By expanding and contracting, \sketchcms keeps the size of the last sketch's
+counter arrays close to the value of a user-defined \emph{Size
+Function}~$w^*(N)$. In doing so, it simulates processing the entire stream with
+a hypothetical sketch preallocated from the onset with arrays of size~$w^*(N)$
+with perfect knowledge of~$N$, yielding a similar accuracy guarantee. Because
+the last sketch in the chain is the dominating factor in the chain's memory
+footprint, and since its arrays are sized similarly to the preallocated sketch,
+the total memory footprint of \sketchcms is approximately the same as that of
+the preallocated sketch.
 
 \textbf{Size Function.} 
 The size function~$w^*(N)$ exposes a rich spectrum of accuracy-memory
@@ -1198,21 +1272,6 @@ sketch with~$O(N/\epsilon)$ counters\footnote{More precisely, we show this for
 any sketch that uses~$O(N/\epsilon \log \log N)$ bits of space.} is~$O(\epsilon
 \cdot \log N)$. Moreover, we show that \sketchcms attains this error bound
 under the same memory budget and is therefore optimal.
-
-\textbf{Expansions.} 
-Whenever~$N$ increases enough to double the value of the size
-function~$w^*(N)$, \sketchcms expands by adding a new sketch to the chain with
-counter arrays twice as large as that of the previous last sketch. Doing so
-ensures that the last sketch's counter arrays always have a size in the
-range~$[w^*(N)/2,w^*(N)]$, as depicted in \Cref{fig:sketchbook_chain}.
-
-When using a sub-linear power as the size function, triggering an expansion
-requires inserting the majority of the stream's keys into the last
-sketch.\footnote{More generally, this holds when~$w^*(N)$ is an increasing
-concave function of~$N$.} As such, the error resulting from the last sketch is
-the dominant factor in the overall error bound of \sketchcms. Since this sketch
-has an error of approximately~$N/w^*(N)$, this yields an overall error
-of~$O(N/w^*(N))$, as we prove in \Cref{sec:theoretical_analysis}.
 
 \begin{figure}
     \centering
@@ -1317,6 +1376,21 @@ of~$O(N/w^*(N))$, as we prove in \Cref{sec:theoretical_analysis}.
     contractions.}
     \label{fig:contraction}
 \end{figure}
+
+\textbf{Expansions.} 
+Whenever~$N$ increases enough to double the value of the size
+function~$w^*(N)$, \sketchcms expands by adding a new sketch to the chain with
+counter arrays twice as large as that of the previous last sketch. Doing so
+ensures that the last sketch's counter arrays always have a size in the
+range~$[w^*(N)/2,w^*(N)]$, as depicted in \Cref{fig:sketchbook_chain}.
+
+When using a sub-linear power as the size function, triggering an expansion
+requires inserting the majority of the stream's keys into the last
+sketch.\footnote{More generally, this holds when~$w^*(N)$ is an increasing
+concave function of~$N$.} As such, the error resulting from the last sketch is
+the dominant factor in the overall error bound of \sketchcms. Since this sketch
+has an error of approximately~$N/w^*(N)$, this yields an overall error
+of~$O(N/w^*(N))$, as we prove in \Cref{sec:theoretical_analysis}.
 
 \textbf{Contractions.} 
 Whenever deletions decrease~$N$ enough to halve the value of the size
@@ -1504,9 +1578,8 @@ overestimates and (2)~its errors compound when it is used in some tasks,
 particularly those that multiply frequencies. One cannot discount CMS's
 estimates to eliminate their bias, as the correction amount varies from key to
 key and depends on the ground-truth frequency. CS addresses these issues by
-providing unbiased estimates. The third row of
-\Cref{tab:classical_sketch_stats} summarizes the properties of CS and compares
-it to CMS.
+providing unbiased estimates. The third row of \Cref{tab:classic_sketch_stats}
+summarizes the properties of CS and compares it to CMS.
 
 The core component of CS is a counter array of size~$w$ coupled with a hash
 function~$h_i$ mapping a key to a counter. CS further associates with each key
@@ -1602,7 +1675,7 @@ growth to~$O(\sqrt{N})$ (vs.~$N$) when the summands are small.
 As skew increases, using dedicated counters to track the hottest keys yields
 higher accuracy for the same memory compared to hashing them into a counter
 array. MG applies this insight to provide more accurate estimates under skewed
-workloads. The third row of \Cref{tab:classical_sketch_stats} summarizes the
+workloads. The third row of \Cref{tab:classic_sketch_stats} summarizes the
 properties of MG and compares it to CMS and CS.
 
 \begin{figure}
@@ -1746,7 +1819,7 @@ keys with zero counts.
 
         \bottomrule
     \end{tabular}
-    \label{tab:classical_sketch_stats}
+    \label{tab:classic_sketch_stats}
 \end{table}
 
 \textbf{Expansions.}
@@ -1757,8 +1830,8 @@ potentially higher accuracy.
 
 \iffalse
 \textbf{Comparison.}
-\Cref{tab:classical_sketch_stats} summarizes the discussion of CMS, CS, and MG
-thus far by comparing their attributes. While \Cref{tab:classical_sketch_stats}
+\Cref{tab:classic_sketch_stats} summarizes the discussion of CMS, CS, and MG
+thus far by comparing their attributes. While \Cref{tab:classic_sketch_stats}
 compares the error bounds of the sketches, we further illustrate their
 differences by evaluating the sketches under varying levels of data skew and
 memory budgets. Here, we insert 100M keys drawn from the \textsc{Zipfian}
@@ -1769,7 +1842,7 @@ computing the abosulte difference of estimate from the ground-truth, and
 averaging the results.
 %We also measure \emph{Top-$w$ AAE} by computing the AAE over the~$w$ hottest keys.
 
-\Cref{fig:classical_comparison} plots these results. As shown in the left
+\Cref{fig:classic_comparison} plots these results. As shown in the left
 subfigure, CS beats the others under less skew, as the updates of keys with
 similar frequencies cancel out when their hashes collide. In contrast, such
 collisions in CMS accumulate the error, and MG has insufficient slots to track
@@ -1782,23 +1855,23 @@ error under high enough skew.
 
 \begin{figure}
     \centering
-    \includegraphics[width=\columnwidth]{classical_comparison.pdf}
+    \includegraphics[width=\columnwidth]{classic_comparison.pdf}
     \caption{CMS, CS, and MG provide different tradeoffs under different levels
     of skew and memory budgets. A higher characteristic exponent creates more
     skew.}
-    \label{fig:classical_comparison}
+    \label{fig:classic_comparison}
 \end{figure}
 
-The right plot in \Cref{fig:classical_comparison} illustrates that, under
-extreme memory constraints, MG outperforms CMS and CS. This is because CMS and
-CS do not have enough counters, leading to too many hash collisions and overly
-large estimates, whereas MG makes the most of its limited counters by
-leveraging its tail bound. Here, CS bests CMS due to its zero-interference
-property, making it more robust to hash collisions. Given more memory, CMS and
-CS outperform MG, with CMS beating CS by benefiting more from the minimum
-estimate than CS does from the median. With more memory, MG tracks all keys and
-provides the most accurate estimations, whereas CMS and CS's estimates still
-suffer from collision errors.
+The right plot in \Cref{fig:classic_comparison} illustrates that, under extreme
+memory constraints, MG outperforms CMS and CS. This is because CMS and CS do
+not have enough counters, leading to too many hash collisions and overly large
+estimates, whereas MG makes the most of its limited counters by leveraging its
+tail bound. Here, CS bests CMS due to its zero-interference property, making it
+more robust to hash collisions. Given more memory, CMS and CS outperform MG,
+with CMS beating CS by benefiting more from the minimum estimate than CS does
+from the median. With more memory, MG tracks all keys and provides the most
+accurate estimations, whereas CMS and CS's estimates still suffer from
+collision errors.
 
 CMS and CS are faster than MG since they read and write a single counter in
 each array, while MG has to pay the logarithmic cost of maintaining the heap
