@@ -337,114 +337,164 @@ still suffers from several memory inefficiencies, as we show in the following
 section.
 
 \section{Problem Analysis}\label{sec:problem_analysis}
-CMS often uses far more memory than necessary by not accommodating (P1)~varying
-levels of skew and (P2)~unbounded~data~growth.
+Traditional frequency estimations sketches such as CMS use more memory than
+necessary by ignoring 1)~the skew in the stream and 2)~its growth over
+time.
 
-\hypertarget{problem:skew}{\textbf{(P1)~Varying Levels of Skew.}}
-Under uniform workloads, most counter values in CMS's arrays are similar. In
-contrast, under skewed workloads with a few heavy hitters, most counter values
-are small, and few are large. This causes CMS to waste a significant amount of
-memory, as it uses counters that are sufficiently long to accommodate the
-maximum counter value, despite most counter values being small and thus needing
-few bits for storage.
+\hypertarget{problem:skew}{\textbf{Challenge 1: Skew.}}
+Under uniform workloads, most counter values in CMS are similar. In contrast,
+under skewed workloads with a few heavy hitters, most counter values are small,
+and few are large. This leads CMS to waste a significant amount of memory. The
+reason is that it uses uniformly-sized counters. Thus, they must be
+sufficiently long to accommodate the maximum counter value, despite most
+counter values being small and thus needing fewer bits to represent.
+
+One way of circumventing this issue is to separate out the stream's heavy
+hitters and track them using a hash table, allowing CMS to track the remaining
+keys~\cite{AugmentedSketch,HeavyKeeper,HeavyGuardian,MVSketch,WavingSketch,ElasticSketch}.
+Such hybrid structures hope to reduce the magnitude of the counter values in
+CMS to enable using shorter counters. Yet, they do not fundamentally address
+the problem, as the keys tracked by CMS may still exhibit skew, which is
+ignored. Moreover, since the number of heavy hitters can grow dynamically, the
+hash table may be too small to accommodate them all. This results in a heavy
+hitter being tracked by CMS, forcing it to use long counters.
 
 Ideally, each counter should be just long enough to fit its value. This would
-save space, or, conversely, enable having more counters under the same memory
-budget to improve accuracy. One approach is to compress the counters using
-algorithms such as compressive sensing~\cite{TreeSensing,BitSense} or
-hypergraph peeling~\cite{CodingSketch}. Yet, these methods introduce heavy
-decompression overheads to queries.
+save space, or, conversely, enable having more counters to improve accuracy.
+One approach is to compress the counters using algorithms such as compressive
+sensing~\cite{TreeSensing,BitSense} or hypergraph peeling~\cite{CodingSketch}.
+Yet, these methods introduce heavy decompression overheads to queries.
 
 \begin{figure}
     \centering
     \begin{tikzpicture}
-        \def\w{3}
+        \def\w{2}
         \def\ox{-2}
         \def\oy{-2}
-        \def\xaxislength{4}
+        \def\xaxislength{3.20}
         \def\yaxislength{2}
         \def\ooverlen{0.1}
         \def\xkk{0.9}
         \def\pkk{0.9}
+        \def\labelx{\ox+\xaxislength+0.5}
+        \def\labely{\oy+\pkk*\yaxislength}
+        \def\labellinex{\labelx+2.75}
+        \def\labelliney{\labely+0.22}
+        \def\labellineydiffhybrid{0.89}
+        \def\labellineydiffcountersharing{2.10*\labellineydiffhybrid}
+        \def\labellinelen{0.5}
 
         % Axes
         \draw[thick,-stealth] (\ox-\ooverlen,\oy) -- (\ox+\xaxislength,\oy);
         \draw[thick,-stealth] (\ox,\oy-\ooverlen) -- (\ox,\oy+\yaxislength);
-        \node[inner sep=0pt,align=center] (x_label) at (\ox+\xaxislength+2*\ooverlen,\oy) {$N$};
+        \node[inner sep=0pt,align=center] (x_label) at (\ox+\xaxislength-\ooverlen/2,\oy+2.5*\ooverlen) {$N$};
         \node[inner sep=0pt,align=center] (y_label) at (\ox+4*\ooverlen,\oy+\yaxislength) {\small Error};
 
         % CMS
-        \node[inner sep=1pt,circle,fill=black,align=center] (start) at (\ox,\oy) {};
-        \node[inner sep=1pt,circle,fill=black,align=center] (cms_end) at (\ox+\xkk*\xaxislength,\oy+\pkk*\yaxislength/\w) {};
+        \node[inner sep=1pt,circle,fill=black] (start) at (\ox,\oy) {};
+        \node[inner sep=1pt,circle,fill=black] (cms_end) at (\ox+\xkk*\xaxislength,\oy+\pkk*\yaxislength/\w) {};
         \draw (start) -- (cms_end);
-        \node[inner sep=0pt,right=2pt of cms_end,align=left] (cms_label) {\small CMS \\[-3pt] \small Error~$=N/w$};
+        \node[inner sep=0pt,anchor=west,align=left] (cms_label) at (\labelx,\labely) {\small CMS \\[-1pt] \small Error~$={\scriptstyle \frac{N}{w}}$};
+
+        \node[inner sep=1pt,circle,fill=black] (cms_legend_start) at (\labellinex,\labelliney) {};
+        \node[inner sep=1pt,circle,fill=black] (cms_legend_end) at (\labellinex+\labellinelen,\labelliney) {};
+        \draw (cms_legend_start) -- (cms_legend_end);
+
+        % Hybrid
+        \def\longdashlen{4pt}
+        \def\shortdashlen{1pt}
+        \def\dashsep{1pt}
+        \node[inner sep=0pt] (hybrid_end_1) at (\ox+\xkk*\xaxislength,\oy+\pkk*\yaxislength/\w/2) {};
+        \draw[dash pattern={on \longdashlen off \dashsep on \shortdashlen off \dashsep}] (start) -- (hybrid_end_1);
+        \node[inner sep=0pt] (hybrid_end_2) at (\ox+\xkk*\xaxislength,\oy+\pkk*\yaxislength/\w*1.5) {};
+        \draw[dash pattern={on \longdashlen off \dashsep on \shortdashlen off \dashsep}] (start) -- (hybrid_end_2);
+        \node[inner sep=0pt,below=0.66 of cms_label.south west,anchor=west,align=left] (hybrid_label) {\small Hybrid \\[-1pt] \small Error~$={\scriptstyle \Theta\left( \left( 1-\frac{\log w_h}{\log N} \right) \cdot \frac{N}{w - \Omega(w_h)} \right)}$};
+
+        \node[inner sep=1pt,circle,fill=black] (hybrid_legend_start) at (\labellinex,\labelliney-\labellineydiffhybrid) {};
+        \node[inner sep=1pt,circle,fill=black] (hybrid_legend_end) at (\labellinex+\labellinelen,\labelliney-\labellineydiffhybrid) {};
+        \draw[dash pattern={on \longdashlen off \dashsep on \shortdashlen off \dashsep}] (hybrid_legend_start) -- (hybrid_legend_end);
 
         % Counter Sharing
-        \node[inner sep=1pt,circle,fill=black,align=center] (counter_sharing_end) at (\ox+\xkk*\xaxislength,\oy+\pkk*\yaxislength) {};
+        \node[inner sep=1pt,circle,fill=black] (counter_sharing_end) at (\ox+\xkk*\xaxislength,\oy+\pkk*\yaxislength) {};
         \draw[dashed] plot[hobby] coordinates { (start) (\ox+0.15*\xaxislength,\oy+0.030*\yaxislength) (\ox+\xkk*\xaxislength-0.05*\xaxislength,\oy+\pkk*\yaxislength-0.09*\yaxislength) (counter_sharing_end) };
-        \node[inner sep=0pt,right=2pt of counter_sharing_end,align=left] (counter_sharing_label) {\small Counter Sharing \\[-2pt] \small Error~$\approx N \log N/(4 \cdot w)$};
+        \node[inner sep=0pt,below=0.50 of hybrid_label.south west,anchor=west,align=left] (counter_sharing_label) {\small Counter Sharing \\[-1pt] \small Error~$={\scriptstyle \Theta\left( \frac{8N \log N}{b \cdot w} \right)}$};
+
+        \node[inner sep=1pt,circle,fill=black] (counter_sharing_legend_start) at (\labellinex,\labelliney-\labellineydiffcountersharing) {};
+        \node[inner sep=1pt,circle,fill=black] (counter_sharing_legend_end) at (\labellinex+\labellinelen,\labelliney-\labellineydiffcountersharing) {};
+        \draw[dashed] (counter_sharing_legend_start) -- (counter_sharing_legend_end);
 
         % Focal Points and Lines
-        \def\intersectionx{\ox+0.25*\xaxislength}
-        \def\intersectiony{\oy+0.085*\yaxislength}
-        \node[inner sep=1pt,circle,fill=black,align=center] (intersection) at (\intersectionx,\intersectiony) {};
+        \def\intersectionx{\ox+0.41*\xaxislength}
+        \def\intersectiony{\oy+0.20*\yaxislength}
+        \node[inner sep=1pt,circle,fill=black] (intersection) at (\intersectionx,\intersectiony) {};
 
         \draw[densely dotted] (\ox,\oy+\pkk*\yaxislength/\w) -- (cms_end);
-        \node[inner sep=2pt,anchor=east] (y_cms_end_label) at (\ox,\oy+\pkk*\yaxislength/\w) {\small $2^{32}$};
+        \node[inner sep=2pt,anchor=east] (y_cms_end_label) at (\ox,\oy+\pkk*\yaxislength/\w) {$\scriptstyle 2^b$};
 
         \draw[densely dotted] (\ox+\pkk*\xaxislength,\oy) -- (counter_sharing_end);
-        \node[inner sep=3pt,anchor=north] (x_end_label) at (\ox+\pkk*\xaxislength,\oy) {\small $w \cdot 2^{32}$};
+        \node[inner sep=3pt,anchor=north] (x_end_label) at (\ox+\pkk*\xaxislength,\oy) {$\scriptstyle w \cdot 2^b$};
 
         \draw[densely dotted] (\ox,\oy+\pkk*\yaxislength) -- (counter_sharing_end);
-        \node[inner sep=2pt,anchor=east] (y_counter_sharing_label) at (\ox,\oy+\pkk*\yaxislength) {\small $w \cdot 2^{32}$};
+        \node[inner sep=2pt,anchor=east] (y_counter_sharing_label) at (\ox,\oy+\pkk*\yaxislength) {$\scriptstyle \Theta(2^b \cdot \log w)$};
 
         \draw[densely dotted] (\ox,\intersectiony) -- (intersection);
-        \node[inner sep=3pt,anchor=north] (x_intersection_label) at (\intersectionx,\oy) {\small $\approx w \cdot 2^{24}$};
+        \node[inner sep=3pt,anchor=north] (x_intersection_label) at (\intersectionx,\oy) {$\scriptstyle \Theta(w \cdot 2^{b-8})$};
 
         \draw[densely dotted] (\intersectionx,\oy) -- (intersection);
-        \node[inner sep=2pt,anchor=east] (y_intersection_label) at (\ox,\intersectiony) {\small $\approx 2^{24}$};
+        \node[inner sep=2pt,anchor=east] (y_intersection_label) at (\ox,\intersectiony) {$\scriptstyle \Theta(2^{b-8})$};
     \end{tikzpicture}
-    \caption{While counter sharing methods initially improve on CMS by storing
-    each counter in approximately 8~bits, they tend to merge many counters as
-    the stream grows in length, yielding errors higher than that of CMS in the
-    long run. Here, we consider a CMS with arrays of~$w$ 32-bit counters, as
-    well as streams long enough to saturate all these counters.}
+    \caption{Given the same memory budget, hybrid methods and counter sharing
+    methods can be less accurate than CMS when processing a growing stream.
+    Here, we consider a \textsc{Zipfian} distribution for the keys in the
+    stream. We consider using a CMS with arrays of~$w$, $b$-bit counters, and
+    denote the size of a hybrid method's hash table by~$w_h$.}
     \label{fig:counter_sharing_deterioration}
 \end{figure}
 
 Another approach is to implement variable-length counters by using short
 counters upfront and allowing overflows to spill into ``shared'' counters. For
-example, \cite{SALSA} merges an overflowing counter with an adjacent counter to
-create a longer counter that aggregates their value. Other
+example, \cite{SALSA} merges an overflowing counter with an adjacent counter
+into a longer counter that sums up the original values. Other
 variants~\cite{BitSense,PyramidSketch,StingySketch,AdaptiveCounterSplicing,CounterTree,TreeSensing}
-allocate a small number of counter fragments, each acting as the higher-order
-bits of multiple short counters. Counter sharing negatively impacts accuracy,
-as it blows up the estimates of keys mapping to a small counter that is merged
-with a large counter. Worse yet, when the stream grows indefinitely, all
-counter values increase, triggering many such merges that blow up many
-counters. In the extreme case, all counters may be merged into one,
-deteriorating the sketch’s accuracy beyond that of CMS.
-\Cref{fig:counter_sharing_deterioration} illustrates this when these methods
-are given the same memory budget as CMS. Accuracy further deteriorates when
-keys are deleted, as counter sharing ambiguates how counters should be
-``separated'' as they decrease. Moreover, counter sharing couples the counter
+allocate a small number of counter fragments, each representing the overflowing
+higher-order bits of multiple counters by summing them. In general, counter
+sharing degrades accuracy by blowing up the estimates of infrequent keys whose
+counters are merged those of a frequent key. This is exacerbated as the stream
+grows, since all counter values tend to increase and thus get merged. This
+results in the number of counters decreasing by a factor of
+approximately~$\Theta(\log N)$ after $N$ insertions, thereby degrading the
+error by the same factor.\footnote{This is true for all counter sharing schemes
+execpt for that of \cite{SALSA}, the configuration of which degenerates
+gracefully into that of CMS as the stream grows. Nevertheless, the other
+methods outperform it in practice due to their lower metadata overhead.}
+Accuracy further deteriorates when keys are deleted, as counter sharing
+ambiguates how counters should be ``separated'' as they decrease. Moreover,
+counter sharing non-trivially impacts the statistical behavior of the counter
 values, complicating the integration of other orthogonal techniques like
 Bayesian inference for improving accuracy~\cite{BayesianSketches,BFES} and
 convolution for join size estimation~\cite{ConvolutionSketch}. 
 
-\hypertarget{problem:unbounded_data_growth}{\textbf{(P2)~Unbounded Data Growth.}}
+\Cref{fig:counter_sharing_deterioration} qualitatively compares the error of
+CMS to hybrid and counter sharing methods as a skewed stream grows. Given the
+same memory budget, the error grows at a linear rate for CMS and at a
+super-linear rate for counter sharing methods. While the error of the hybrid
+methods also grows linearly, it can be higher or lower than CMS depending on
+the implementation of its hash table.
+
+\hypertarget{problem:unbounded_data_growth}{\textbf{Challenge 2: Unbounded Data Growth.}}
 In many streaming applications, the stream continuously grows over time, and it
-is desirable to count each key from the beginning of the stream. For example,
-query optimizers track the number of times each key occurs in a table for join
-size estimation~\cite{Compass,QueryOptimizationSketches,ConvolutionSketch}.
-Here, the final total number of keys in the stream~$N$ is unknown, as more data
-may be inserted into the tables. At the same time, query optimizers seek to
-track the frequency of each key from the stream's beginning since every
-occurrence of a key equally impacts the join size, irrespective of when it was
-inserted. The ultimate value of~$N$ is also unknown in many other applications
-that track a key's count in fixed time windows. For example, network management
-systems detect anomalous or malicious activity by counting the packets
-originating from each source in fixed time
+is desirable to estimate the count of each key since the beginning of the
+stream. For example, query optimizers track the number of times each key occurs
+in a table for join size
+estimation~\cite{Compass,QueryOptimizationSketches,ConvolutionSketch}. Here,
+the final total number of keys in the stream~$N$ is unknown, as more data may
+be inserted into the tables. At the same time, query optimizers seek to track
+the frequency of each key from the stream's beginning since every occurrence of
+a key equally impacts the join size, irrespective of when it was inserted. The
+ultimate value of~$N$ is also unknown in many other applications that track a
+key's count in fixed time windows. For example, network management systems
+detect anomalous or malicious activity by counting the packets originating from
+each source in fixed time
 windows~\cite{SketchBasedChangeDetection,WhatsNew,TrafficManagementSurvey}.
 Here, $N$ corresponds to the total number of packets sent in each window, which
 varies significantly due to the bursty nature of network traffic.
