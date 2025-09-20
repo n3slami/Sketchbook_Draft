@@ -337,33 +337,33 @@ still suffers from several memory inefficiencies, as we show in the following
 section.
 
 \section{Problem Analysis}\label{sec:problem_analysis}
-Traditional frequency estimations sketches such as CMS use more memory than
-necessary by ignoring 1)~the skew in the stream and 2)~its growth over
+Traditional frequency estimation sketches, such as CMS, use more memory than
+necessary by ignoring 1)~the skew in the stream and 2)~the stream's growth over
 time.
 
-\hypertarget{problem:skew}{\textbf{Challenge 1: Skew.}}
+\textbf{Challenge 1: Skew.}
 Under uniform workloads, most counter values in CMS are similar. In contrast,
 under skewed workloads with a few heavy hitters, most counter values are small,
-and few are large. This leads CMS to waste a significant amount of memory. The
-reason is that it uses uniformly-sized counters. Thus, they must be
+and few are large. This leads to CMS wasting a significant amount of memory.
+The reason is that it uses uniformly-sized counters. These counters must be
 sufficiently long to accommodate the maximum counter value, despite most
 counter values being small and thus needing fewer bits to represent.
 
-One way of circumventing this issue is to separate out the stream's heavy
-hitters and track them using a hash table, allowing CMS to track the remaining
-keys~\cite{AugmentedSketch,HeavyKeeper,HeavyGuardian,MVSketch,WavingSketch,ElasticSketch}.
-Such hybrid structures hope to reduce the magnitude of the counter values in
-CMS to enable using shorter counters. Yet, they do not fundamentally address
-the problem, as the keys tracked by CMS may still exhibit skew, which is
-ignored. Moreover, since the number of heavy hitters can grow dynamically, the
-hash table may be too small to accommodate them all. This results in a heavy
-hitter being tracked by CMS, forcing it to use long counters.
-
 Ideally, each counter should be just long enough to fit its value. This would
 save space, or, conversely, enable having more counters to improve accuracy.
-One approach is to compress the counters using algorithms such as compressive
-sensing~\cite{TreeSensing,BitSense} or hypergraph peeling~\cite{CodingSketch}.
-Yet, these methods introduce heavy decompression overheads to queries.
+One approach is to separate the stream's heavy hitters and track them using a
+hash table, leaving the remaining keys to be tracked by
+CMS~\cite{AugmentedSketch,HeavyKeeper,HeavyGuardian,MVSketch,WavingSketch,ElasticSketch}.
+Such hybrid structures aim to reduce the counter values in CMS, which is the
+memory bottleneck, and fit them in shorter counters. Yet, they do not
+fundamentally address the problem, as the keys tracked by CMS may still exhibit
+skew, wasting memory as before. Moreover, since the number of heavy hitters can
+vary, the hash table may be too small to accommodate them all. This forces CMS
+use long counters to track the heavy hitters. Expanding the hash table is a
+natural approach to addressing this, yet it requires identifying the next heavy
+hitter and ``promoting'' it from CMS to the hash table. Such a promotion incurs
+significant errors, as many infrequent keys can be mistaken as the new heavy
+hitter due to collisions within CMS.
 
 \begin{figure}
     \centering
@@ -378,10 +378,10 @@ Yet, these methods introduce heavy decompression overheads to queries.
         \def\pkk{0.9}
         \def\labelx{\ox+\xaxislength+0.5}
         \def\labely{\oy+\pkk*\yaxislength}
-        \def\labellinex{\labelx+2.75}
+        \def\labellinex{\labelx+2.90}
         \def\labelliney{\labely+0.22}
-        \def\labellineydiffhybrid{0.89}
-        \def\labellineydiffcountersharing{2.10*\labellineydiffhybrid}
+        \def\labellineydiffcountersharing{0.91}
+        \def\labellineydiffslasa{2.03*\labellineydiffcountersharing}
         \def\labellinelen{0.5}
 
         % Axes
@@ -389,6 +389,11 @@ Yet, these methods introduce heavy decompression overheads to queries.
         \draw[thick,-stealth] (\ox,\oy-\ooverlen) -- (\ox,\oy+\yaxislength);
         \node[inner sep=0pt,align=center] (x_label) at (\ox+\xaxislength-\ooverlen/2,\oy+2.5*\ooverlen) {$N$};
         \node[inner sep=0pt,align=center] (y_label) at (\ox+4*\ooverlen,\oy+\yaxislength) {\small Error};
+
+        % CMS and Counter Sharing Intersection
+        \def\intersectionx{\ox+0.45*\xaxislength}
+        \def\intersectiony{\oy+0.225*\yaxislength}
+        \node[inner sep=1pt,circle,fill=black] (intersection) at (\intersectionx,\intersectiony) {};
 
         % CMS
         \node[inner sep=1pt,circle,fill=black] (start) at (\ox,\oy) {};
@@ -400,34 +405,29 @@ Yet, these methods introduce heavy decompression overheads to queries.
         \node[inner sep=1pt,circle,fill=black] (cms_legend_end) at (\labellinex+\labellinelen,\labelliney) {};
         \draw (cms_legend_start) -- (cms_legend_end);
 
-        % Hybrid
-        \def\longdashlen{4pt}
-        \def\shortdashlen{1pt}
-        \def\dashsep{1pt}
-        \node[inner sep=0pt] (hybrid_end_1) at (\ox+\xkk*\xaxislength,\oy+\pkk*\yaxislength/\w/2) {};
-        \draw[dash pattern={on \longdashlen off \dashsep on \shortdashlen off \dashsep}] (start) -- (hybrid_end_1);
-        \node[inner sep=0pt] (hybrid_end_2) at (\ox+\xkk*\xaxislength,\oy+\pkk*\yaxislength/\w*1.5) {};
-        \draw[dash pattern={on \longdashlen off \dashsep on \shortdashlen off \dashsep}] (start) -- (hybrid_end_2);
-        \node[inner sep=0pt,below=0.66 of cms_label.south west,anchor=west,align=left] (hybrid_label) {\small Hybrid \\[-1pt] \small Error~$={\scriptstyle \Theta\left( \left( 1-\frac{\log w_h}{\log N} \right) \cdot \frac{N}{w - \Omega(w_h)} \right)}$};
-
-        \node[inner sep=1pt,circle,fill=black] (hybrid_legend_start) at (\labellinex,\labelliney-\labellineydiffhybrid) {};
-        \node[inner sep=1pt,circle,fill=black] (hybrid_legend_end) at (\labellinex+\labellinelen,\labelliney-\labellineydiffhybrid) {};
-        \draw[dash pattern={on \longdashlen off \dashsep on \shortdashlen off \dashsep}] (hybrid_legend_start) -- (hybrid_legend_end);
-
         % Counter Sharing
         \node[inner sep=1pt,circle,fill=black] (counter_sharing_end) at (\ox+\xkk*\xaxislength,\oy+\pkk*\yaxislength) {};
-        \draw[dashed] plot[hobby] coordinates { (start) (\ox+0.15*\xaxislength,\oy+0.030*\yaxislength) (\ox+\xkk*\xaxislength-0.05*\xaxislength,\oy+\pkk*\yaxislength-0.09*\yaxislength) (counter_sharing_end) };
-        \node[inner sep=0pt,below=0.50 of hybrid_label.south west,anchor=west,align=left] (counter_sharing_label) {\small Counter Sharing \\[-1pt] \small Error~$={\scriptstyle \Theta\left( \frac{8N \log N}{b \cdot w} \right)}$};
+        \draw[dashed] plot[hobby] coordinates { (start) (\ox+0.15*\xaxislength,\oy+0.020*\yaxislength) (\ox+\xkk*\xaxislength-0.05*\xaxislength,\oy+\pkk*\yaxislength-0.09*\yaxislength) (counter_sharing_end) };
+        \node[inner sep=0pt,below=0.61 of cms_label.south west,anchor=west,align=left] (counter_sharing_label) {\small Counter Sharing \\[-1pt] \small Error~$={\scriptstyle \Theta\left( \frac{8 \log N}{b} \cdot \frac{N}{w} \right)}$};
 
         \node[inner sep=1pt,circle,fill=black] (counter_sharing_legend_start) at (\labellinex,\labelliney-\labellineydiffcountersharing) {};
         \node[inner sep=1pt,circle,fill=black] (counter_sharing_legend_end) at (\labellinex+\labellinelen,\labelliney-\labellineydiffcountersharing) {};
         \draw[dashed] (counter_sharing_legend_start) -- (counter_sharing_legend_end);
 
-        % Focal Points and Lines
-        \def\intersectionx{\ox+0.41*\xaxislength}
-        \def\intersectiony{\oy+0.20*\yaxislength}
-        \node[inner sep=1pt,circle,fill=black] (intersection) at (\intersectionx,\intersectiony) {};
+        % Counter Sharing: SALSA
+        \def\longdashlen{3pt}
+        \def\shortdashlen{1pt}
+        \def\dashsep{1pt}
+        \draw[dash pattern={on \longdashlen off \dashsep on \shortdashlen off \dashsep}] plot[hobby] coordinates { (start) (\ox+0.15*\xaxislength,\oy+0.050*\yaxislength) (intersection) };
+        \node[inner sep=1pt,circle,fill=black] (salsa_end) at (\ox+\xkk*\xaxislength,\oy+\pkk*\yaxislength/\w*1.1) {};
+        \draw[dash pattern={on \longdashlen off \dashsep on \shortdashlen off \dashsep}] (intersection) -- (salsa_end);
+        \node[inner sep=0pt,below=0.60 of counter_sharing_label.south west,anchor=west,align=left] (salsa_label) {\small Counter Sharing (\cite{SALSA}) \\[-1pt] \small Error~$={\scriptstyle \Theta\left( \min\left( \frac{8 \log N}{b}, 1 \right) \cdot \frac{N}{w} \right)}$};
 
+        \node[inner sep=1pt,circle,fill=black] (salsa_start) at (\labellinex,\labelliney-\labellineydiffslasa) {};
+        \node[inner sep=1pt,circle,fill=black] (salsa_end) at (\labellinex+\labellinelen,\labelliney-\labellineydiffslasa) {};
+        \draw[dash pattern={on \longdashlen off \dashsep on \shortdashlen off \dashsep}] (salsa_start) -- (salsa_end);
+
+        % Focal Points and Lines
         \draw[densely dotted] (\ox,\oy+\pkk*\yaxislength/\w) -- (cms_end);
         \node[inner sep=2pt,anchor=east] (y_cms_end_label) at (\ox,\oy+\pkk*\yaxislength/\w) {$\scriptstyle 2^b$};
 
@@ -443,100 +443,102 @@ Yet, these methods introduce heavy decompression overheads to queries.
         \draw[densely dotted] (\intersectionx,\oy) -- (intersection);
         \node[inner sep=2pt,anchor=east] (y_intersection_label) at (\ox,\intersectiony) {$\scriptstyle \Theta(2^{b-8})$};
     \end{tikzpicture}
-    \caption{Given the same memory budget, hybrid methods and counter sharing
-    methods can be less accurate than CMS when processing a growing stream.
-    Here, we consider a \textsc{Zipfian} distribution for the keys in the
-    stream. We consider using a CMS with arrays of~$w$, $b$-bit counters, and
-    denote the size of a hybrid method's hash table by~$w_h$.}
+    \caption{Under the same memory budget counter sharing can lead to lower
+    accuracy when processing a growing stream. Here, we compare a CMS with
+    arrays of~$w$, $b$-bit counters to counter sharing methods that use~8 bits
+    on average to encode a counter. The number of total keys in the stream
+    is~$w \cdot 2^b$ to saturate CMS's counters.}
     \label{fig:counter_sharing_deterioration}
 \end{figure}
 
-Another approach is to implement variable-length counters by using short
-counters upfront and allowing overflows to spill into ``shared'' counters. For
-example, \cite{SALSA} merges an overflowing counter with an adjacent counter
-into a longer counter that sums up the original values. Other
+
+A finer-grained approach is to compress the counters using algorithms such as
+compressive sensing~\cite{TreeSensing,BitSense} or hypergraph
+peeling~\cite{CodingSketch}. Though effective, these methods introduce heavy
+decompression overheads to queries.
+
+A more performant alternative is to implement variable-length counters by using
+short counters upfront and allowing overflows to spill into ``shared''
+counters. For example, \cite{SALSA} merges an overflowing counter with an
+adjacent counter into a longer counter that sums up the original values. Other
 variants~\cite{BitSense,PyramidSketch,StingySketch,AdaptiveCounterSplicing,CounterTree,TreeSensing}
 allocate a small number of counter fragments, each representing the overflowing
 higher-order bits of multiple counters by summing them. In general, counter
 sharing degrades accuracy by blowing up the estimates of infrequent keys whose
-counters are merged those of a frequent key. This is exacerbated as the stream
-grows, since all counter values tend to increase and thus get merged. This
-results in the number of counters decreasing by a factor of
-approximately~$\Theta(\log N)$ after $N$ insertions, thereby degrading the
-error by the same factor.\footnote{This is true for all counter sharing schemes
-execpt for that of \cite{SALSA}, the configuration of which degenerates
-gracefully into that of CMS as the stream grows. Nevertheless, the other
-methods outperform it in practice due to their lower metadata overhead.}
-Accuracy further deteriorates when keys are deleted, as counter sharing
-ambiguates how counters should be ``separated'' as they decrease. Moreover,
-counter sharing non-trivially impacts the statistical behavior of the counter
-values, complicating the integration of other orthogonal techniques like
-Bayesian inference for improving accuracy~\cite{BayesianSketches,BFES} and
-convolution for join size estimation~\cite{ConvolutionSketch}. 
+counters are merged with those of a frequent key. This blow-up is exacerbated
+as the stream grows. The reason is that each time the stream's length
+multiplies, the value of each counter also grows proportionally, leading to an
+overflow that merges it with another counter. Thus, after~$N$ insertions, each
+counter will be merged~$\Theta(\log N)$ times, blowing up the estimation error
+by the same factor. Accuracy further deteriorates in the face of deletions, as
+counter sharing ambiguates how counters should be ``separated'' as they
+decrease. Moreover, counter sharing non-trivially alters the statistical
+behavior of the counter values, complicating the integration of other
+orthogonal techniques like Bayesian inference for improving
+accuracy~\cite{BayesianSketches,BFES} and convolution for join size
+estimation~\cite{ConvolutionSketch}. 
 
-\Cref{fig:counter_sharing_deterioration} qualitatively compares the error of
-CMS to hybrid and counter sharing methods as a skewed stream grows. Given the
-same memory budget, the error grows at a linear rate for CMS and at a
-super-linear rate for counter sharing methods. While the error of the hybrid
-methods also grows linearly, it can be higher or lower than CMS depending on
-the implementation of its hash table.
+\Cref{fig:counter_sharing_deterioration} illustrates the qualitative effects of
+counter sharing on the error as the stream grows when given the same memory
+budget as CMS. As shown, counter sharing degrades accuracy beyond that of CMS
+in the long run. This degradation is less severe for~\cite{SALSA}, as it
+degenerates gracefully into CMS as the stream grows. Yet, its accuracy is still
+worse than CMS due to its comparatively high metadata overhead. This overhead
+also makes it less space-efficient than other counter-sharing schemes when the
+stream is short.
 
-\hypertarget{problem:unbounded_data_growth}{\textbf{Challenge 2: Unbounded Data Growth.}}
+\textbf{Challenge 2: Unbounded Data Growth.}
 In many streaming applications, the stream continuously grows over time, and it
-is desirable to estimate the count of each key since the beginning of the
-stream. For example, query optimizers track the number of times each key occurs
-in a table for join size
-estimation~\cite{Compass,QueryOptimizationSketches,ConvolutionSketch}. Here,
-the final total number of keys in the stream~$N$ is unknown, as more data may
-be inserted into the tables. At the same time, query optimizers seek to track
-the frequency of each key from the stream's beginning since every occurrence of
-a key equally impacts the join size, irrespective of when it was inserted. The
-ultimate value of~$N$ is also unknown in many other applications that track a
-key's count in fixed time windows. For example, network management systems
-detect anomalous or malicious activity by counting the packets originating from
-each source in fixed time
+is desirable to estimate the count of each key from the start of the stream.
+For example, some query optimizers track the number of times each key occurs in
+a column of a table to estimate the size of a join on that
+column~\cite{Compass,QueryOptimizationSketches,ConvolutionSketch}. Here, the
+total number of keys in the stream~$N$ grows as more data is inserted into the
+table. At the same time, query optimizers seek to track the frequency of each
+key from the stream's beginning since every occurrence of a key equally impacts
+the join size, irrespective of when it was inserted. In other applications that
+do frequency estimation of streams bounded by fixed time windows, the value
+of~$N$ within each window is typically unknown. For example, network management
+systems detect anomalous or malicious activity by counting the packets
+originating from each source in fixed time
 windows~\cite{SketchBasedChangeDetection,WhatsNew,TrafficManagementSurvey}.
 Here, $N$ corresponds to the total number of packets sent in each window, which
 varies significantly due to the bursty nature of network traffic.
 
-The issue with using CMS (and other sketches) in these applications is that,
-due to its fixed size, its estimation error scales linearly with~$N$, i.e.,
-$N/w$. This forces practitioners to tune the number of counters in each array
-without knowing the ultimate value of~$N$ in hopes of controlling the error.
-The crux of the problem is that if there are too few counters in each array,
-the estimates will have significant errors. If there are too many counters,
-memory is wasted. To make matters worse, even if~$N$ is known upfront, having a
-large CMS for the entire stream wastes memory at the beginning when the stream
-is short. Deletions exacerbate this wastage, as they cause~$N$ to fluctuate
-over time. The ideal sketch must scale its memory footprint with~$N$ to bound
-the error without wasting space, thereby guaranteeing sub-linear errors. This
-scaling also enables adapting the sketch to workloads where the stream's skew
-and the number of its heavy hitters vary dynamically.
+With all of the frequency estimation sketches that we are aware of, the number
+of counters~$w$ is fixed upfront when the sketch is allocated. This causes the
+error rate to degrade linearly with~$N$, i.e., as~$N/w$ in the case of CMS. As
+such, practitioners face the challenge of tuning the number of counters in each
+array without knowing the ultimate value of~$N$ in hopes of controlling the
+error. If there are too few counters in each array, the estimates will have
+significant errors. If there are too many counters, memory is wasted. Deletions
+further complicate this tuning procedure, as they cause~$N$ to fluctuate over
+time. To make matters worse, even if~$N$ is known upfront, having a large CMS
+for the entire stream wastes memory initially when the stream is short. 
+
+The above problems reappear for a hybrid method's hash table and CMS due to the
+varying number of heavy hitters. Moreover, the workload's distribution may
+shift as the stream grows, causing changes in skew that result in memory
+wastage if a sketch does not adapt accordingly.
 
 \textbf{Summary.}
-Although much research has gone into
-resolving~\hyperlink{problem:skew}{(P1)} with space-efficient
-counters, existing sketches either (i)~suffer from the accuracy issues of
-counter sharing, (ii)~are slow, or (iii)~have accuracy drops when deleting
-keys. Moreover, no work to date has attempted to
-address~\hyperlink{problem:unbounded_data_growth}{(P2)}. Is it possible to design a
-sketch that resolves~\hyperlink{problem:skew}{(P1)} and
-\hyperlink{problem:unbounded_data_growth}{(P2)} while maintaining high performance
-and accurate support of deletions?
+Thus, the ideal frequency estimation sketch must 1)~succinctly encode the value
+of each counter without wasting memory due to skew, 2)~scale its memory
+footprint with the stream's length to control the error, 3)~support deletions
+without degrading accuracy, and 4)~provide high-performance operations. Is it
+possible to achieve these four goals simultaneously?
 
 \section{\sketch}\label{sec:sketchbook} 
 We present \sketch, a framework for generalizing a frequency estimation sketch
 to optimize its memory footprint with respect to the stream's skew and its
 length. \Cref{sec:accommodating_skew} shows how to adapt to skew by compactly
-encoding each counter as a short integer and extending it as it overflows,
-addressing problem~\hyperlink{problem:skew}{(P1)}.
+encoding each counter as a short integer and extending it as it overflows.
 \Cref{sec:accommodating_unknown_stream_lengths} shows how to control both
 accuracy and space for a stream of unknown length by expanding and contracting
-the sketch, resolving problem~\hyperlink{problem:unbounded_data_growth}{(P2)}. At
-the same time, \sketch\ maintains high performance and support for deletions.
-We first describe \sketch\ as applied to the Count-Min Sketch~(CMS), denoted as
-\sketchcms. We apply it to other sketches in Sections~\ref{sec:cs}~and
-\ref{sec:mg}.
+the sketch. At the same time, \sketch\ supports deletions and maintains high
+performance. We first describe \sketch\ as applied to the Count-Min
+Sketch~(CMS), denoted as \sketchcms. We apply it to other sketches in
+Sections~\ref{sec:cs}~and~\ref{sec:mg}.
 
 \subsection{Accommodating Skew}\label{sec:accommodating_skew}
 Under skew, many counter values in CMS will be small and not use all the bits
@@ -1274,23 +1276,23 @@ and uses each as the hash value of an array.
 \end{figure}
 
 \subsection{Accommodating Unknown Stream Lengths}\label{sec:accommodating_unknown_stream_lengths}
-In many stream processing applications, the ultimate total key count~$N$ is
-unknown. Using CMS in these applications yields an error bound that grows
-linearly with the data's size, as its error is determined by the ratio of~$N$
-and the number of its counters. \sketchcms addresses this by generalizing CMS
-to expand the number of its counters as the stream evolves. Specifically, it
-maintains a chain of sketches, each consisting of~$d$ counter arrays. To adapt
-the accuracy to the length of the stream, \sketchcms expands by appending a
-larger sketch to the chain with its counters initialized to zeros. This
-sketch's arrays are twice as large as that of the sketch preceding it in the
-chain. \Cref{fig:sketchbook_chain} illustrates an example of such a chain with
-three sketches. Insertions and deletions are directed to the last sketch so
-that they benefit from its higher tracking accuracy. This spreads the updates
-across the sketches as expansions occur. A query takes into account all updates
-by aggregating the estimates of all sketches in the chain. That is, for
-each~$i$, it sums the values of the counters it hashes to in
-the~$i${\nobreakdash-}th array of all sketches. It then reports the minimum of
-these sums as the estimate.
+In many stream processing applications, the total key count~$N$ grows with
+time. Using CMS in these applications yields an error bound that grows linearly
+with the data's size, as its error is determined by the ratio of~$N$ and the
+number of its counters. \sketchcms addresses this by generalizing CMS to expand
+the number of its counters as the stream evolves. Specifically, it maintains a
+chain of sketches, each consisting of~$d$ counter arrays. To adapt the accuracy
+to the length of the stream, \sketchcms expands by appending a larger sketch to
+the chain with its counters initialized to zeros. This sketch's arrays are
+twice as large as that of the sketch preceding it in the chain.
+\Cref{fig:sketchbook_chain} illustrates an example of such a chain with three
+sketches. Insertions and deletions are directed to the last sketch so that they
+benefit from its higher tracking accuracy. This spreads the updates across the
+sketches as expansions occur. A query takes into account all updates by
+aggregating the estimates of all sketches in the chain. That is, for each~$i$,
+it sums the values of the counters it hashes to in the~$i${\nobreakdash-}th
+array of all sketches. It then reports the minimum of these sums as the
+estimate.
 
 By expanding and contracting, \sketchcms keeps the size of the last sketch's
 counter arrays close to the value of a user-defined \emph{Size
@@ -1318,10 +1320,11 @@ be optimal~\cite{CountMin}.
 One may set~$w^*(N)=N/\epsilon$ in hopes of achieving an error bound
 of~$O(\epsilon)$. Yet, we show in \Cref{sec:theoretical_analysis} that, without
 knowing the ultimate length of the stream, the best error bound achievable by a
-sketch with~$O(N/\epsilon)$ counters\footnote{More precisely, we show this for
-any sketch that uses~$O(N/\epsilon \log \log N)$ bits of space.} is~$O(\epsilon
-\cdot \log N)$. Moreover, we show that \sketchcms attains this error bound
-under the same memory budget and is therefore optimal.
+sketch with~$O(N/\epsilon)$ counters\footnote{More precisely, show this for any
+sketch using~$O\left( N/\epsilon \cdot \frac{\log \log N}{\log N} \right)$ bits
+of space.} is~$O(\epsilon \cdot \log N)$. Moreover, we show that, with a slight
+optimization, \sketchcms attains this error bound under the same memory budget
+and is therefore optimal.
 
 \begin{figure}
     \centering
