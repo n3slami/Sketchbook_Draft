@@ -1123,6 +1123,38 @@ their CPU overheads, \sketchcms applies a single hash function to the key to
 compute a long hash. It splices the result into~$d$ sub-hashes of equal length
 and uses each as the hash value of an array. 
 
+\subsection{Accommodating Unbounded Data Growth}\label{sec:accommodating_unknown_stream_lengths}
+In many stream processing applications, the total key count~$N$ grows over
+time. Using CMS in these applications yields an error bound that grows linearly
+with the data's size, as its error is determined by the ratio of~$N$ and the
+number of its counters. \sketchcms addresses this by generalizing CMS to expand
+the number of its counters as the stream evolves. It first allocates a sketch
+with~$d$ arrays consisting of a few counters. It inserts and deletes keys from
+this sketch until~$N$ exceeds an internally chosen threshold. Once this occurs,
+\sketchcms expands by allocating a new sketch with~$d$ arrays twice as large as
+the old sketch, with counters initialized to zeros. It directs insertions and
+deletions to this new sketch so that they benefit from its higher tracking
+accuracy. Whenever~$N$ again exceeds a threshold, \sketchcms allocates another
+sketch with arrays double the size of the most recently added one. It arranges
+these sketches from oldest to newest in a chain, yielding a structure similar
+to that shown in \Cref{fig:sketchbook_chain}. Such expansions spread the
+updates across the sketches. A query takes into account all updates by
+aggregating the estimates of all sketches in the chain. That is, for each~$i$,
+it sums the values of the counters it hashes to in the~$i${\nobreakdash-}th
+array of all sketches. It then reports the minimum of these sums as the
+estimate.
+
+\sketchcms chooses the expansion thresholds such that the size of the last
+sketch's arrays is always similar to the value of a user-defined \emph{Size
+Function}~$w^*(N)$. This allows it to simulate processing the entire stream
+with a hypothetical sketch preallocated with arrays of size~$w^*(N)$, as if~$N$
+was known upfront. We show in \Cref{sec:theoretical_analysis} that, in doing
+so, it achieves a similar accuracy guarantee to that of the hypothetical
+sketch. Moreover, because the last sketch in the chain is the dominating factor
+in the chain's memory footprint, and since its arrays are sized similarly to
+the preallocated sketch, the total memory footprint of \sketchcms is also
+approximately the same as that of the preallocated sketch.
+
 \begin{figure}
     \centering
     \pgfdeclarelayer{background layer}
@@ -1282,41 +1314,12 @@ and uses each as the hash value of an array.
     \label{fig:sketchbook_chain}
 \end{figure}
 
-\subsection{Accommodating Unbounded Data Growth}\label{sec:accommodating_unknown_stream_lengths}
-In many stream processing applications, the total key count~$N$ grows with
-time. Using CMS in these applications yields an error bound that grows linearly
-with the data's size, as its error is determined by the ratio of~$N$ and the
-number of its counters. \sketchcms addresses this by generalizing CMS to expand
-the number of its counters as the stream evolves. Specifically, it maintains a
-chain of sketches, each consisting of~$d$ counter arrays. To adapt the accuracy
-to the length of the stream, \sketchcms expands by appending a larger sketch to
-the chain with its counters initialized to zeros. This sketch's arrays are
-twice as large as that of the sketch preceding it in the chain.
-\Cref{fig:sketchbook_chain} illustrates an example of such a chain with three
-sketches. Insertions and deletions are directed to the last sketch so that they
-benefit from its higher tracking accuracy. This spreads the updates across the
-sketches as expansions occur. A query takes into account all updates by
-aggregating the estimates of all sketches in the chain. That is, for each~$i$,
-it sums the values of the counters it hashes to in the~$i${\nobreakdash-}th
-array of all sketches. It then reports the minimum of these sums as the
-estimate.
-
-By expanding and contracting, \sketchcms keeps the size of the last sketch's
-counter arrays close to the value of a user-defined \emph{Size
-Function}~$w^*(N)$. In doing so, it simulates processing the entire stream with
-a hypothetical sketch preallocated from the onset with arrays of size~$w^*(N)$
-with perfect knowledge of~$N$, yielding a similar accuracy guarantee. Because
-the last sketch in the chain is the dominating factor in the chain's memory
-footprint, and since its arrays are sized similarly to the preallocated sketch,
-the total memory footprint of \sketchcms is approximately the same as that of
-the preallocated sketch.
-
 \textbf{Size Function.} 
 The size function~$w^*(N)$ exposes a rich spectrum of accuracy-memory
 tradeoffs: the faster~$w^*(N)$ grows with respect to the total number of keys
 in the stream~$N$, the sooner \sketchcms expands, thereby tracking more of the
-stream's keys at a higher accuracy in exchange for a higher memory footprint.
-We recommend setting the size function to a \emph{Sub-Linear Power} of the
+stream's keys more accurately in exchange for a larger memory footprint. We
+recommend setting the size function to a \emph{Sub-Linear Power} of the
 form~$w^*(N)=N^\alpha/\epsilon$ and tuning the constants~$\alpha \in [0,1)$ and
 $\epsilon$ to balance accuracy with memory. We prove in
 \Cref{sec:theoretical_analysis} that using a sub-linear power yields an error
@@ -1327,11 +1330,48 @@ be optimal~\cite{CountMin}.
 One may set~$w^*(N)=N/\epsilon$ in hopes of achieving an error bound
 of~$O(\epsilon)$. Yet, we show in \Cref{sec:theoretical_analysis} that, without
 knowing the ultimate length of the stream, the best error bound achievable by a
-sketch with~$O(N/\epsilon)$ counters\footnote{More precisely, show this for any
-sketch using~$O\left( N/\epsilon \cdot \frac{\log \log N}{\log N} \right)$ bits
-of space.} is~$O(\epsilon \cdot \log N)$. Moreover, we show that, with a slight
-optimization, \sketchcms attains this error bound under the same memory budget
-and is therefore optimal.
+sketch with~$O(N/\epsilon)$ counters\footnote{More precisely, we show this for
+any sketch using~$O\left( N/\epsilon \cdot \frac{\log \log N}{\log N} \right)$
+bits of space.} is~$O(\epsilon \cdot \log N)$. Moreover, we show that, with a
+slight space optimization, \sketchcms attains this error bound under the same
+memory budget and is thus optimal.
+
+\textbf{Expansions.} 
+\sketchcms sets the expansion thresholds as the values of~$N$ that make the
+size function~$w^*(N)$ double after each expansion. This ensures that the last
+sketch's arrays always have a size in the range~$[w^*(N)/2,w^*(N)]$. The
+inequalities at the bottom of \Cref{fig:sketchbook_chain} illustrate the
+expansion thresholds when the size function is~$w^*(N)=N^{0.5}$.
+
+When using a sub-linear power as the size function, triggering an expansion
+requires inserting the majority of the stream's keys into the last
+sketch.\footnote{More generally, this holds when~$w^*(N)$ is an increasing
+concave function of~$N$.} As such, the error resulting from the last sketch is
+the dominant factor in the overall error bound of \sketchcms. Since this sketch
+has an error of approximately~$N/w^*(N)$, this yields an overall error
+of~$O(N/w^*(N))$, as we prove in \Cref{sec:theoretical_analysis}.
+
+\textbf{Contractions.} 
+Whenever deletions drop~$N$ below the previous threshold, i.e., halving the
+size function~$w^*(N)$, \sketchcms contracts to save memory. It does so by
+transferring the updates of the last sketch to the penultimate sketch and
+discarding it. This information transfer is challenging, as the sketches do not
+store the keys, barring us from rehashing them into the penultimate sketch. We
+overcome this issue by using~$d$ shared hash functions~$h_1,\dots,h_d$ to
+derive~$d$ long ``\emph{Mother Hashes}'' for each key. That is, to map a
+key~$x$ to a counter in the~$i${\nobreakdash-}th array of a sketch, we
+compute~$h_i(x)$ to derive its mother hash. Letting~$w$ denote the size of the
+counter array, we take the~$\log_2 w$ lower-order bits of~$x$'s mother hash as
+the offset of the counter it hashes to. \Cref{fig:contraction} shows this
+procedure for the first array of the chain's last two sketches.
+
+This hashing scheme allows \sketchcms to determine the counter a key hashes to
+in the penultimate sketch by removing the most significant bit (MSB) of its
+counter's offset in the last sketch. Thus, adding the value of the latter
+counter to the former transfers the effects of all updates that hashed to it.
+Since the MSB of the counters' offsets partitions the last sketch into two
+halves, transferring all of its updates amounts to adding each partition to the
+penultimate sketch. We illustrate this at the bottom of \Cref{fig:contraction}.
 
 \begin{figure}
     \centering
@@ -1437,43 +1477,6 @@ and is therefore optimal.
     \label{fig:contraction}
 \end{figure}
 
-\textbf{Expansions.} 
-Whenever~$N$ increases enough to double the value of the size
-function~$w^*(N)$, \sketchcms expands by adding a new sketch to the chain with
-counter arrays twice as large as that of the previous last sketch. Doing so
-ensures that the last sketch's counter arrays always have a size in the
-range~$[w^*(N)/2,w^*(N)]$, as depicted in \Cref{fig:sketchbook_chain}.
-
-When using a sub-linear power as the size function, triggering an expansion
-requires inserting the majority of the stream's keys into the last
-sketch.\footnote{More generally, this holds when~$w^*(N)$ is an increasing
-concave function of~$N$.} As such, the error resulting from the last sketch is
-the dominant factor in the overall error bound of \sketchcms. Since this sketch
-has an error of approximately~$N/w^*(N)$, this yields an overall error
-of~$O(N/w^*(N))$, as we prove in \Cref{sec:theoretical_analysis}.
-
-\textbf{Contractions.} 
-Whenever deletions decrease~$N$ enough to halve the value of the size
-function~$w^*(N)$, \sketchcms contracts to save memory. It does so by
-transferring the updates of the last sketch to the penultimate sketch and
-discarding the last sketch. This information transfer is challenging, as the
-keys are not stored in the sketches, barring us from rehashing them into the
-penultimate sketch. We overcome this issue by using~$d$ shared hash
-functions~$h_1,\dots,h_d$ to derive~$d$ long ``\emph{Mother Hashes}'' for each
-key. That is, to map a key~$x$ to a counter in the~$i${\nobreakdash-}th array
-of a sketch, we compute~$h_i(x)$ to derive its mother hash. Letting~$w$ denote
-the size of the counter array, we take the~$\log_2 w$ lower-order bits of~$x$'s
-mother hash as the offset of the counter it hashes to. \Cref{fig:contraction}
-shows this procedure for the last two sketches in the chain.
-
-This hashing scheme allows \sketchcms to determine the counter a key hashes to
-in the penultimate sketch by removing the most significant bit (MSB) of its
-counter's offset in the last sketch. Thus, adding the value of the latter
-counter to the former transfers the effects of all updates that hashed to it.
-Since the MSB of the counters' offsets partitions the last sketch into two
-halves, transferring all of its updates amounts to adding each partition to the
-penultimate sketch. We illustrate this at the bottom of \Cref{fig:contraction}.
-
 As in the case of expansions, when using a sub-linear power as the size
 function, the majority of the stream's keys must be deleted to trigger a
 contraction. This amortizes the contraction cost, and, as we prove in
@@ -1481,6 +1484,30 @@ contraction. This amortizes the contraction cost, and, as we prove in
 chain always track the majority of the keys in the stream. Therefore, the error
 bound is controlled as before, despite the state of each particular sketch in
 the chain depending on the sequence of insertions and deletions done.
+
+\textbf{Aggregating Sketches.}
+Since each sketch in the chain has processed a subset of the stream's updates,
+queries must probe all sketches and aggregate their results. \sketchcms speeds
+up queries by aggregating the updates of all older sketches into the last one.
+We achieve this by leveraging the mother hashes of the keys. As before,
+removing the MSBs of the offset of the counter a key~$x$ hashes to in the last
+sketch yields the offset of the counter it hashes to in an older sketch, as
+shown in \Cref{fig:aggregating_sketches}. By aggregating the value of the
+latter counter into the former, we ensure that querying~$x$ in the last sketch
+takes into account the old counter's value without needing to directly probe
+the old sketch. Applying this procedure to all counters in the last sketch
+amounts to partitioning the last sketch based on the MSBs of the counters'
+offsets and adding the old sketch to each partition.
+
+We do not lose access to the original last sketch as a result of this
+aggregation, since we can reconstruct it by analogously subtracting away the
+old sketches from the aggregated sketch. This allows contractions to transfer
+the updates of the last sketch into the penultimate sketch as before. 
+
+\sketchcms optimizes expansions by avoiding aggregation operations once the
+initial aggregated last sketch is computed. Specifically, it expands by
+creating a larger aggregate sketch directly from the previous aggregate sketch
+via concatenating it with a duplicate of itself.
 
 \begin{figure}
     \centering
@@ -1598,30 +1625,6 @@ the chain depending on the sequence of insertions and deletions done.
     \label{fig:aggregating_sketches}
 \end{figure}
 
-\textbf{Aggregating Sketches.}
-Since each sketch in the chain has processed a subset of the stream's updates,
-queries must probe all sketches and aggregate their results. \sketchcms speeds
-up queries by aggregating the updates of all older sketches into the last one.
-We achieve this by leveraging the mother hashes of the keys. As before,
-removing the MSBs of the offset of the counter a key~$x$ hashes to in the last
-sketch yields the offset of the counter it hashes to in an older sketch, as
-shown in \Cref{fig:aggregating_sketches}. By aggregating the value of the
-latter counter into the former, we ensure that querying~$x$ in the last sketch
-takes into account the old counter's value without needing to directly probe
-the old sketch. Applying this procedure to all counters in the last sketch
-amounts to partitioning the last sketch based on the MSBs of the counters'
-offsets and adding the old sketch to each partition.
-
-We do not lose access to the original last sketch as a result of this
-aggregation, since we can reconstruct it by analogously subtracting away the
-old sketches from the aggregated sketch. This allows contractions to transfer
-the updates of the last sketch into the penultimate sketch as before. 
-
-\sketchcms optimizes expansions by avoiding aggregation operations once the
-initial aggregated last sketch is computed. Specifically, it expands by
-creating a larger aggregate sketch directly from the previous aggregate sketch
-via concatenating it with a duplicate of itself.
-
 \textbf{Insert-Only Workloads.}
 Contractions never occur when keys are only inserted into the stream. Since the
 only benefit of having the old sketches alongside the aggregated last sketch is
@@ -1657,6 +1660,22 @@ returns during a query. Although this estimate may be smaller or larger than
 the ground-truth frequency, the zero expected interference allows it to match
 the ground-truth on average, removing bias. Increasing the array's size reduces
 the likelihood of hash collisions and the average deviation.
+
+As with CMS, a frequent key will adversely impact the estimates of keys sharing
+the same counter, degrading confidence. CS addresses this by employing~$d$
+independent arrays, each with its own hash functions~$h_i$ and $\sigma_i$.
+Unlike CMS, CS cannot answer a query by returning the minimum estimate, as it
+may greatly underestimate the result due to two-sided errors. Instead, it
+returns the median estimate, as shown in \Cref{fig:cs_overview}. This improves
+confidence since severe errors are unlikely to occur for enough experiments to
+affect the median. CS takes the median instead of the mean to improve
+robustness to outlier estimates. With~$d$ arrays with~$w$ counters each, CS
+guarantees an error bound of at most~$\sqrt{\frac{e \cdot \sum_{y}
+(f(y))^2}{w}}$ with a confidence of~$1-e^{-d}$, i.e., $\Pr\left(
+|\hat{f}(x)-f(x)| \leq \sqrt{\frac{e \cdot \sum_{y} (f(y))^2}{w}} \right) \geq
+1-e^{-d}$ for any key~$x$. The error term above is smaller than CMS's error
+term when the frequency distribution is less skewed, as the root slows its
+growth to~$O(\sqrt{N})$ (vs.~$N$) when the summands are small.
 
 \begin{figure}
     \centering
@@ -1713,22 +1732,6 @@ the likelihood of hash collisions and the average deviation.
     directions enable unbiased estimation.}
     \label{fig:cs_overview}
 \end{figure}
-
-As with CMS, a frequent key will adversely impact the estimates of keys sharing
-the same counter, degrading confidence. CS addresses this by employing~$d$
-independent arrays, each with its own hash functions~$h_i$ and $\sigma_i$.
-Unlike CMS, CS cannot answer a query by returning the minimum estimate, as it
-may greatly underestimate the result due to two-sided errors. Instead, it
-returns the median estimate, as shown in \Cref{fig:cs_overview}. This improves
-confidence since severe errors are unlikely to occur for enough experiments to
-affect the median. CS takes the median instead of the mean to improve
-robustness to outlier estimates. With~$d$ arrays with~$w$ counters each, CS
-guarantees an error bound of at most~$\sqrt{\frac{e \cdot \sum_{y}
-(f(y))^2}{w}}$ with a confidence of~$1-e^{-d}$, i.e., $\Pr\left(
-|\hat{f}(x)-f(x)| \leq \sqrt{\frac{e \cdot \sum_{y} (f(y))^2}{w}} \right) \geq
-1-e^{-d}$ for any key~$x$. The error term above is smaller than CMS's error
-term when the frequency distribution is less skewed, as the root slows its
-growth to~$O(\sqrt{N})$ (vs.~$N$) when the summands are small.
 
 \subsection{Generalization to Misra-Gries}\label{sec:mg}
 \textbf{Misra-Gries (MG).}
@@ -1952,6 +1955,8 @@ array.
 We run experiments on a Fedora 39 machine with an Intel Xeon w7-2495X processor
 (4.8 GHz) with 24 cores and 48 hyper-threads. Our machine has a 1920 KB L1, a
 48 MB L2, and a 45 MB L3 cache, along with 64 GBs of main memory. 
+
+\section{Related Work}
 
 \section{Conclusion}
 
