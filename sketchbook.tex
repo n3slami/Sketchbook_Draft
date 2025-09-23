@@ -165,10 +165,10 @@ measurement tool for networks since it allows administrators to collect
 diagnostics of any kind without needing to explicitly define the required
 statistics (such as the mean, variance, and moments) beforehand~\cite{UnivMon}.
 
-As MG accurately tracks the frequencies of hot keys, many other sketch designs
-use it as a sub-component to reap its benefits. Moreover, because it also
-stores the keys themselves, unlike CMS and CS, it is used to report the hottest
-keys, trending keys, and much
+As MG accurately tracks the frequencies of heavy hitters, many other sketch
+designs use it as a sub-component to reap its benefits. Moreover, because it
+also stores the keys themselves, unlike CMS and CS, it is used to report the
+heavy hitter keys, trending keys, and much
 more~\cite{BatchUpdateMisraGries,AugmentedSketch,BitMatcher,BubbleSketch,HeavyGuardian,HeavyKeeper,JigsawSketch,MVSketch,SketchVisor,WavingSketch,MicroscopeSketch,PSketch,TightSketch}.
 
 \section{Background}~\label{sec:background}
@@ -222,7 +222,7 @@ Misra-Gries~\cite{MisraGries} (\Cref{sec:mg}) and apply our techniques to them.
         $d$ & Number of independent arrays. \\
         $h_i(x)$ & Hash function mapping key~$x$ to a counter. \\
         $\sigma_i(x)$ & Hash function defining key~$x$'s update direction ($\pm 1$). \\
-        $N^{\text{res}(i)}$ & Total count of all but the~$i$ hottest keys. \\
+        $N^{\text{res}(i)}$ & Total count of all but the~$i$ most frequent keys. \\
         \cmidrule{1-2}
         $c$ & Number of counters in each chunk. \\
         $s$ & Length of each stub in bits. \\
@@ -230,7 +230,7 @@ Misra-Gries~\cite{MisraGries} (\Cref{sec:mg}) and apply our techniques to them.
         %\cmidrule{1-2}
         %AAE & Average Absolute Error, i.e., $\text{avg}_x|\hat{f}(x) - f(x)|$. \\
         %ARE & Average Relative Error, i.e., $\text{avg}_x\frac{|\hat{f}(x) - f(x)|}{f(x)}$. \\
-        %\makecell[c]{Top-$w$ \\[-2pt] AAE} & Average Absolute Error among the~$w$ hottest items. \\
+        %\makecell[c]{Top-$w$ \\[-2pt] AAE} & Average Absolute Error among the~$w$ most frequent items. \\
         \bottomrule
     \end{tabular}
     \egroup
@@ -368,6 +368,210 @@ compressive sensing~\cite{TreeSensing,BitSense} or hypergraph
 peeling~\cite{CodingSketch}. However, these methods impose a heavy
 decompression overhead on queries.
 
+Yet another approach is to use short counters upfront and store their overflows
+in a hierarchy of shared counter
+fragments~\cite{BitSense,PyramidSketch,StingySketch,AdaptiveCounterSplicing,CounterTree,TreeSensing},
+as illustrated in \Cref{fig:counter_sharing_merging}.
+Each 
+of its children. While counter sharing yields state-of-the-art accuracy and
+performance when the stream is short, its error rapidly deteriorates as the
+stream grows. In particular, after~$N$ insertions, each counter will overflow
+into~$\Theta(\log (N/\text{\# Counters}))$ fragments. This leads each counter
+to share fragments with~$\Theta(N/\text{\# Counters})$ other counters, blowing
+up the estimation error by the same factor.
+\Cref{fig:counter_sharing_deterioration} illustrates the qualitative effects of
+counter sharing on the error as the stream grows. Here, we compare a CMS with
+arrays of~$w$, $b$-bit counters to counter-sharing methods that use~8 bits on
+average to encode each counter. We equalize the memory footprint of
+counter-sharing methods with CMS by allowing them more counters by a factor
+of~$\frac{b}{8}$. As shown, counter sharing significantly degrades CMS's
+accuracy in the long run.
+
+\begin{figure}
+    \centering
+    \begin{tikzpicture}
+        \def\arrayw{4}
+        \def\arrayh{0.25}
+        \def\methodsep{0.75}
+        \def\countercount{8}
+        \def\counterw{\arrayw/\countercount}
+
+        % Counter Sharing
+        \def\sharingarraywmult{0.75}
+        \def\treelevelsep{0.2}
+        \def\fragmentw{\sharingarraywmult*\counterw/2}
+        \draw (0,0) rectangle (\sharingarraywmult*\arrayw,\arrayh);
+        \foreach \i in {2, ..., \countercount} {
+            \draw (\sharingarraywmult*\i*\counterw-\sharingarraywmult*\counterw,0) -- (\sharingarraywmult*\i*\counterw-\sharingarraywmult*\counterw,\arrayh);
+        }
+        \node[inner sep=0pt,anchor=east] (shared_label) at (0.5*\sharingarraywmult*\counterw,\treelevelsep+1.5*\arrayh) {\footnotesize Shared};
+        \foreach \i in {1, ..., 4} {
+            \ifnum \i = 3 {
+                \draw[pattern=north east lines,pattern color=gray!50] (2*\sharingarraywmult*\i*\counterw-\sharingarraywmult*\counterw-\fragmentw/2,\treelevelsep+\arrayh) rectangle (2*\sharingarraywmult*\i*\counterw-\sharingarraywmult*\counterw+\fragmentw/2,\treelevelsep+2*\arrayh);
+                \draw (2*\sharingarraywmult*\i*\counterw-\sharingarraywmult*\counterw,\treelevelsep+\arrayh) -- (2*\sharingarraywmult*\i*\counterw-1.5*\sharingarraywmult*\counterw,\arrayh);
+                \draw (2*\sharingarraywmult*\i*\counterw-\sharingarraywmult*\counterw,\treelevelsep+\arrayh) -- (2*\sharingarraywmult*\i*\counterw-0.5*\sharingarraywmult*\counterw,\arrayh);
+            }
+            \else {
+                \draw (2*\sharingarraywmult*\i*\counterw-\sharingarraywmult*\counterw-\fragmentw/2,\treelevelsep+\arrayh) rectangle (2*\sharingarraywmult*\i*\counterw-\sharingarraywmult*\counterw+\fragmentw/2,\treelevelsep+2*\arrayh);
+                \draw[stealth-] (2*\sharingarraywmult*\i*\counterw-\sharingarraywmult*\counterw,\treelevelsep+\arrayh) -- (2*\sharingarraywmult*\i*\counterw-1.5*\sharingarraywmult*\counterw,\arrayh);
+                \draw[stealth-] (2*\sharingarraywmult*\i*\counterw-\sharingarraywmult*\counterw,\treelevelsep+\arrayh) -- (2*\sharingarraywmult*\i*\counterw-0.5*\sharingarraywmult*\counterw,\arrayh);
+            }
+            \fi
+        }
+        \foreach \i in {1, ..., 2} {
+            \draw (4*\sharingarraywmult*\i*\counterw-2*\sharingarraywmult*\counterw-\fragmentw/2,2*\treelevelsep+2*\arrayh) rectangle (4*\sharingarraywmult*\i*\counterw-2*\sharingarraywmult*\counterw+\fragmentw/2,2*\treelevelsep+3*\arrayh);
+            \ifnum \i = 1 {
+                \draw[stealth-] (4*\sharingarraywmult*\i*\counterw-2*\sharingarraywmult*\counterw,2*\treelevelsep+2*\arrayh) -- (4*\sharingarraywmult*\i*\counterw-1.5*2*\sharingarraywmult*\counterw,\treelevelsep+2*\arrayh);
+            }
+            \else {
+                \draw (4*\sharingarraywmult*\i*\counterw-2*\sharingarraywmult*\counterw,2*\treelevelsep+2*\arrayh) -- (4*\sharingarraywmult*\i*\counterw-1.5*2*\sharingarraywmult*\counterw,\treelevelsep+2*\arrayh);
+            }
+            \fi
+            \draw[stealth-] (4*\sharingarraywmult*\i*\counterw-2*\sharingarraywmult*\counterw,2*\treelevelsep+2*\arrayh) -- (4*\sharingarraywmult*\i*\counterw-0.5*2*\sharingarraywmult*\counterw,\treelevelsep+2*\arrayh);
+        }
+        \draw (\sharingarraywmult*\arrayw/2-\fragmentw,3*\treelevelsep+3*\arrayh) rectangle (\sharingarraywmult*\arrayw/2+\fragmentw,3*\treelevelsep+4*\arrayh);
+        \draw[stealth-] (\sharingarraywmult*\arrayw/2-\fragmentw/3,3*\treelevelsep+3*\arrayh) -- (\sharingarraywmult*\arrayw/4,2*\treelevelsep+3*\arrayh);
+        \draw[stealth-] (\sharingarraywmult*\arrayw/2+\fragmentw/3,3*\treelevelsep+3*\arrayh) -- (\sharingarraywmult*\arrayw/4*3,2*\treelevelsep+3*\arrayh);
+
+        \def\counterarray{{0,10,20,30,40,50,40,60,24}}
+        \foreach \i in {1, ..., \countercount} {
+            \pgfmathparse{\counterarray[\i]}
+            \let\countervalue\pgfmathresult
+            \node[inner sep=0pt] at (\sharingarraywmult*\i*\counterw-\sharingarraywmult*\counterw/2,\arrayh/2) {\footnotesize \countervalue};
+        }
+        \def\counterarray{{0,3,1,0,0}}
+        \foreach \i in {1, ..., 4} {
+            \pgfmathparse{\counterarray[\i]}
+            \let\countervalue\pgfmathresult
+            \ifnum \i = 3 {
+            }
+            \else {
+                \node[inner sep=0pt] at (2*\sharingarraywmult*\i*\counterw-\sharingarraywmult*\counterw,\treelevelsep+1.5*\arrayh) {\footnotesize \countervalue};
+            }
+            \fi
+        }
+        \def\counterarray{{0,2,1}}
+        \foreach \i in {1, ..., 2} {
+            \pgfmathparse{\counterarray[\i]}
+            \let\countervalue\pgfmathresult
+            \node[inner sep=0pt] at (4*\sharingarraywmult*\i*\counterw-2*\sharingarraywmult*\counterw,2*\treelevelsep+2.5*\arrayh) {\footnotesize \countervalue};
+        }
+        \node[inner sep=0pt] at (\sharingarraywmult*\arrayw/2+0.025,3*\treelevelsep+3.5*\arrayh) {\footnotesize $\dots$};
+
+        \def\labely{4*\treelevelsep+4*\arrayh}
+        \node[inner sep=0pt] (sharing_label) at (\sharingarraywmult*\arrayw/2,\labely) {\small Counter Sharing};
+
+        % Counter Merging
+        \def\mergingoffx{\sharingarraywmult*\arrayw+\methodsep}
+        \def\mergingarraywmult{1}
+        \draw (\mergingoffx,0) rectangle (\mergingoffx+\mergingarraywmult*\arrayw,\arrayh);
+        \foreach \i in {2, ..., \countercount} {
+            \ifnum \i = 5 {
+                \draw (\mergingoffx+\mergingarraywmult*\i*\counterw-\mergingarraywmult*\counterw,0) -- (\mergingoffx+\mergingarraywmult*\i*\counterw-\mergingarraywmult*\counterw,\arrayh);
+            }
+            \else \ifnum \i = 6 {
+                \draw (\mergingoffx+\mergingarraywmult*\i*\counterw-\mergingarraywmult*\counterw,0) -- (\mergingoffx+\mergingarraywmult*\i*\counterw-\mergingarraywmult*\counterw,\arrayh);
+            }
+            \else \ifnum \i = 7 {
+                \draw (\mergingoffx+\mergingarraywmult*\i*\counterw-\mergingarraywmult*\counterw,0) -- (\mergingoffx+\mergingarraywmult*\i*\counterw-\mergingarraywmult*\counterw,\arrayh);
+            }
+            \else {
+                %\draw[densely dotted] (\mergingoffx+\mergingarraywmult*\i*\counterw-\mergingarraywmult*\counterw,0) -- (\mergingoffx+\mergingarraywmult*\i*\counterw-\mergingarraywmult*\counterw,\arrayh);
+            }
+            \fi \fi \fi
+        }
+        \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt}] (\mergingoffx,\arrayh) -- (\mergingoffx+4*\mergingarraywmult*\counterw,\arrayh)
+            node[pos=0.5,above=4pt,inner sep=1pt] {\small Merged};
+        \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt}] (\mergingoffx+6*\mergingarraywmult*\counterw,\arrayh) -- (\mergingoffx+8*\mergingarraywmult*\counterw,\arrayh)
+            node[pos=0.5,above=4pt,inner sep=1pt] {\small Merged};
+        \node[inner sep=0pt] at (\mergingoffx+2*\mergingarraywmult*\counterw,\arrayh/2) {\footnotesize 19000140};
+        \node[inner sep=0pt] at (\mergingoffx+4.5*\mergingarraywmult*\counterw,\arrayh/2) {\footnotesize 50};
+        \node[inner sep=0pt] at (\mergingoffx+5.5*\mergingarraywmult*\counterw,\arrayh/2) {\footnotesize 40};
+        \node[inner sep=0pt] at (\mergingoffx+7*\mergingarraywmult*\counterw,\arrayh/2) {\footnotesize 1300};
+
+        \node[inner sep=0pt] (merging_label) at (\mergingoffx+\mergingarraywmult*\arrayw/2,\labely) {\small Counter Merging};
+
+        % CMS
+        \def\cmsmidx{\sharingarraywmult*\arrayw/2+\methodsep/2+\mergingarraywmult*\arrayw/2}
+        \def\cmsarraywmult{1.85}
+        \def\cmsoffx{\cmsmidx-\cmsarraywmult*\arrayw/2}
+        \def\cmsoffy{-0.75}
+        \draw (\cmsoffx,\cmsoffy) rectangle (\cmsoffx+\cmsarraywmult*\arrayw,\cmsoffy+\arrayh);
+        \foreach \i in {2, ..., \countercount} {
+            \draw (\cmsoffx+\cmsarraywmult*\i*\counterw-\cmsarraywmult*\counterw,\cmsoffy) -- (\cmsoffx+\cmsarraywmult*\i*\counterw-\cmsarraywmult*\counterw,\cmsoffy+\arrayh);
+        }
+        \def\counterarray{{0,19000010,20,70,40,50,40,700,600}}
+        \foreach \i in {1, ..., \countercount} {
+            \pgfmathparse{\counterarray[\i]}
+            \let\countervalue\pgfmathresult
+            \ifnum \i = 1 {
+                \node[inner sep=0pt] at (\cmsoffx+\cmsarraywmult*\i*\counterw-\cmsarraywmult*\counterw/2,\cmsoffy+\arrayh/2) {\scriptsize \countervalue};
+            }
+            \else {
+                \node[inner sep=0pt] at (\cmsoffx+\cmsarraywmult*\i*\counterw-\cmsarraywmult*\counterw/2,\cmsoffy+\arrayh/2) {\footnotesize \countervalue};
+            }
+            \fi
+        }
+
+        \def\labely{\cmsoffy-0.25}
+        \node[inner sep=0pt] (cms_label) at (\cmsoffx+\cmsarraywmult*\arrayw/2,\labely) {\small CMS};
+        \draw[-stealth] (\cmsoffx+\cmsarraywmult*\arrayw/4,\cmsoffy+1.5*\arrayh) -- (\sharingarraywmult*\arrayw/2,-0.5*\arrayh);
+        \draw[-stealth] (\cmsoffx+\cmsarraywmult*\arrayw/4*2.75,\cmsoffy+1.5*\arrayh) -- (\mergingoffx+\mergingarraywmult*\arrayw/2,-0.5*\arrayh);
+    \end{tikzpicture}
+    \caption{Counter sharing and counter merging encode each counter in CMS
+    using~8 bits on average.}
+    \label{fig:counter_sharing_merging}
+\end{figure}
+
+% This is because the estimates of infrequent keys blowing up due to sharing a counter fragment with a frequent key.
+
+To address the accuracy degradation of counter sharing, a different approach
+merges adjacent overflowing counters into a longer counter that sums up the
+original values~\cite{SALSA}. Similarly to counter sharing, merging counters
+blows up the estimation error. Unlike counter sharing, after~$N$ insertions,
+each counter will be merged with~$\Theta(\log (N/\text{\# Counters}))$ other
+counters, increasing the error by an exponentially smaller factor. Moreover,
+merging only continues until the counters become the same length as those of
+CMS, at which point the error blow-up stops and the sketch's configuration
+mimics that of CMS. Counter merging entails a relatively high metadata
+overhead, which leaves less space for storing counters. This makes it less
+accurate than counter-sharing methods when the stream is short, and less
+accurate than CMS when the stream is long, as shown in
+\Cref{fig:counter_sharing_deterioration}. Parsing this metadata is also
+complex, significantly hampering performance.
+
+Deletions deteriorate the accuracy of both counter-sharing and counter-merging
+methods since these techniques ambiguate how counters should be ``separated''
+as they decrease. 
+
+\textbf{Challenge 2: Unbounded Growth.}
+In many streaming applications, the data stream grows continuously, and it is
+imperative to estimate the count of each key from the stream's beginning. For
+instance, query optimizers often track the number of times each key occurs in a
+table column to estimate the size of a join on that
+column~\cite{Compass,QueryOptimizationSketches,ConvolutionSketch}. As new data
+is inserted, the total number of keys~$N$ increases. Yet, the full count
+history of each key is still needed, since every occurrence contributes equally
+to the join size regardless of when it arrived.
+
+Unbounded stream growth is also a challenge for applications that only require
+key counts over recent time windows. For example, network management systems
+detect anomalous or malicious activity by counting packets from each source
+within fixed time
+windows~\cite{SketchBasedChangeDetection,WhatsNew,TrafficManagementSurvey}.
+With bursty streams such as network traffic, the number of keys~$N$ in each
+window is unpredictable.
+
+In existing frequency estimation sketches, the number of counters~$w$ is fixed
+at allocation time. Consequently, the error rate degrades linearly with~$N$
+(e.g., $N/w$ in the case of CMS). This forces practitioners to tune~$w$ without
+knowledge of the final stream length, hoping to balance accuracy and the memory
+footprint. Having too few counters leads to significant errors, while having
+too many wastes memory. Deletions make the problem more challenging by
+causing~$N$ to fluctuate over time. Worse yet, even if the ultimate stream
+length is known upfront, allocating a large CMS from the start wastes memory
+during the early stages when the stream is short. 
+
 \begin{figure}
     \centering
     \begin{tikzpicture}
@@ -390,7 +594,7 @@ decompression overhead on queries.
         % Axes
         \draw[thick,-stealth] (\ox-\ooverlen,\oy) -- (\ox+\xaxislength,\oy);
         \draw[thick,-stealth] (\ox,\oy-\ooverlen) -- (\ox,\oy+\yaxislength);
-        \node[inner sep=0pt,align=center] (x_label) at (\ox+\xaxislength/2,\oy-0.8) {\small $N$};
+        \node[inner sep=0pt,align=center] (x_label) at (\ox+\xaxislength/2,\oy-0.8) {\small Total Key Count~$N$};
         \node[inner sep=0pt,rotate=90] (y_label) at (\ox-1.30,\oy+\yaxislength/2) {\small Error};
 
         % CMS
@@ -458,75 +662,6 @@ decompression overhead on queries.
     can lead to lower accuracy when processing a growing stream.}
     \label{fig:counter_sharing_deterioration}
 \end{figure}
-
-Yet another approach is to use short counters upfront and store the overflowing
-bits of groups of adjacent counters in shared counter
-fragments~\cite{BitSense,PyramidSketch,StingySketch,AdaptiveCounterSplicing,CounterTree,TreeSensing}.
-If multiple counters in a group overflow, the shared counter fragments sum
-their higher-order bits. When counter fragments overflow, they are grouped, and
-their overflowing bits are recursively stored in other shared counter
-fragments. Such a counter-sharing procedure blows up the estimates of
-infrequent keys whose counters share a fragment with the counter of a frequent
-key. While counter sharing yields state-of-the-art accuracy and performance
-when the stream is short, its error rapidly deteriorates as the stream grows.
-In particular, after~$N$ insertions, each counter will overflow
-into~$\Theta(\log (N/\text{\# Counters}))$ shared fragments. This leads each
-counter to share fragments with~$\Theta(N/\text{\# Counters})$ other counters,
-blowing up the estimation error by the same factor.
-\Cref{fig:counter_sharing_deterioration} illustrates the qualitative effects of
-counter sharing on the error as the stream grows. Here, we compare a CMS with
-arrays of~$w$, $b$-bit counters to counter-sharing methods that use~8 bits on
-average to encode each counter. We equalize the memory footprint of
-counter-sharing methods with CMS by allowing them more counters by a factor
-of~$\frac{b}{8}$. As shown, counter sharing significantly degrades CMS's
-accuracy in the long run.
-
-To address the accuracy degradation of counter sharing, a different approach
-merges adjacent overflowing counters into a longer counter that sums up the
-original values~\cite{SALSA}. Similarly to counter sharing, merging counters
-blows up the estimation error. Unlike counter sharing, after~$N$ insertions,
-each counter will be merged with~$\Theta(\log (N/\text{\# Counters}))$ other
-counters, increasing the error by an exponentially smaller factor. Moreover,
-merging only continues until the counters become the same length as those of
-CMS, at which point the error blow-up stops and the sketch's configuration
-mimics that of CMS. Counter merging entails a relatively high metadata
-overhead, which leaves less space for storing counters. This makes it less
-accurate than counter-sharing methods when the stream is short, and less
-accurate than CMS when the stream is long, as shown in
-\Cref{fig:counter_sharing_deterioration}. Parsing this metadata is also
-complex, significantly hampering performance.
-
-Deletions deteriorate the accuracy of both counter-sharing and counter-merging
-methods since these techniques ambiguate how counters should be ``separated''
-as they decrease. 
-
-\textbf{Challenge 2: Unbounded Growth.}
-In many streaming applications, the data stream grows continuously, and it is
-imperative to estimate the count of each key from the stream's beginning. For
-instance, query optimizers often track the number of times each key occurs in a
-table column to estimate the size of a join on that
-column~\cite{Compass,QueryOptimizationSketches,ConvolutionSketch}. As new data
-is inserted, the total number of keys~$N$ increases. Yet, the full count
-history of each key is still needed, since every occurrence contributes equally
-to the join size regardless of when it arrived.
-
-Unbounded stream growth is also a challenge for applications that only require
-key counts over recent time windows. For example, network management systems
-detect anomalous or malicious activity by counting packets from each source
-within fixed time
-windows~\cite{SketchBasedChangeDetection,WhatsNew,TrafficManagementSurvey}.
-With bursty streams such as network traffic, the number of keys~$N$ in each
-window is unpredictable.
-
-In existing frequency estimation sketches, the number of counters~$w$ is fixed
-at allocation time. Consequently, the error rate degrades linearly with~$N$
-(e.g., $N/w$ in the case of CMS). This forces practitioners to tune~$w$ without
-knowledge of the final stream length, hoping to balance accuracy and the memory
-footprint. Having too few counters leads to significant errors, while having
-too many wastes memory. Deletions make the problem more challenging by
-causing~$N$ to fluctuate over time. Worse yet, even if the ultimate stream
-length is known upfront, allocating a large CMS from the start wastes memory
-during the early stages when the stream is short. 
 
 \textbf{Summary.}
 An ideal frequency estimation sketch should: 1)~succinctly encode counter
@@ -913,7 +1048,7 @@ evaluates~$\texttt{select}(1,$~delimiters$)=9$ to conclude that the target
 extension ends at the~9th bit.
 
 \textbf{Tails.}
-In the rare event that many hot keys hash to the same chunk, many of the
+In the rare event that many heavy hitters hash to the same chunk, many of the
 chunk's counters will overflow, potentially growing the cumulative length of
 the extensions beyond the size of the chunk. \sketchcms handles this case by
 allocating an external array of 32-bit integers called \emph{Tails} for the
@@ -1671,7 +1806,7 @@ returns the median estimate, as shown in \Cref{fig:cs_overview}. This improves
 confidence since severe errors are unlikely to occur for enough experiments to
 affect the median. CS takes the median instead of the mean to improve
 robustness to outlier estimates. With~$d$ arrays with~$w$ counters each, CS
-guarantees an error bound of at most~$\sqrt{\frac{e \cdot \sum_{y}
+guarantees an error bound of at most~$e \cdot \sqrt{\frac{\sum_{y}
 (f(y))^2}{w}}$ with a confidence of~$1-e^{-d}$, i.e., $\Pr\left(
 |\hat{f}(x)-f(x)| \leq \sqrt{\frac{e \cdot \sum_{y} (f(y))^2}{w}} \right) \geq
 1-e^{-d}$ for any key~$x$. The error term above is smaller than CMS's error
@@ -1736,11 +1871,11 @@ growth to~$O(\sqrt{N})$ (vs.~$N$) when the summands are small.
 
 \subsection{Generalization to Misra-Gries}\label{sec:mg}
 \textbf{Misra-Gries (MG).}
-As skew increases, using dedicated counters to track the hottest keys yields
-higher accuracy for the same memory compared to hashing them into a counter
-array. MG applies this insight to provide more accurate estimates under skewed
-workloads. The third row of \Cref{tab:classic_sketch_stats} summarizes the
-properties of MG and compares it to CMS and CS.
+As skew increases, using dedicated counters to track the most frequent keys
+yields higher accuracy for the same memory compared to hashing them into a
+counter array. MG applies this insight to provide more accurate estimates under
+skewed workloads. The third row of \Cref{tab:classic_sketch_stats} summarizes
+the properties of MG and compares it to CMS and CS.
 
 \begin{figure}
     \centering
@@ -1791,7 +1926,7 @@ properties of MG and compares it to CMS and CS.
 
         %\node[inner sep=0pt,anchor=west] at (-3.2*\cellw,5.25*\arrayh) {\textbf{C) MG}};
     \end{tikzpicture}
-    \caption{MG uses dedicated counters to track hot items.}
+    \caption{MG uses dedicated counters to track frequent keys.}
     \label{fig:mg_overview}
 \end{figure}
 
@@ -1804,11 +1939,12 @@ slot. If it does, MG increments~$x$'s counter. If not, and the array has an
 empty slot, MG stores~$x$ in it with a count of~$1$. If~$x$ is not in the array
 and the array is full, MG decrements all counters and discards any keys whose
 counters become zero. Such keys are unlikely to be among the most frequent and
-their slots are better used for tracking hotter keys. Note that~$x$ is not
-stored in the newly emptied slots and is only stored if it is inserted when
+their slots are better used for tracking more frequent keys. Note that~$x$ is
+not stored in the newly emptied slots and is only stored if it is inserted when
 some slot is already empty. MG does not support deletions. This is because it
-lacks information about the untracked keys, which may become hot after the
-currently hot keys are deleted, thereby failing to place them in its array.
+lacks information about the untracked keys, which may become the heavy hitters
+after the current heavy hitters are deleted, thereby failing to place them in
+its array.
 
 Having more slots in the array allows MG to track more keys without discarding
 them, leading to more accurate estimates. Since MG is a deterministic data
@@ -1816,8 +1952,8 @@ structure that does not use hashing, unlike CMS and CS, it does not suffer from
 hash collisions, and its estimations have full confidence. Using an array
 of~$w$ slots, MG estimates the frequency of any key with an error of at
 most~$\frac{N}{w}$, i.e., $|\hat{f}(x)-f(x)| \leq \frac{N}{w}$ for any key~$x$.
-Since it uses dedicated counters for the hot keys, it also provides a strong
-``\emph{Tail Guarantee},'' stating that the error for any key is at
+Since it uses dedicated counters for the heavy hitters, it also provides a
+strong ``\emph{Tail Guarantee},'' stating that the error for any key is at
 most~$\min_{1 \leq i \leq w} \frac{N^{\text{res}(i)}}{w-i+1}$, where
 $N^{\text{res}(i)}$ is the total frequency of all keys not among the top~$i$.
 Note that~$N^{\text{res}(i)}$ is much smaller than~$N$ when the data is skewed.
@@ -1904,7 +2040,7 @@ distribution to control the skew of the data. We evaluate the \emph{Average
 Absolute Error (AAE)} for each sketch by querying each key in the stream,
 computing the abosulte difference of estimate from the ground-truth, and
 averaging the results.
-%We also measure \emph{Top-$w$ AAE} by computing the AAE over the~$w$ hottest keys.
+%We also measure \emph{Top-$w$ AAE} by computing the AAE over the~$w$ most frequent keys.
 
 \Cref{fig:classic_comparison} plots these results. As shown in the left
 subfigure, CS beats the others under less skew, as the updates of keys with
