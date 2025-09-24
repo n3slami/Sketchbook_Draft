@@ -344,10 +344,10 @@ stream's gradual growth over time.
 \textbf{Challenge 1: Skew.}
 With uniform workloads, most counters in CMS take on similar values. In
 contrast, under skewed workloads with a few heavy hitters, most counter values
-remain small while only a few grow large. Because CMS relies on uniformly-sized
+remain small while only a few grow large. Because CMS relies on uniformly sized
 counters that must be sufficiently long to store the maximum counter value, it
-wastes substantial memory allocating excessive bits to the many counters with
-small values. Ideally, each counter should be just long enough to fit its
+wastes substantial memory by allocating excessive bits to the many counters
+with small values. Ideally, each counter should be just long enough to fit its
 value, thereby saving space or allowing more counters to improve accuracy.
 
 A common strategy for tackling this problem is to track the heavy hitters
@@ -369,23 +369,19 @@ peeling~\cite{CodingSketch}. However, these methods impose a heavy
 decompression overhead on queries.
 
 Yet another approach is to use short counters upfront and store their overflows
-in a hierarchy of shared counter
-fragments~\cite{BitSense,PyramidSketch,StingySketch,AdaptiveCounterSplicing,CounterTree,TreeSensing},
-as illustrated in \Cref{fig:counter_sharing_merging}.
-Each 
-of its children. While counter sharing yields state-of-the-art accuracy and
+in a hierarchy of shared, 2{\nobreakdash-}bit
+counters~\cite{BitSense,PyramidSketch,StingySketch,AdaptiveCounterSplicing,CounterTree,TreeSensing},
+as illustrated in \Cref{fig:counter_sharing_merging}. Each counter in this
+hierarchy sums the overflows of its children while pushing its own overflows to
+its parent. While counter sharing yields state-of-the-art accuracy and
 performance when the stream is short, its error rapidly deteriorates as the
-stream grows. In particular, after~$N$ insertions, each counter will overflow
-into~$\Theta(\log (N/\text{\# Counters}))$ fragments. This leads each counter
-to share fragments with~$\Theta(N/\text{\# Counters})$ other counters, blowing
-up the estimation error by the same factor.
-\Cref{fig:counter_sharing_deterioration} illustrates the qualitative effects of
-counter sharing on the error as the stream grows. Here, we compare a CMS with
-arrays of~$w$, $b$-bit counters to counter-sharing methods that use~8 bits on
-average to encode each counter. We equalize the memory footprint of
-counter-sharing methods with CMS by allowing them more counters by a factor
-of~$\frac{b}{8}$. As shown, counter sharing significantly degrades CMS's
-accuracy in the long run.
+stream grows. In particular, after inserting~$N$ keys into an array of
+size~$w$, each counter will overflow into the~$\Theta(\log (N/w))$ levels above
+it, blowing up the estimates of~$\Theta(N/w)$ other counters. Thus, the
+estimation error increases by a factor of~$\Theta(N/w)$.
+\Cref{fig:counter_sharing_deterioration} qualitatively compares counter sharing
+to CMS to illustrate this error blow-up as the stream grows. We equalize the
+space of counter sharing with CMS by allowing it~$4\times$ more counters.
 
 \begin{figure}
     \centering
@@ -481,9 +477,9 @@ accuracy in the long run.
             \fi \fi \fi
         }
         \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt}] (\mergingoffx,\arrayh) -- (\mergingoffx+4*\mergingarraywmult*\counterw,\arrayh)
-            node[pos=0.5,above=4pt,inner sep=1pt] {\small Merged};
+            node[pos=0.5,above=4pt,inner sep=1pt] {\footnotesize Merged};
         \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt}] (\mergingoffx+6*\mergingarraywmult*\counterw,\arrayh) -- (\mergingoffx+8*\mergingarraywmult*\counterw,\arrayh)
-            node[pos=0.5,above=4pt,inner sep=1pt] {\small Merged};
+            node[pos=0.5,above=4pt,inner sep=1pt] {\footnotesize Merged};
         \node[inner sep=0pt] at (\mergingoffx+2*\mergingarraywmult*\counterw,\arrayh/2) {\footnotesize 19000140};
         \node[inner sep=0pt] at (\mergingoffx+4.5*\mergingarraywmult*\counterw,\arrayh/2) {\footnotesize 50};
         \node[inner sep=0pt] at (\mergingoffx+5.5*\mergingarraywmult*\counterw,\arrayh/2) {\footnotesize 40};
@@ -523,22 +519,17 @@ accuracy in the long run.
     \label{fig:counter_sharing_merging}
 \end{figure}
 
-% This is because the estimates of infrequent keys blowing up due to sharing a counter fragment with a frequent key.
-
-To address the accuracy degradation of counter sharing, a different approach
-merges adjacent overflowing counters into a longer counter that sums up the
-original values~\cite{SALSA}. Similarly to counter sharing, merging counters
-blows up the estimation error. Unlike counter sharing, after~$N$ insertions,
-each counter will be merged with~$\Theta(\log (N/\text{\# Counters}))$ other
-counters, increasing the error by an exponentially smaller factor. Moreover,
-merging only continues until the counters become the same length as those of
-CMS, at which point the error blow-up stops and the sketch's configuration
-mimics that of CMS. Counter merging entails a relatively high metadata
-overhead, which leaves less space for storing counters. This makes it less
-accurate than counter-sharing methods when the stream is short, and less
-accurate than CMS when the stream is long, as shown in
-\Cref{fig:counter_sharing_deterioration}. Parsing this metadata is also
-complex, significantly hampering performance.
+A different approach is to merge adjacent overflowing short counters into a
+longer counter that sums up the original values~\cite{SALSA}, as shown in
+\Cref{fig:counter_sharing_merging}. After~$N$ insertions into an array of~$w$
+counters, each counter will be merged with~$\Theta(\log (N/w))$ other counters,
+increasing the error by the same factor -- exponentially better than counter
+sharing. Merging only continues until the counters become the same length as
+those of CMS, at which point error degradation stops. Counter merging has a
+higher metadata overhead than counter sharing, making it less accurate for
+short streams, as shown in \Cref{fig:counter_sharing_deterioration}. This
+overhead also leads to lower accuracy than CMS for long streams. Parsing this
+metadata is also complex and slow.
 
 Deletions deteriorate the accuracy of both counter-sharing and counter-merging
 methods since these techniques ambiguate how counters should be ``separated''
@@ -594,8 +585,8 @@ during the early stages when the stream is short.
         % Axes
         \draw[thick,-stealth] (\ox-\ooverlen,\oy) -- (\ox+\xaxislength,\oy);
         \draw[thick,-stealth] (\ox,\oy-\ooverlen) -- (\ox,\oy+\yaxislength);
-        \node[inner sep=0pt,align=center] (x_label) at (\ox+\xaxislength/2,\oy-0.8) {\small Total Key Count~$N$};
-        \node[inner sep=0pt,rotate=90] (y_label) at (\ox-1.30,\oy+\yaxislength/2) {\small Error};
+        \node[inner sep=0pt,align=center] (x_label) at (\ox+\xaxislength/2,\oy-0.6) {\small Total Key Count~$N$};
+        \node[inner sep=0pt,rotate=90] (y_label) at (\ox-1.00,\oy+\yaxislength/2) {\small Error};
 
         % CMS
         \node[inner sep=1pt,circle,fill=black] (start) at (\ox,\oy) {};
@@ -614,7 +605,7 @@ during the early stages when the stream is short.
 
         \node[inner sep=1pt,circle,fill=black] (counter_sharing_end) at (\ox+\xkk*\xaxislength,\oy+\pkk*\yaxislength) {};
         \draw[dashed] plot[hobby] coordinates { (start) (\ox+0.13*\xaxislength,\oy+0.025*\yaxislength) (counter_sharing_intersection) (counter_sharing_end) };
-        \node[inner sep=0pt,below=0.60 of cms_label.south west,anchor=west,align=left] (counter_sharing_label) {\footnotesize Counter Sharing \\[-1pt] \footnotesize Error~$={\scriptstyle \Theta\left( \min\left( \frac{8N}{bw}, \frac{bw}{8} \right) \cdot \frac{8}{b} \cdot \frac{N}{w} \right)}$};
+        \node[inner sep=0pt,below=0.60 of cms_label.south west,anchor=west,align=left] (counter_sharing_label) {\footnotesize Counter Sharing \\[-1pt] \footnotesize Error~$={\scriptstyle \Theta\left( \min\left( \frac{N}{w}, w \right) \cdot \frac{N}{w} \right)}$};
 
         \node[inner sep=1pt,circle,fill=black] (counter_sharing_legend_start) at (\labellinex,\labelliney-\labellineydiffcountersharing) {};
         \node[inner sep=1pt,circle,fill=black] (counter_sharing_legend_end) at (\labellinex+\labellinelen,\labelliney-\labellineydiffcountersharing) {};
@@ -630,7 +621,7 @@ during the early stages when the stream is short.
         \draw[dash pattern={on \longdashlen off \dashsep on \shortdashlen off \dashsep}] plot[hobby] coordinates { (start) (\ox+0.15*\xaxislength,\oy+0.050*\yaxislength) (counter_merging_intersection) };
         \node[inner sep=1pt,circle,fill=black] (counter_merging_end) at (\ox+\xkk*\xaxislength,\oy+\pkk*\yaxislength/\w*1.1) {};
         \draw[dash pattern={on \longdashlen off \dashsep on \shortdashlen off \dashsep}] (counter_merging_intersection) -- (counter_merging_end);
-        \node[inner sep=0pt,below=0.60 of counter_sharing_label.south west,anchor=west,align=left] (counter_merging_label) {\footnotesize Counter Merging \\[-1pt] \footnotesize Error~$={\scriptstyle \Theta\left( \min\left( \log \frac{8N}{bw}, b \right) \cdot \frac{8}{b} \cdot \frac{N}{w} \right)}$};
+        \node[inner sep=0pt,below=0.60 of counter_sharing_label.south west,anchor=west,align=left] (counter_merging_label) {\footnotesize Counter Merging \\[-1pt] \footnotesize Error~$={\scriptstyle \Theta\left( \min\left( \log \frac{N}{w}, 32 \right) \cdot \frac{N}{w} \right)}$};
 
         \node[inner sep=1pt,circle,fill=black] (counter_merging_start) at (\labellinex,\labelliney-\labellineydiffcountermerging) {};
         \node[inner sep=1pt,circle,fill=black] (counter_merging_end) at (\labellinex+\labellinelen,\labelliney-\labellineydiffcountermerging) {};
@@ -638,36 +629,37 @@ during the early stages when the stream is short.
 
         % Focal Points and Lines
         \draw[densely dotted] (\ox,\oy+\pkk*\yaxislength/\w) -- (cms_end);
-        \node[inner sep=2pt,anchor=east] (y_cms_end_label) at (\ox,\oy+\pkk*\yaxislength/\w) {\footnotesize $\scriptstyle 2^b$};
+        \node[inner sep=2pt,anchor=east] (y_cms_end_label) at (\ox,\oy+\pkk*\yaxislength/\w) {\footnotesize $\scriptstyle 2^{32}$};
 
         \draw[densely dotted] (\ox+\pkk*\xaxislength,\oy) -- (counter_sharing_end);
-        \node[inner sep=3pt,anchor=north] (x_end_label) at (\ox+\pkk*\xaxislength,\oy) {\footnotesize $\scriptstyle w \cdot 2^b$};
+        \node[inner sep=3pt,anchor=north] (x_end_label) at (\ox+\pkk*\xaxislength,\oy) {\footnotesize $\scriptstyle w \cdot 2^{32}$};
 
         \draw[densely dotted] (\ox,\oy+\pkk*\yaxislength) -- (counter_sharing_end);
-        \node[inner sep=2pt,anchor=east] (y_counter_sharing_label) at (\ox,\oy+\pkk*\yaxislength) {\footnotesize $\scriptstyle \Theta(w \cdot 2^b)$};
+        \node[inner sep=2pt,anchor=east] (y_counter_sharing_label) at (\ox,\oy+\pkk*\yaxislength) {\footnotesize $\scriptstyle \approx w \cdot 2^{32}$};
 
         \draw[densely dotted] (\countersharingintersectionx,\oy) -- (counter_sharing_intersection);
-        \node[inner sep=3pt,anchor=north] (x_counter_sharing_intersection_label) at (\countersharingintersectionx,\oy) {\footnotesize $\scriptstyle \Theta\left( \frac{b^2 \cdot w}{8^2} \right)$};
+        \node[inner sep=4.25pt,anchor=north] (x_counter_sharing_intersection_label) at (\countersharingintersectionx,\oy) {\footnotesize $\scriptstyle \Theta(w)$};
 
         \draw[densely dotted] (\ox,\countersharingintersectiony) -- (counter_sharing_intersection);
-        \node[inner sep=2pt,anchor=east] (y_counter_sharing_intersection_label) at (\ox,\countersharingintersectiony) {\footnotesize $\scriptstyle \Theta(b^2 / 8^2)$};
+        \node[inner sep=2pt,anchor=east] (y_counter_sharing_intersection_label) at (\ox,\countersharingintersectiony) {\footnotesize $\scriptstyle \Theta(1)$};
 
         \draw[densely dotted] (\countermergingintersectionx,\oy) -- (counter_merging_intersection);
-        \node[inner sep=3pt,anchor=north] (x_counter_merging_intersection_label) at (\countermergingintersectionx,\oy) {\footnotesize $\scriptstyle \Theta\left( \frac{b w \cdot 2^{b-8}}{8} \right)$};
+        \node[inner sep=3pt,anchor=north] (x_counter_merging_intersection_label) at (\countermergingintersectionx,\oy) {\footnotesize $\scriptstyle \approx w \cdot 2^{24}$};
 
         \draw[densely dotted] (\ox,\countermergingintersectiony) -- (counter_merging_intersection);
-        \node[inner sep=2pt,anchor=east] (y_counter_merging_intersection_label) at (\ox,\countermergingintersectiony) {\footnotesize $\scriptstyle \Theta(b \cdot 2^{b-8} / 8)$};
+        \node[inner sep=2pt,anchor=east] (y_counter_merging_intersection_label) at (\ox,\countermergingintersectiony) {\footnotesize $\scriptstyle \approx 2^{24}$};
     \end{tikzpicture}
-    \caption{Under the same memory budget, counter sharing and counter mering
-    can lead to lower accuracy when processing a growing stream.}
+    \caption{Under the same memory budget as a CMS instance with~32-bit
+    counters, counter sharing and counter mering can lead to lower accuracy
+    when processing a growing stream.}
     \label{fig:counter_sharing_deterioration}
 \end{figure}
 
 \textbf{Summary.}
-An ideal frequency estimation sketch should: 1)~succinctly encode counter
-values without incurring memory waste from skew, 2)~scale its size with the
-stream's length to keep both the memory footprint and the error rate under
-control, 3)~support deletions without sacrificing accuracy, and 4)~provide
+An ideal frequency estimation sketch should: 1)~compactly encode counter values
+without incurring memory waste from skew, 2)~scale its size with the stream's
+length to keep both the memory footprint and the error rate under control,
+3)~support deletions without sacrificing accuracy, and 4)~provide
 high-performance operations. Is it possible to achieve all these goals
 simultaneously?
 
@@ -1239,7 +1231,7 @@ indicated by the first. For example, in the context of
 lies in the 1st word, which has a binary representation of~$111111101010\dots$.
 The second lookup table indicates that this stub starts at the~6th bit in the
 1st word, allowing us to increment it by adding~$000000100000\dots$, thus
-yielding the updated word~$111111011010\dots$.
+yielding~$111111011010\dots$ as the updated word.
 
 \textbf{Optimization~4: Prefetching.}
 We allow multiple chunks to be read in parallel within a single operation as
