@@ -641,7 +641,7 @@ during the early stages when the stream is short.
         \node[inner sep=2pt,anchor=east] (y_counter_merging_intersection_label) at (\ox,\countermergingintersectiony) {\footnotesize $\scriptstyle \approx 2^{24}$};
     \end{tikzpicture}
     \caption{Under the same memory budget as a CMS instance with~32-bit
-    counters, counter sharing and counter mering can lead to lower accuracy
+    counters, counter sharing and counter merging can lead to lower accuracy
     when processing a growing stream.}
     \label{fig:counter_sharing_deterioration}
 \end{figure}
@@ -677,7 +677,7 @@ storing extensions entails a slight metadata overhead. We counteract this
 overhead by choosing the stub length based on the workload’s skew so that more
 counter values fit in their stubs without needing extensions. More precisely,
 we choose the shortest stub length that minimizes the total memory footprint of
-the stubs and the extensions. We maintain this stub length by adaptively
+the stubs and the extensions. We adapt this stub length to the workload by
 reconfiguring it when the total number of overflows exceeds a threshold. To
 improve cache behavior and quickly reconstruct a counter, \sketchcms colocates
 a stub and its corresponding extension in the same cache line. It quickly finds
@@ -1045,10 +1045,25 @@ modern machines. As such, we only store the lower 48 bits of the pointer.})
 when tuning the number of counters per chunk~$c$ and the stub size~$s$. Any
 extra space after the pointer is left unused.
 
-In the next subsection, we show that adaptively tuning the number of counters
-per chunk~$c$ and the stub length~$s$ ensures extensions rarely outgrow their
-chunks. This drastically reduces the number of tails arrays, making their
-memory overhead negligible.
+\textbf{Adaptive Tuning.}
+Whenever more than~$1\%$ of the chunks start using tails arrays, \sketchcms
+adapts the tuning of the number of counters per chunk~$c$ and the stub
+length~$s$ to minimize the memory footprint. It does this by scanning the
+entire sketch and computing the number of counter values of each binary length.
+It uses this summary to calculate the expected total extension length within a
+chunk for a given combination of parameters~$c$ and $s$. It enumerates the
+possible combinations by first varying~$c$ from largest to smallest, trying to
+pack as many counters as possible within each chunk. For each fixed~$c$, it
+enumerates the stub length~$s$ from smallest to largest, aiming to leave the
+largest amount of space for the extensions within a chunk. For each fixed
+combination, it then applies Chebyshev's inequality to the expected total
+extension length to derive a conservative probabilistic bound on the number of
+chunks that will use tails arrays. It chooses the first combination that yields
+a bound smaller than~$0.5\%$. Doing so ensures extensions rarely outgrow their
+chunks, making the memory overhead of the tails arrays negligible. The
+amortized overhead of this tuning process is constant, as many more insertions
+must take place compared to the total number of counters before this process is
+triggered.
 
 \begin{figure}
     \centering
