@@ -168,7 +168,7 @@ statistics (such as the mean, variance, and moments) beforehand~\cite{UnivMon}.
 As MG accurately tracks the frequencies of heavy hitters, many other sketch
 designs use it as a sub-component to reap its benefits. Moreover, because it
 also stores the keys themselves, unlike CMS and CS, it is used to report the
-heavy hitter keys, trending keys, and much
+heavy hitters, trending keys, and much
 more~\cite{BatchUpdateMisraGries,AugmentedSketch,BitMatcher,BubbleSketch,HeavyGuardian,HeavyKeeper,JigsawSketch,MVSketch,SketchVisor,WavingSketch,MicroscopeSketch,PSketch,TightSketch}.
 
 \section{Background}~\label{sec:background}
@@ -356,184 +356,175 @@ CMS~\cite{AugmentedSketch,HeavyKeeper,HeavyGuardian,MVSketch,WavingSketch,Elasti
 Such hybrid structures aim to cap the maximum counter value in CMS, thereby
 permitting shorter counters. Yet, this approach does not fundamentally resolve
 the issue. The keys tracked by CMS may still follow a skewed distribution,
-leading to significant memory wastage due to CMS being the memory bottleneck.
-Moreover, since the number of heavy hitters can vary, the hash table may be too
-small to capture them all. Expanding the hash table to resolve this requires
-identifying the next heavy hitter and ``promoting'' it from CMS into the hash
-table. This promotion step is error-prone, since collisions in CMS can cause
-many infrequent keys to be misclassified as heavy hitters.
+leading to significant memory wastage. Moreover, the heavy hitters can vary
+over time. Identifying the next heavy hitter and ``promoting'' it from CMS into
+the hash table is error-prone, since collisions in CMS can cause many
+infrequent keys to be misclassified as heavy hitters.
 
-An alternative approach is to compress the counters using algorithms such as
-compressive sensing~\cite{TreeSensing,BitSense} or hypergraph
-peeling~\cite{CodingSketch}. However, these methods impose a heavy
-decompression overhead on queries.
+Other approaches compress the counters using algorithms such as compressive
+sensing~\cite{TreeSensing,BitSense} or hypergraph peeling~\cite{CodingSketch}.
+However, these methods impose a heavy decompression overhead on queries.
 
-Yet another approach is to use short counters upfront and store their overflows
-in a hierarchy of shared, 2{\nobreakdash-}bit
-counters~\cite{BitSense,PyramidSketch,StingySketch,AdaptiveCounterSplicing,CounterTree,TreeSensing},
-as illustrated in \Cref{fig:counter_sharing_merging}. Each counter in this
-hierarchy sums the overflows of its children while pushing its own overflows to
-its parent. While counter sharing yields state-of-the-art accuracy and
-performance when the stream is short, its error rapidly deteriorates as the
-stream grows. In particular, after inserting~$N$ keys into an array of
-size~$w$, each counter will overflow into the~$\Theta(\log (N/w))$ levels above
-it, blowing up the estimates of~$\Theta(N/w)$ other counters. Thus, the
-estimation error increases by a factor of~$\Theta(N/w)$.
-\Cref{fig:counter_sharing_deterioration} qualitatively compares counter sharing
-to CMS to illustrate this error blow-up as the stream grows. We equalize the
-space of counter sharing with CMS by allowing it~$4\times$ more counters.
+Counter-sharing approaches store the counter values in a hierarchy of counters,
+with the lowest level storing the counter values in 6{\nobreakdash-}bit
+counters and the upper levels handling overflows using shared,
+2{\nobreakdash-}bit
+counters~\cite{BitSense,PyramidSketch,StingySketch,AdaptiveCounterSplicing,CounterTree,TreeSensing}.
+The left side of \Cref{fig:counter_sharing_merging} uses this hierarchy to
+encode a segment of counters within CMS. Whenever a counter in this hierarchy
+overflows, it increments its parent and resets itself back to zero. A counter's
+value is retrieved by concatenating the counters along its path to the root
+until reaching an unincremented counter. While counter sharing yields
+state-of-the-art accuracy and performance for short streams, its error rapidly
+deteriorates as the stream grows. In particular, after~$N$ insertions into an
+array of size~$w$, each counter overflows into the~$\Theta(\log (N/w))$ levels
+above it. This blows up the values of~$\Theta(N/w)$ other counters, increasing
+the estimation error by the same factor.
 
 \begin{figure}
     \centering
     \begin{tikzpicture}
-        \def\arrayw{4}
+        \def\arrayw{3.5}
         \def\arrayh{0.25}
-        \def\methodsep{0.75}
-        \def\countercount{8}
+        \def\methodsep{1.2}
+        \def\offdots{0.25}
+        \def\countercount{4}
         \def\counterw{\arrayw/\countercount}
 
         % Counter Sharing
-        \def\sharingarraywmult{0.75}
+        \def\sharingarraywmult{0.8}
         \def\treelevelsep{0.2}
         \def\fragmentw{\sharingarraywmult*\counterw/2}
-        \draw (0,0) rectangle (\sharingarraywmult*\arrayw,\arrayh);
+        \def\offfragment{\fragmentw/3}
+        \def\currentarrayw{\sharingarraywmult*\arrayw}
+        \def\currentcounterw{\sharingarraywmult*\counterw}
+        \draw (0,0) rectangle (\currentarrayw,\arrayh);
         \foreach \i in {2, ..., \countercount} {
-            \draw (\sharingarraywmult*\i*\counterw-\sharingarraywmult*\counterw,0) -- (\sharingarraywmult*\i*\counterw-\sharingarraywmult*\counterw,\arrayh);
+            \draw (\i*\currentcounterw-\currentcounterw,0) -- (\i*\currentcounterw-\currentcounterw,\arrayh);
         }
-        \node[inner sep=0pt,anchor=east] (shared_label) at (0.5*\sharingarraywmult*\counterw,\treelevelsep+1.5*\arrayh) {\footnotesize Shared};
-        \foreach \i in {1, ..., 4} {
-            \ifnum \i = 3 {
-                \draw[pattern=north east lines,pattern color=gray!50] (2*\sharingarraywmult*\i*\counterw-\sharingarraywmult*\counterw-\fragmentw/2,\treelevelsep+\arrayh) rectangle (2*\sharingarraywmult*\i*\counterw-\sharingarraywmult*\counterw+\fragmentw/2,\treelevelsep+2*\arrayh);
-                \draw (2*\sharingarraywmult*\i*\counterw-\sharingarraywmult*\counterw,\treelevelsep+\arrayh) -- (2*\sharingarraywmult*\i*\counterw-1.5*\sharingarraywmult*\counterw,\arrayh);
-                \draw (2*\sharingarraywmult*\i*\counterw-\sharingarraywmult*\counterw,\treelevelsep+\arrayh) -- (2*\sharingarraywmult*\i*\counterw-0.5*\sharingarraywmult*\counterw,\arrayh);
-            }
-            \else {
-                \draw (2*\sharingarraywmult*\i*\counterw-\sharingarraywmult*\counterw-\fragmentw/2,\treelevelsep+\arrayh) rectangle (2*\sharingarraywmult*\i*\counterw-\sharingarraywmult*\counterw+\fragmentw/2,\treelevelsep+2*\arrayh);
-                \draw[stealth-] (2*\sharingarraywmult*\i*\counterw-\sharingarraywmult*\counterw,\treelevelsep+\arrayh) -- (2*\sharingarraywmult*\i*\counterw-1.5*\sharingarraywmult*\counterw,\arrayh);
-                \draw[stealth-] (2*\sharingarraywmult*\i*\counterw-\sharingarraywmult*\counterw,\treelevelsep+\arrayh) -- (2*\sharingarraywmult*\i*\counterw-0.5*\sharingarraywmult*\counterw,\arrayh);
-            }
-            \fi
-        }
+        \node[inner sep=0pt,anchor=east] (shared_label) at (0.5*\currentcounterw,\treelevelsep+1.5*\arrayh) {\footnotesize Shared};
         \foreach \i in {1, ..., 2} {
-            \draw (4*\sharingarraywmult*\i*\counterw-2*\sharingarraywmult*\counterw-\fragmentw/2,2*\treelevelsep+2*\arrayh) rectangle (4*\sharingarraywmult*\i*\counterw-2*\sharingarraywmult*\counterw+\fragmentw/2,2*\treelevelsep+3*\arrayh);
-            \ifnum \i = 1 {
-                \draw[stealth-] (4*\sharingarraywmult*\i*\counterw-2*\sharingarraywmult*\counterw,2*\treelevelsep+2*\arrayh) -- (4*\sharingarraywmult*\i*\counterw-1.5*2*\sharingarraywmult*\counterw,\treelevelsep+2*\arrayh);
+            \def\countermidx{2*\i*\currentcounterw-\currentcounterw}
+            \ifnum \i = 2 {
+                \draw[pattern=north east lines,pattern color=gray!50] (\countermidx-\fragmentw/2,\treelevelsep+\arrayh) rectangle (\countermidx+\fragmentw/2,\treelevelsep+2*\arrayh);
+                \draw (\countermidx-\offfragment,\treelevelsep+\arrayh) -- (\countermidx-0.5*\currentcounterw,\arrayh);
+                \draw (\countermidx+\offfragment,\treelevelsep+\arrayh) -- (\countermidx+0.5*\currentcounterw,\arrayh);
             }
             \else {
-                \draw (4*\sharingarraywmult*\i*\counterw-2*\sharingarraywmult*\counterw,2*\treelevelsep+2*\arrayh) -- (4*\sharingarraywmult*\i*\counterw-1.5*2*\sharingarraywmult*\counterw,\treelevelsep+2*\arrayh);
+                \draw (\countermidx-\fragmentw/2,\treelevelsep+\arrayh) rectangle (\countermidx+\fragmentw/2,\treelevelsep+2*\arrayh);
+                \draw[stealth-] (\countermidx-\offfragment,\treelevelsep+\arrayh) -- (\countermidx-0.5*\currentcounterw,\arrayh);
+                \draw[stealth-] (\countermidx+\offfragment,\treelevelsep+\arrayh) -- (\countermidx+0.5*\currentcounterw,\arrayh);
             }
             \fi
-            \draw[stealth-] (4*\sharingarraywmult*\i*\counterw-2*\sharingarraywmult*\counterw,2*\treelevelsep+2*\arrayh) -- (4*\sharingarraywmult*\i*\counterw-0.5*2*\sharingarraywmult*\counterw,\treelevelsep+2*\arrayh);
         }
-        \draw (\sharingarraywmult*\arrayw/2-\fragmentw,3*\treelevelsep+3*\arrayh) rectangle (\sharingarraywmult*\arrayw/2+\fragmentw,3*\treelevelsep+4*\arrayh);
-        \draw[stealth-] (\sharingarraywmult*\arrayw/2-\fragmentw/3,3*\treelevelsep+3*\arrayh) -- (\sharingarraywmult*\arrayw/4,2*\treelevelsep+3*\arrayh);
-        \draw[stealth-] (\sharingarraywmult*\arrayw/2+\fragmentw/3,3*\treelevelsep+3*\arrayh) -- (\sharingarraywmult*\arrayw/4*3,2*\treelevelsep+3*\arrayh);
+        \def\countermidx{\currentarrayw/2}
+        \draw (\countermidx-\fragmentw/2,2*\treelevelsep+2*\arrayh) rectangle (\countermidx+\fragmentw/2,2*\treelevelsep+3*\arrayh);
+        \draw[stealth-] (\countermidx-\offfragment,2*\treelevelsep+2*\arrayh) -- (\currentarrayw/4,\treelevelsep+2*\arrayh);
+        \draw (\countermidx+\offfragment,2*\treelevelsep+2*\arrayh) -- (\currentarrayw/4*3,\treelevelsep+2*\arrayh);
 
-        \def\counterarray{{0,10,20,30,40,50,40,60,24}}
+        \node[inner sep=0pt] at (-\offdots,\arrayh/2) {\small $\dots$};
+        \node[inner sep=0pt] at (\currentarrayw+\offdots,\arrayh/2) {\small $\dots$};
+        \def\counterarray{{0,"001101","001001","001000","111000"}}
         \foreach \i in {1, ..., \countercount} {
+            \def\countermidx{\i*\currentcounterw-\currentcounterw/2}
             \pgfmathparse{\counterarray[\i]}
             \let\countervalue\pgfmathresult
-            \node[inner sep=0pt] at (\sharingarraywmult*\i*\counterw-\sharingarraywmult*\counterw/2,\arrayh/2) {\footnotesize \countervalue};
+            \node[inner sep=0pt] at (\countermidx,\arrayh/2) {\scriptsize \countervalue};
         }
-        \def\counterarray{{0,3,1,0,0}}
-        \foreach \i in {1, ..., 4} {
+        \def\counterarray{{0,"01",0}}
+        \foreach \i in {1, ..., 2} {
+            \def\countermidx{2*\i*\currentcounterw-\currentcounterw}
             \pgfmathparse{\counterarray[\i]}
             \let\countervalue\pgfmathresult
-            \ifnum \i = 3 {
+            \ifnum \i = 2 {
             }
             \else {
-                \node[inner sep=0pt] at (2*\sharingarraywmult*\i*\counterw-\sharingarraywmult*\counterw,\treelevelsep+1.5*\arrayh) {\footnotesize \countervalue};
+                \node[inner sep=0pt] at (\countermidx,\treelevelsep+1.5*\arrayh) {\scriptsize \countervalue};
             }
             \fi
         }
-        \def\counterarray{{0,2,1}}
-        \foreach \i in {1, ..., 2} {
-            \pgfmathparse{\counterarray[\i]}
-            \let\countervalue\pgfmathresult
-            \node[inner sep=0pt] at (4*\sharingarraywmult*\i*\counterw-2*\sharingarraywmult*\counterw,2*\treelevelsep+2.5*\arrayh) {\footnotesize \countervalue};
-        }
-        \node[inner sep=0pt] at (\sharingarraywmult*\arrayw/2+0.025,3*\treelevelsep+3.5*\arrayh) {\footnotesize $\dots$};
+        \node[inner sep=0pt] at (\currentarrayw/2,2*\treelevelsep+2.5*\arrayh) {\scriptsize 10};
 
-        \def\labely{4*\treelevelsep+4*\arrayh}
-        \node[inner sep=0pt] (sharing_label) at (\sharingarraywmult*\arrayw/2,\labely) {\small Counter Sharing};
+        \def\labely{3*\treelevelsep+3.25*\arrayh}
+        \node[inner sep=0pt] (sharing_label) at (\currentarrayw/2,\labely) {\small Counter Sharing};
 
         % Counter Merging
         \def\mergingoffx{\sharingarraywmult*\arrayw+\methodsep}
         \def\mergingarraywmult{1}
-        \draw (\mergingoffx,0) rectangle (\mergingoffx+\mergingarraywmult*\arrayw,\arrayh);
+        \def\currentarrayw{\mergingarraywmult*\arrayw}
+        \def\currentcounterw{\mergingarraywmult*\counterw}
+        \draw (\mergingoffx,0) rectangle (\mergingoffx+\currentarrayw,\arrayh);
         \foreach \i in {2, ..., \countercount} {
-            \ifnum \i = 5 {
-                \draw (\mergingoffx+\mergingarraywmult*\i*\counterw-\mergingarraywmult*\counterw,0) -- (\mergingoffx+\mergingarraywmult*\i*\counterw-\mergingarraywmult*\counterw,\arrayh);
+            \ifnum \i = 3 {
+                \draw (\mergingoffx+\i*\currentcounterw-\currentcounterw,0) -- (\mergingoffx+\i*\currentcounterw-\currentcounterw,\arrayh);
             }
-            \else \ifnum \i = 6 {
-                \draw (\mergingoffx+\mergingarraywmult*\i*\counterw-\mergingarraywmult*\counterw,0) -- (\mergingoffx+\mergingarraywmult*\i*\counterw-\mergingarraywmult*\counterw,\arrayh);
+            \else \ifnum \i = 4 {
+                \draw (\mergingoffx+\i*\currentcounterw-\currentcounterw,0) -- (\mergingoffx+\i*\currentcounterw-\currentcounterw,\arrayh);
             }
-            \else \ifnum \i = 7 {
-                \draw (\mergingoffx+\mergingarraywmult*\i*\counterw-\mergingarraywmult*\counterw,0) -- (\mergingoffx+\mergingarraywmult*\i*\counterw-\mergingarraywmult*\counterw,\arrayh);
-            }
-            \else {
-                %\draw[densely dotted] (\mergingoffx+\mergingarraywmult*\i*\counterw-\mergingarraywmult*\counterw,0) -- (\mergingoffx+\mergingarraywmult*\i*\counterw-\mergingarraywmult*\counterw,\arrayh);
-            }
-            \fi \fi \fi
+            \fi \fi
         }
-        \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt}] (\mergingoffx,\arrayh) -- (\mergingoffx+4*\mergingarraywmult*\counterw,\arrayh)
+        \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt}] (\mergingoffx,\arrayh) -- (\mergingoffx+2*\currentcounterw,\arrayh)
             node[pos=0.5,above=4pt,inner sep=1pt] {\footnotesize Merged};
-        \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt}] (\mergingoffx+6*\mergingarraywmult*\counterw,\arrayh) -- (\mergingoffx+8*\mergingarraywmult*\counterw,\arrayh)
-            node[pos=0.5,above=4pt,inner sep=1pt] {\footnotesize Merged};
-        \node[inner sep=0pt] at (\mergingoffx+2*\mergingarraywmult*\counterw,\arrayh/2) {\footnotesize 19000140};
-        \node[inner sep=0pt] at (\mergingoffx+4.5*\mergingarraywmult*\counterw,\arrayh/2) {\footnotesize 50};
-        \node[inner sep=0pt] at (\mergingoffx+5.5*\mergingarraywmult*\counterw,\arrayh/2) {\footnotesize 40};
-        \node[inner sep=0pt] at (\mergingoffx+7*\mergingarraywmult*\counterw,\arrayh/2) {\footnotesize 1300};
+        \node[inner sep=0pt] at (\mergingoffx-\offdots,\arrayh/2) {\small $\dots$};
+        \node[inner sep=0pt] at (\mergingoffx+\currentarrayw+\offdots,\arrayh/2) {\small $\dots$};
+        \node[inner sep=0pt] at (\mergingoffx+\currentcounterw,\arrayh/2) {\scriptsize 0000100110000000};
+        \node[inner sep=0pt] at (\mergingoffx+2.5*\currentcounterw,\arrayh/2) {\scriptsize 00100000};
+        \node[inner sep=0pt] at (\mergingoffx+3.5*\currentcounterw,\arrayh/2) {\scriptsize 11100000};
 
-        \node[inner sep=0pt] (merging_label) at (\mergingoffx+\mergingarraywmult*\arrayw/2,\labely) {\small Counter Merging};
+        \node[inner sep=0pt] (merging_label) at (\mergingoffx+\currentarrayw/2,\labely) {\small Counter Merging};
 
         % CMS
-        \def\cmsmidx{\sharingarraywmult*\arrayw/2+\methodsep/2+\mergingarraywmult*\arrayw/2}
-        \def\cmsarraywmult{1.85}
+        \def\cmsmidx{\sharingarraywmult*\arrayw/2+\methodsep/2+\currentarrayw/2}
+        \def\cmsarraywmult{1.5}
         \def\cmsoffx{\cmsmidx-\cmsarraywmult*\arrayw/2}
         \def\cmsoffy{-0.75}
         \draw (\cmsoffx,\cmsoffy) rectangle (\cmsoffx+\cmsarraywmult*\arrayw,\cmsoffy+\arrayh);
         \foreach \i in {2, ..., \countercount} {
             \draw (\cmsoffx+\cmsarraywmult*\i*\counterw-\cmsarraywmult*\counterw,\cmsoffy) -- (\cmsoffx+\cmsarraywmult*\i*\counterw-\cmsarraywmult*\counterw,\cmsoffy+\arrayh);
         }
-        \def\counterarray{{0,19000010,20,70,40,50,40,700,600}}
+        \node[inner sep=0pt] at (\cmsoffx-\offdots,\cmsoffy+\arrayh/2) {\small $\dots$};
+        \node[inner sep=0pt] at (\cmsoffx+\cmsarraywmult*\arrayw+\offdots,\cmsoffy+\arrayh/2) {\small $\dots$};
+        \def\counterarray{{0,"001101001","001001100","001000000","111000000"}}
         \foreach \i in {1, ..., \countercount} {
             \pgfmathparse{\counterarray[\i]}
             \let\countervalue\pgfmathresult
-            \ifnum \i = 1 {
-                \node[inner sep=0pt] at (\cmsoffx+\cmsarraywmult*\i*\counterw-\cmsarraywmult*\counterw/2,\cmsoffy+\arrayh/2) {\scriptsize \countervalue};
-            }
-            \else {
-                \node[inner sep=0pt] at (\cmsoffx+\cmsarraywmult*\i*\counterw-\cmsarraywmult*\counterw/2,\cmsoffy+\arrayh/2) {\footnotesize \countervalue};
-            }
-            \fi
+            \node[inner sep=0pt] at (\cmsoffx+\cmsarraywmult*\i*\counterw-\cmsarraywmult*\counterw/2,\cmsoffy+\arrayh/2) {\scriptsize \countervalue$\dots$};
         }
 
         \def\labely{\cmsoffy-0.25}
         \node[inner sep=0pt] (cms_label) at (\cmsoffx+\cmsarraywmult*\arrayw/2,\labely) {\small CMS};
         \draw[-stealth] (\cmsoffx+\cmsarraywmult*\arrayw/4,\cmsoffy+1.5*\arrayh) -- (\sharingarraywmult*\arrayw/2,-0.5*\arrayh);
-        \draw[-stealth] (\cmsoffx+\cmsarraywmult*\arrayw/4*2.75,\cmsoffy+1.5*\arrayh) -- (\mergingoffx+\mergingarraywmult*\arrayw/2,-0.5*\arrayh);
+        \draw[-stealth] (\cmsoffx+\cmsarraywmult*\arrayw/4*2.72,\cmsoffy+1.5*\arrayh) -- (\mergingoffx+\mergingarraywmult*\arrayw/2,-0.5*\arrayh);
     \end{tikzpicture}
-    \caption{Counter sharing and counter merging encode each counter in CMS
-    using~8 bits on average.}
+    \caption{Counter sharing and counter merging encode CMS's counters in less
+    space in exchange for blowing up some counter values. Here, the bits in the
+    binary representations are in increasing order of significance from left to
+    right.}
     \label{fig:counter_sharing_merging}
 \end{figure}
 
-A different approach is to merge adjacent overflowing short counters into a
-longer counter that sums up the original values~\cite{SALSA}, as shown in
-\Cref{fig:counter_sharing_merging}. After~$N$ insertions into an array of~$w$
-counters, each counter will be merged with~$\Theta(\log (N/w))$ other counters,
-increasing the error by the same factor -- exponentially better than counter
-sharing. Merging only continues until the counters become the same length as
-those of CMS, at which point error degradation stops. Counter merging has a
-higher metadata overhead than counter sharing, making it less accurate for
-short streams, as shown in \Cref{fig:counter_sharing_deterioration}. This
-overhead also leads to lower accuracy than CMS for long streams. Parsing this
-metadata is also complex and slow.
+Counter-merging methods start with 8-bit counters and merge adjacent
+overflowing counters into a longer counter that sums up the original
+values~\cite{SALSA}. The right side of \Cref{fig:counter_sharing_merging}
+applies this scheme to a segment of CMS. After~$N$ insertions into an array
+of~$w$ counters, each counter will be merged with~$\Theta(\log (N/w))$ other
+counters, increasing the error by the same factor. Merging only continues until
+the counters become the same length as those of CMS, at which point error
+degradation stops. Counter merging has a higher metadata overhead than counter
+sharing for indicating which counters are merged, leaving less space for
+storing counters. Moreover, parsing this metadata is also complex, reducing
+performance.
 
 Deletions deteriorate the accuracy of both counter-sharing and counter-merging
 methods since these techniques ambiguate how counters should be ``separated''
 as they decrease. 
+
+\Cref{fig:counter_sharing_deterioration} qualitatively compares counter sharing
+and counter merging to CMS to illustrate their error degradation with data
+growth. We equalize the memory of these methods with CMS by allowing them more
+counters. While these methods perform well for short streams, their error
+exceeds that of CMS as the stream grows due to their overflow handling policies
+and metadata overhead.
 
 \textbf{Challenge 2: Unbounded Growth.}
 In many streaming applications, the data stream grows continuously, and it is
@@ -680,17 +671,18 @@ Under skew, many counter values in CMS will be small and not use all the bits
 in their counters. To optimize the space used for storing these counter values
 in any workload, \sketchcms generalizes CMS to support variable-length
 counters. It does so by storing the counters as fixed-size integers called
-\emph{Stubs}. It elongates a counter whose value overflows its stub with a
+\emph{Stubs}. When a counter overflows its stub, \sketchcms elongates it with a
 dedicated variable-length \emph{Extension}. Due to their need for delimiters,
 storing extensions entails a slight metadata overhead. We counteract this
-overhead by adaptively choosing the stub length based on the workload’s skew so
-that more counter values fit in their stubs without needing extensions. More
-precisely, we choose the shortest stub length that minimizes the total memory
-footprint of the stubs and the extensions. To improve cache behavior and
-quickly reconstruct a counter, \sketchcms colocates a stub and its
-corresponding extension in the same cache line. It quickly finds a stub's
-extension using a bit manipulation workflow that leverages rank and select
-operations.
+overhead by choosing the stub length based on the workload’s skew so that more
+counter values fit in their stubs without needing extensions. More precisely,
+we choose the shortest stub length that minimizes the total memory footprint of
+the stubs and the extensions. We maintain this stub length by adaptively
+reconfiguring it when the total number of overflows exceeds a threshold. To
+improve cache behavior and quickly reconstruct a counter, \sketchcms colocates
+a stub and its corresponding extension in the same cache line. It quickly finds
+a stub's extension using a bit manipulation workflow that leverages rank and
+select operations.
 
 \textbf{Chunking.}
 To colocate stubs and their extensions in 512-bit cache lines, \sketchcms
@@ -788,7 +780,7 @@ procedure on the memory footprint in \Cref{sec:evaluation}.
         \draw (\counterx-0.5*\counterw+1.09*\counterlow,\countery) -- (\counterx-0.5*\counterw+1.09*\counterlow,\countery+\counterh);
         \node[inner sep=1.5pt] (counter_0_lower_bits) at (\counterx-0.5*\counterw+0.5*\counterlow,\countery+0.5435*\counterh) {\small 111111};
         \draw[-stealth] (counter_0_lower_bits.south) -- (stub_0.north);
-        \node[inner sep=1.5pt] (counter_0_higher_bits) at (\counterx+0.5*\counterlow,\countery+0.5*\counterh) {\small 0000$\dots$};
+        \node[inner sep=1.5pt] (counter_0_higher_bits) at (\counterx+0.5*\counterlow,\countery+0.525*\counterh) {\small 0000$\dots$};
         \node[inner sep=0pt] (counter_0_label) at (\counterx,\countery+1.75*\counterh) {\small Counter 0};
 
         \def\counterx{0.5*\arrayw+0.5*\countersep+0.5*\counterw}
@@ -815,9 +807,7 @@ procedure on the memory footprint in \Cref{sec:evaluation}.
     \caption{\sketchcms encodes a chunk of~$c$ counters in a cache line. It
     encodes the~$s$ lower-order bits of each counter in a stub and stores its
     remaining higher-order bits in extensions comprised of 2-bit fragments
-    representing base-3 digits. Here, we use a stub length of~$s=6$. We also
-    represent the bits in the binary representations and fragments in
-    increasing order of significance from left to right.}
+    representing base-3 digits. Here, we use a stub length of~$s=6$.}
     \label{fig:counter_chunk}
 \end{figure}
 
@@ -1134,7 +1124,7 @@ memory overhead negligible.
         \draw (\counterx-0.5*\counterw+1.09*\counterlow,\countery) -- (\counterx-0.5*\counterw+1.09*\counterlow,\countery+\counterh);
         \node[inner sep=1.5pt] (counter_0_lower_bits) at (\counterx-0.5*\counterw+0.5*\counterlow,\countery+0.5435*\counterh) {\small $111111$};
         \draw[-stealth] (counter_0_lower_bits.south) -- (stub_0.north);
-        \node[inner sep=1.5pt] (counter_0_higher_bits) at (\counterx+0.5*\counterlow,\countery+0.5*\counterh) {\small $1000\dots$};
+        \node[inner sep=1.5pt] (counter_0_higher_bits) at (\counterx+0.5*\counterlow,\countery+0.535*\counterh) {\small $1000\dots$};
         \draw[-stealth] (counter_0_higher_bits.south) -- (\tailsarrayoffsetx+0.5*\tailw,\tailsarrayoffsety);
         \node[inner sep=0pt] (counter_0_label) at (\counterx,\countery+1.75*\counterh) {\small Counter 0};
 
@@ -2091,6 +2081,10 @@ statistical behavior of the counter values, complicating the integration of
 other orthogonal techniques like Bayesian inference for improving
 accuracy~\cite{BayesianSketches,BFES} and convolution for join size
 estimation~\cite{ConvolutionSketch}. 
+
+Mention Spectral Bloom Filters as a related structure to CMS.
+
+Mention the work on analyzing sketches for the zipfian distribution.
 
 Say something about the tuner papers~\cite{SketchConf} (+ RA-Sketch, if it's
 out).
