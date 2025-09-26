@@ -139,6 +139,10 @@ applications such as tracking click-through rates in webpages only require
 insertions, deletions are needed for other applications such as maintaining
 count estimates for SQL tables for use in a query optimizer. 
 
+Rasmus: For deletions it is critical to note that they are not ``checked for
+validity'' by the sketches, so it is up to the user to ensure that deletions
+correspond to insertions
+
 We define the following two goals: \textbf{(G1)~Space-Efficient Counters}, and
 \textbf{(G2)~Scaling Error with Stream Length}.
 
@@ -721,12 +725,12 @@ skew shrinks most counter values, enabling the use of shorter stubs for storing
 them. Skew also reduces the average length of the extensions, leaving more
 space in a chunk to store more counters.
 
-We discuss how to adapt the tuning of these parameters to the workload as the
-stream evolves in \Cref{sec:accommodating_unknown_stream_lengths}. When the
-workload is fully uniform, this procedure tunes the stub length so that all
-counter values fit in stubs, allowing it to remove the overflows bitmaps and
-yield the configuration of a standard CMS. We illustrate the impact of this
-procedure on the memory footprint in \Cref{sec:evaluation}.
+Later in this section, we discuss how to adapt the tuning of these parameters
+to the workload as the stream evolves. When the workload is uniform, this
+procedure tunes the stub length so that all counter values fit in stubs,
+allowing it to remove the overflows bitmaps and yield the configuration of a
+standard CMS. We illustrate the impact of this procedure on the memory
+footprint in \Cref{sec:evaluation}.
 
 \begin{figure}
     \centering
@@ -1510,12 +1514,13 @@ transferring the updates of the last sketch to the penultimate sketch and
 discarding it. This information transfer is challenging, as the sketches do not
 store the keys, barring us from rehashing them into the penultimate sketch. We
 overcome this issue by using~$d$ shared hash functions~$h_1,\dots,h_d$ to
-derive~$d$ long ``\emph{Mother Hashes}'' for each key. That is, to map a
-key~$x$ to a counter in the~$i${\nobreakdash-}th array of a sketch, we
-compute~$h_i(x)$ to derive its mother hash. Letting~$w$ denote the size of the
-counter array, we take the~$\log_2 w$ lower-order bits of~$x$'s mother hash as
-the offset of the counter it hashes to. \Cref{fig:contraction} shows this
-procedure for the first array of the chain's last two sketches.
+derive~$d$ long \emph{Mother
+Hashes}~\cite{PaghExpandability,InfiniFilter,AlephFilter} for each key. That
+is, to map a key~$x$ to a counter in the~$i${\nobreakdash-}th array of a
+sketch, we compute~$h_i(x)$ to derive its mother hash. Letting~$w$ denote the
+size of the counter array, we take the~$\log_2 w$ lower-order bits of~$x$'s
+mother hash as the offset of the counter it hashes to. \Cref{fig:contraction}
+shows this procedure for the first array of the chain's last two sketches.
 
 This hashing scheme allows \sketchcms to determine the counter a key hashes to
 in the penultimate sketch by removing the most significant bit (MSB) of its
@@ -1788,13 +1793,12 @@ to implement contractions, they become redundant under these workloads.
 %For example, in join size estimation, multiplying overestimated counts from the input tables leads to an overly large join size.
 
 \textbf{Count Sketch (CS).}
-CMS has two key shortcomings: (1)~its estimations are biased since it only
-overestimates and (2)~its errors compound when it is used in some tasks,
-particularly those that multiply frequencies. One cannot discount CMS's
-estimates to eliminate their bias, as the correction amount varies from key to
-key and depends on the ground-truth frequency. CS addresses these issues by
-providing unbiased estimates. The third row of \Cref{tab:classic_sketch_stats}
-summarizes the properties of CS and compares it to CMS.
+CMS, as described in \Cref{sec:background}, has two key shortcomings: (1)~its
+estimations are biased since it only overestimates and (2)~its errors compound
+when it is used in some tasks, particularly those that multiply frequencies. CS
+addresses these issues by providing unbiased estimates. The first two rows of
+\Cref{tab:classic_sketch_stats} summarizes the properties of CS and compares it
+to CMS.
 
 The core component of CS is a counter array of size~$w$ coupled with a hash
 function~$h_i$ mapping a key to a counter. CS further associates with each key
@@ -1884,108 +1888,6 @@ growth to~$O(\sqrt{N})$ (vs.~$N$) when the summands are small.
     directions enable unbiased estimation.}
     \label{fig:cs_overview}
 \end{figure}
-
-\subsection{Generalization to Misra-Gries}\label{sec:mg}
-\textbf{Misra-Gries (MG).}
-As skew increases, using dedicated counters to track the most frequent keys
-yields higher accuracy for the same memory compared to hashing them into a
-counter array. MG applies this insight to provide more accurate estimates under
-skewed workloads. The third row of \Cref{tab:classic_sketch_stats} summarizes
-the properties of MG and compares it to CMS and CS.
-
-\begin{figure}
-    \centering
-    \begin{tikzpicture}
-        \def\arrayw{4.75}
-        \def\arrayh{0.25}
-        \def\arraylen{5}
-        \def\cellw{0.95}
-        \def\elemw{0.65}
-        \def\counterw{0.30}
-        \def\annotationoffset{0.05}
-        \def\bottomymul{2.5}
-        \def\casebracewidth{1.5}
-        \def\casebracewidthquery{0.55}
-
-        \foreach \j in {1, ..., \arraylen} {
-            %\draw[white,pattern=north east lines] (\j*\cellw-\counterw,0.5*\arrayh) rectangle (\j*\cellw-\cellw,-0.5*\arrayh);
-            \draw[white,fill=gray!20] (\j*\cellw-\counterw,0.5*\arrayh) rectangle (\j*\cellw-\cellw,-0.5*\arrayh);
-            \draw[dotted,thick] (\j*\cellw-\counterw,0.5*\arrayh) -- (\j*\cellw-\counterw,-0.5*\arrayh);
-        }
-        \foreach \j in {2, ..., \arraylen} {
-            \draw (\j*\cellw-\cellw,0.5*\arrayh) -- (\j*\cellw-\cellw,-0.5*\arrayh);
-        }
-        \draw[black] (0,0.5*\arrayh) rectangle (\arrayw,-0.5*\arrayh);
-
-        \node[inner sep=4pt] (key) at (-2.5*\cellw,2.5*\arrayh) {\small Insert $x$};
-        \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt,mirror}] ($(key.east)+(1pt,0.5*\casebracewidth)$) -- ($(key.east)+(1pt,-0.5*\casebracewidth)$);
-        \node[inner sep=0pt,anchor=west,align=center] (case_1) at ($(key.east)+(2pt,0.35*\casebracewidth)$) {\footnotesize Exists \hspace*{1pt}};
-        \node[inner sep=0pt,anchor=west,align=center] (case_2) at ($(key.east)+(2pt,0.03*\casebracewidth)$) {\footnotesize Does not exist, \\[-4pt] \footnotesize Empty slot};
-        \node[inner sep=0pt,anchor=west,align=center] (case_3) at ($(key.east)+(2pt,-0.35*\casebracewidth)$) {\footnotesize Does not exist, \\[-4pt] \footnotesize No empty slot};
-
-        \draw[-stealth] (case_1.east) -| (1.0*\cellw+\elemw+0.5*\counterw,0.5*\arrayh) node[pos=0.25,above=2pt,align=center,inner sep=0pt] {\footnotesize $+1$};
-        \draw[-stealth] (case_2.east) -| (\arraylen*\cellw-0.5*\cellw,1.2*\arrayh) node[pos=0.1,above=1pt,align=center,inner sep=0pt] {\footnotesize Store $(x,1)$};
-        \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt}] (\arraylen*\cellw-\cellw,0.65*\arrayh) -- (\arraylen*\cellw,0.65*\arrayh);
-        \draw (case_3.east) -| (-0.15*\cellw,-\bottomymul*\arrayh);
-        \draw (-0.15*\cellw,-\bottomymul*\arrayh) -- (\arraylen*\cellw-0.5*\counterw,-\bottomymul*\arrayh) node[pos=0.1,below=2pt,align=center,inner sep=0pt] {\footnotesize $-1$};
-        \foreach \j in {1, ..., \arraylen} {
-            \draw[-stealth] (\j*\cellw-0.5*\counterw,-\bottomymul*\arrayh) -- (\j*\cellw-0.5*\counterw,-0.5*\arrayh);
-        }
-
-        \node[inner sep=4pt] (query) at (\arrayw+0.05*\cellw,4.25*\arrayh) {\small Query $q$};
-        \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt}] ($(query.west)+(-1pt,0.5*\casebracewidthquery)$) -- ($(query.west)+(-1pt,-0.5*\casebracewidthquery)$);
-        \node[inner sep=0pt,anchor=east,align=center] (case_1) at ($(query.west)+(-2pt,0.3*\casebracewidthquery)$) {\hspace*{1pt} \footnotesize Exists, 4};
-        \node[inner sep=0pt,anchor=east,align=center] (case_2) at ($(query.west)+(-2pt,-0.3*\casebracewidthquery)$) {\footnotesize Otherwise, 0};
-        \draw[stealth-] (case_1.west) -| (2.0*\cellw+\elemw+0.5*\counterw,0.5*\arrayh);
-        \node[inner sep=0pt] at (2.0*\cellw+0.5*\elemw,0.0*\arrayh) {\footnotesize $q$};
-        \node[inner sep=0pt] at (2.0*\cellw+\elemw+0.5*\counterw,0.0*\arrayh) {\footnotesize $4$};
-
-        %\node[inner sep=0pt,anchor=west] at (-3.2*\cellw,5.25*\arrayh) {\textbf{C) MG}};
-    \end{tikzpicture}
-    \caption{MG uses dedicated counters to track frequent keys.}
-    \label{fig:mg_overview}
-\end{figure}
-
-\Cref{fig:mg_overview} presents an overview of MG. MG maintains an array of
-slots, each storing a key (shown in gray) and a dedicated frequency counter
-(shown in white). MG estimates the frequency of each key in the array as the
-value of its counter. It returns an estimate of zero for the untracked keys.
-When inserting a key~$x$, MG first checks if it has a dedicated counter in some
-slot. If it does, MG increments~$x$'s counter. If not, and the array has an
-empty slot, MG stores~$x$ in it with a count of~$1$. If~$x$ is not in the array
-and the array is full, MG decrements all counters and discards any keys whose
-counters become zero. Such keys are unlikely to be among the most frequent and
-their slots are better used for tracking more frequent keys. Note that~$x$ is
-not stored in the newly emptied slots and is only stored if it is inserted when
-some slot is already empty. MG does not support deletions. This is because it
-lacks information about the untracked keys, which may become the heavy hitters
-after the current heavy hitters are deleted, thereby failing to place them in
-its array.
-
-Having more slots in the array allows MG to track more keys without discarding
-them, leading to more accurate estimates. Since MG is a deterministic data
-structure that does not use hashing, unlike CMS and CS, it does not suffer from
-hash collisions, and its estimations have full confidence. Using an array
-of~$w$ slots, MG estimates the frequency of any key with an error of at
-most~$\frac{N}{w}$, i.e., $|\hat{f}(x)-f(x)| \leq \frac{N}{w}$ for any key~$x$.
-Since it uses dedicated counters for the heavy hitters, it also provides a
-strong ``\emph{Tail Guarantee},'' stating that the error for any key is at
-most~$\min_{1 \leq i \leq w} \frac{N^{\text{res}(i)}}{w-i+1}$, where
-$N^{\text{res}(i)}$ is the total frequency of all keys not among the top~$i$.
-Note that~$N^{\text{res}(i)}$ is much smaller than~$N$ when the data is skewed.
-
-Since MG only increments a key's counter if it is in the array and decrements
-counters otherwise, it only underestimates frequencies. Thus, its estimates are
-biased. For similar reasons to CMS, this bias cannot be removed by enlarging
-estimates. Yet, probabilistically replacing the array's least frequent keys can
-yield unbiased estimates~\cite{UnbiasedSpaceSaving}. Other variations of MG
-achieve higher accuracy in practice, but suffer from two-sided errors in
-exchange~\cite{SpaceSaving}.
-
-Typical implementations of MG use a hash table to implement the array of keys,
-yielding constant-time queries. They also optimize insertions by lazily
-decrementing the counters and employing an auxiliary heap to locate and discard
-keys with zero counts.
 
 \begin{table}
     \centering
@@ -2096,6 +1998,9 @@ and the added cost of the hash table.
 
 
 \section{Theoretical Analysis}\label{sec:theoretical_analysis}
+We prove {\sketch}'s accuracy and confidence guarantees. We further prove a
+memory lower bound, showing that \sketch\ is space-optimal.
+
 We prove in~\Cref{sec:theoretical_analysis} that Sketchbook maintains its
 confidence without varying the number of arrays. One can also expand the number
 of arrays to improve confidence over time. We omit this from our exposition due
@@ -2133,8 +2038,115 @@ out).
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{sketchbook}
 
+\clearpage
+\newpage
+\appendix
 
-%\appendix
+\section{Generalization to Misra-Gries}\label{sec:mg}
+\textbf{Misra-Gries (MG).}
+Although CMS and CS benefit from more skew due to distinct keys colliding less
+frequently, using dedicated counters to track the most frequent keys yields
+higher accuracy for the same memory compared to hashing them into a counter
+array. MG applies this insight to provide more accurate estimates under skewed
+workloads. The third row of \Cref{tab:classic_sketch_stats} summarizes the
+properties of MG and compares it to CMS and CS.
+
+\begin{figure}
+    \centering
+    \begin{tikzpicture}
+        \def\arrayw{4.75}
+        \def\arrayh{0.25}
+        \def\arraylen{5}
+        \def\cellw{0.95}
+        \def\elemw{0.65}
+        \def\counterw{0.30}
+        \def\annotationoffset{0.05}
+        \def\bottomymul{2.5}
+        \def\casebracewidth{1.5}
+        \def\casebracewidthquery{0.55}
+
+        \foreach \j in {1, ..., \arraylen} {
+            %\draw[white,pattern=north east lines] (\j*\cellw-\counterw,0.5*\arrayh) rectangle (\j*\cellw-\cellw,-0.5*\arrayh);
+            \draw[white,fill=gray!20] (\j*\cellw-\counterw,0.5*\arrayh) rectangle (\j*\cellw-\cellw,-0.5*\arrayh);
+            \draw[dotted,thick] (\j*\cellw-\counterw,0.5*\arrayh) -- (\j*\cellw-\counterw,-0.5*\arrayh);
+        }
+        \foreach \j in {2, ..., \arraylen} {
+            \draw (\j*\cellw-\cellw,0.5*\arrayh) -- (\j*\cellw-\cellw,-0.5*\arrayh);
+        }
+        \draw[black] (0,0.5*\arrayh) rectangle (\arrayw,-0.5*\arrayh);
+
+        \node[inner sep=4pt] (key) at (-2.5*\cellw,2.5*\arrayh) {\small Insert $x$};
+        \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt,mirror}] ($(key.east)+(1pt,0.5*\casebracewidth)$) -- ($(key.east)+(1pt,-0.5*\casebracewidth)$);
+        \node[inner sep=0pt,anchor=west,align=center] (case_1) at ($(key.east)+(2pt,0.35*\casebracewidth)$) {\footnotesize Exists \hspace*{1pt}};
+        \node[inner sep=0pt,anchor=west,align=center] (case_2) at ($(key.east)+(2pt,0.03*\casebracewidth)$) {\footnotesize Does not exist, \\[-4pt] \footnotesize Empty slot};
+        \node[inner sep=0pt,anchor=west,align=center] (case_3) at ($(key.east)+(2pt,-0.35*\casebracewidth)$) {\footnotesize Does not exist, \\[-4pt] \footnotesize No empty slot};
+
+        \draw[-stealth] (case_1.east) -| (1.0*\cellw+\elemw+0.5*\counterw,0.5*\arrayh) node[pos=0.25,above=2pt,align=center,inner sep=0pt] {\footnotesize $+1$};
+        \draw[-stealth] (case_2.east) -| (\arraylen*\cellw-0.5*\cellw,1.2*\arrayh) node[pos=0.1,above=1pt,align=center,inner sep=0pt] {\footnotesize Store $(x,1)$};
+        \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt}] (\arraylen*\cellw-\cellw,0.65*\arrayh) -- (\arraylen*\cellw,0.65*\arrayh);
+        \draw (case_3.east) -| (-0.15*\cellw,-\bottomymul*\arrayh);
+        \draw (-0.15*\cellw,-\bottomymul*\arrayh) -- (\arraylen*\cellw-0.5*\counterw,-\bottomymul*\arrayh) node[pos=0.1,below=2pt,align=center,inner sep=0pt] {\footnotesize $-1$};
+        \foreach \j in {1, ..., \arraylen} {
+            \draw[-stealth] (\j*\cellw-0.5*\counterw,-\bottomymul*\arrayh) -- (\j*\cellw-0.5*\counterw,-0.5*\arrayh);
+        }
+
+        \node[inner sep=4pt] (query) at (\arrayw+0.05*\cellw,4.25*\arrayh) {\small Query $q$};
+        \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt}] ($(query.west)+(-1pt,0.5*\casebracewidthquery)$) -- ($(query.west)+(-1pt,-0.5*\casebracewidthquery)$);
+        \node[inner sep=0pt,anchor=east,align=center] (case_1) at ($(query.west)+(-2pt,0.3*\casebracewidthquery)$) {\hspace*{1pt} \footnotesize Exists, 4};
+        \node[inner sep=0pt,anchor=east,align=center] (case_2) at ($(query.west)+(-2pt,-0.3*\casebracewidthquery)$) {\footnotesize Otherwise, 0};
+        \draw[stealth-] (case_1.west) -| (2.0*\cellw+\elemw+0.5*\counterw,0.5*\arrayh);
+        \node[inner sep=0pt] at (2.0*\cellw+0.5*\elemw,0.0*\arrayh) {\footnotesize $q$};
+        \node[inner sep=0pt] at (2.0*\cellw+\elemw+0.5*\counterw,0.0*\arrayh) {\footnotesize $4$};
+
+        %\node[inner sep=0pt,anchor=west] at (-3.2*\cellw,5.25*\arrayh) {\textbf{C) MG}};
+    \end{tikzpicture}
+    \caption{MG uses dedicated counters to track frequent keys.}
+    \label{fig:mg_overview}
+\end{figure}
+
+\Cref{fig:mg_overview} presents an overview of MG. MG maintains an array of
+slots, each storing a key (shown in gray) and a dedicated frequency counter
+(shown in white). MG estimates the frequency of each key in the array as the
+value of its counter. It returns an estimate of zero for the untracked keys.
+When inserting a key~$x$, MG first checks if it has a dedicated counter in some
+slot. If it does, MG increments~$x$'s counter. If not, and the array has an
+empty slot, MG stores~$x$ in it with a count of~$1$. If~$x$ is not in the array
+and the array is full, MG decrements all counters and discards any keys whose
+counters become zero. Such keys are unlikely to be among the most frequent and
+their slots are better used for tracking more frequent keys. Note that~$x$ is
+not stored in the newly emptied slots and is only stored if it is inserted when
+some slot is already empty. MG does not support deletions without deteriorating
+the error bound~\cite{BatchUpdateMisraGries}. This is because it lacks
+information about the untracked keys, which may become the heavy hitters after
+the current heavy hitters are deleted, thereby failing to place them in its
+array.
+
+Having more slots in the array allows MG to track more keys without discarding
+them, leading to more accurate estimates. Since MG is a deterministic data
+structure that does not use hashing, unlike CMS and CS, it does not suffer from
+hash collisions, and its estimations have full confidence. Using an array
+of~$w$ slots, MG estimates the frequency of any key with an error of at
+most~$\frac{N}{w}$, i.e., $|\hat{f}(x)-f(x)| \leq \frac{N}{w}$ for any key~$x$.
+Since it uses dedicated counters for the heavy hitters, it also provides a
+strong ``\emph{Tail Guarantee},'' stating that the error for any key is at
+most~$\min_{1 \leq i \leq w} \frac{N^{\text{res}(i)}}{w-i+1}$, where
+$N^{\text{res}(i)}$ is the total frequency of all keys not among the top~$i$.
+Note that~$N^{\text{res}(i)}$ is much smaller than~$N$ when the data is skewed.
+
+Since MG only increments a key's counter if it is in the array and decrements
+counters otherwise, it only underestimates frequencies. Thus, its estimates are
+biased. For similar reasons to CMS, this bias cannot be removed by enlarging
+estimates. Yet, probabilistically replacing the array's least frequent keys can
+yield unbiased estimates~\cite{UnbiasedSpaceSaving}. Other variations of MG
+achieve higher accuracy in practice, but suffer from two-sided errors in
+exchange~\cite{SpaceSaving}.
+
+Typical implementations of MG use a hash table to implement the array of keys,
+yielding constant-time queries. They also optimize insertions by lazily
+decrementing the counters and employing an auxiliary heap to locate and discard
+keys with zero counts. The query time can be further improved to~$O(1)$ using a
+specialized data structures similar to a linked list in exchange for a higher
+memory footprint~\cite{SpaceSaving}.
 
 \end{document}
 \endinput
