@@ -52,6 +52,8 @@
 \newcommand{\sketchcms}{\sketch\textsubscript{CMS}\xspace}
 \newcommand{\sketchcs}{\sketch\textsubscript{CS}\xspace}
 \newcommand{\sketchmg}{\sketch\textsubscript{MG}\xspace}
+\newcommand{\counterencoding}{\underline{va}riable-\underline{l}ength count\underline{e}r}
+\newcommand{\counterencodingabbrv}{VALE}
 
 \graphicspath{{./figures/}}
 
@@ -692,38 +694,40 @@ Sketch~(CMS), denoted as \sketchcms. We apply it to other sketches in
 \subsection{Accommodating Skew}\label{sec:accommodating_skew}
 Under skew, many counter values in CMS will be small and not use all the bits
 in their counters. To optimize the space used for storing these counter values
-in any workload, \sketchcms generalizes CMS to support variable-length
-counters. It does so by storing the counters as fixed-size integers called
-\emph{Stubs}. When a counter overflows its stub, \sketchcms elongates it with a
-dedicated variable-length \emph{Extension}. Due to their need for delimiters,
-storing extensions entails a slight metadata overhead. We counteract this
-overhead by choosing the stub length based on the workload’s skew so that more
-counter values fit in their stubs without needing extensions. More precisely,
-we choose the shortest stub length that minimizes the total memory footprint of
-the stubs and the extensions. We adapt this stub length to the workload by
-reconfiguring it when the total number of overflows exceeds a threshold. To
-improve cache behavior and quickly reconstruct a counter, \sketchcms colocates
-a stub and its corresponding extension in the same cache line. It quickly finds
-a stub's extension using a bit manipulation workflow that leverages rank and
+in any workload, \sketchcms generalizes CMS with a general-purpose
+\counterencoding~(\counterencodingabbrv) encoding. \counterencodingabbrv\
+stores the counters as fixed-size integers called \emph{Stubs}. When a counter
+overflows its stub, \counterencodingabbrv\ elongates it with a dedicated
+variable-length \emph{Extension}. Due to their need for delimiters, storing
+extensions entails a slight metadata overhead. We counteract this overhead by
+choosing the stub length based on the workload’s skew so that more counter
+values fit in their stubs without needing extensions. More precisely, we choose
+the shortest stub length that minimizes the total memory footprint of the stubs
+and the extensions. We adapt this stub length to the workload by reconfiguring
+it when the total number of overflows exceeds a threshold. To improve cache
+behavior and quickly reconstruct a counter, \counterencodingabbrv\ colocates a
+stub and its corresponding extension in the same cache line. It quickly finds a
+stub's extension using a bit manipulation workflow that leverages rank and
 select operations.
 
 \textbf{Chunking.}
-To colocate stubs and their extensions in 512-bit cache lines, \sketchcms
-partitions each counter array into contiguous \emph{Chunks}, each occupying a
-cache line. A chunk stores its counters' stubs in a contiguous array and tracks
-the counters that overflow their stubs using an \emph{Overflows Bitmap} with
-one bit per counter. It stores the extensions of these overflowing counters
-contiguously in the remaining space towards its end, called its \emph{Extension
-Pool}. Counter~0 and Counter~1 in \Cref{fig:counter_chunk} are examples of a
-non-overflowing and overflowing counter within a chunk, respectively.
+To colocate stubs and their extensions in 512-bit cache lines,
+\counterencodingabbrv\ partitions each counter array into contiguous
+\emph{Chunks}, each occupying a cache line. A chunk stores its counters' stubs
+in a contiguous array and tracks the counters that overflow their stubs using
+an \emph{Overflows Bitmap} with one bit per counter. It stores the extensions
+of these overflowing counters contiguously in the remaining space towards its
+end, called its \emph{Extension Pool}. Counter~0 and Counter~1 in
+\Cref{fig:counter_chunk} are examples of a non-overflowing and overflowing
+counter within a chunk, respectively.
 
 \textbf{Parameters.}
-\sketchcms has two parameters: the number of bits in each stub~$s$ and the
-number of counters per chunk~$c$. With more skewed workloads, having shorter
-stubs and more counters per chunk reduces space consumption. The reason is that
-skew shrinks most counter values, enabling the use of shorter stubs for storing
-them. Skew also reduces the average length of the extensions, leaving more
-space in a chunk to store more counters.
+\counterencodingabbrv\ has two parameters: the number of bits in each stub~$s$
+and the number of counters per chunk~$c$. With more skewed workloads, having
+shorter stubs and more counters per chunk reduces space consumption. The reason
+is that skew shrinks most counter values, enabling the use of shorter stubs for
+storing them. Skew also reduces the average length of the extensions, leaving
+more space in a chunk to store more counters.
 
 Later in this section, we discuss how to adapt the tuning of these parameters
 to the workload as the stream evolves. When the workload is uniform, this
@@ -827,10 +831,10 @@ footprint in \Cref{sec:evaluation}.
         %\node[inner sep=2pt,anchor=west] (higher_order_bits_label) at (\axisr,\axisy) {\small Higher-Order};
         %\node[inner sep=2pt,anchor=south] (axis_label) at (0.5*\axisl+0.5*\axisr,\axisy) {\small Bits};
     \end{tikzpicture}
-    \caption{\sketchcms encodes a chunk of~$c$ counters in a cache line. It
-    encodes the~$s$ lower-order bits of each counter in a stub and stores its
-    remaining higher-order bits in extensions comprised of 2-bit fragments
-    representing base-3 digits. Here, we use a stub length of~$s=6$.}
+    \caption{\counterencodingabbrv\ encodes a chunk of~$c$ counters in a cache
+    line. It encodes the~$s$ lower-order bits of each counter in a stub and
+    stores its remaining higher-order bits in extensions comprised of 2-bit
+    fragments representing base-3 digits. Here, we use a stub length of~$s=6$.}
     \label{fig:counter_chunk}
 \end{figure}
 
@@ -857,18 +861,22 @@ this extension yields~$3^0 \cdot 2 + 3^1 \cdot 1 = 5$, as expected.
 
 Forming a chunk's extensions from 2-bit fragments allows them to fit in 1-2
 machine words in most cases. We prove in \Cref{sec:theoretical_analysis} that
-using these extensions in conjunction with short stubs enables a chunk to
-encode each counter's value in space close to the length of its binary
-encoding.
+using these extensions in conjunction with short stubs enables
+\counterencodingabbrv\ to encode each counter's value in space close to the
+length of its binary encoding. 
+
+As such, \counterencodingabbrv\ is able to compactly encode arbitrary
+variable-length data by treating them as counter values. Thus, it has potential
+use cases in other applications operating on variable-length data.
 
 \textbf{Locating an Extension.}
-To decode an overflowing counter, \sketchcms must locate its extension. To this
-end, it keeps the extensions in the same order as that of the counters. It
-locates the~$i${\nobreakdash-}th counter's extension by counting the number of
-preceding bits set to~1s in the overflows bitmap. This is equivalent to the
-number of overflowing counters preceding the~$i${\nobreakdash-}th counter,
-denoted by~$m$. Skipping over the first~$m$ extensions in the extension pool
-leads to the position of the target extension.
+To decode an overflowing counter, \counterencodingabbrv\ must locate its
+extension. To this end, it keeps the extensions in the same order as that of
+the counters. It locates the~$i${\nobreakdash-}th counter's extension by
+counting the number of preceding bits set to~1s in the overflows bitmap. This
+is equivalent to the number of overflowing counters preceding
+the~$i${\nobreakdash-}th counter, denoted by~$m$. Skipping over the first~$m$
+extensions in the extension pool leads to the position of the target extension.
 
 \Cref{fig:extension_location_example} illustrates the process of identifying
 the 3rd counter's extension in a chunk. Here, since the 3rd bit in the
@@ -877,8 +885,8 @@ set to~1 preceding the 3rd bit in the overflows bitmap, we skip one extension
 to locate the 3rd counter's extension, shown in gray.
 
 \textbf{Fast Access Using Rank and Select.}
-\sketchcms quickly locates the extension of an overflowing counter using rank
-and select
+\counterencodingabbrv\ quickly locates the extension of an overflowing counter
+using rank and select
 operations~\cite{Poppy,FlorianRankandSelect,CompactPATTrees,RankandSelectDict,GQF}.
 Given a bitmap~$B$, the $\texttt{rank}(i,B)$ operation counts the number of~1s
 strictly before the $i$-th bit, and the $\text{select}(i,B)$ operation returns
@@ -887,8 +895,8 @@ to use specialized CPU instructions to implement these operations efficiently.
 
 The first step is to determine~$m$, the number of overflowing counters to the
 left of the~$i${\nobreakdash-}th counter. As this is the number of 1s before
-the $i${\nobreakdash-}th bit in the overflows bitmap, \sketchcms applies the
-rank operation to evaluate~$m=\texttt{rank}(i,$~overflows$)$.
+the $i${\nobreakdash-}th bit in the overflows bitmap, \counterencodingabbrv\
+applies the rank operation to evaluate~$m=\texttt{rank}(i,$~overflows$)$.
 
 \begin{figure}
     \centering
@@ -1048,45 +1056,45 @@ the chunk's extensions. This is efficient, as a chunk's extensions often fit in
 \Cref{fig:extension_location_example} shows an example of locating the 3rd
 counter's extension using rank and select. Here,
 $\texttt{rank}(3,$~overflows$)=1$. Thus, after deriving the delimiters bitmap
-by manipulating the extension pool, \sketchcms
+by manipulating the extension pool, \counterencodingabbrv\
 evaluates~$\texttt{select}(1,$~delimiters$)=9$ to conclude that the target
 extension ends at the~9th bit.
 
 \textbf{Tails.}
 In the rare event that many heavy hitters hash to the same chunk, many of the
 chunk's counters will overflow, potentially growing the cumulative length of
-the extensions beyond the size of the chunk. \sketchcms handles this case by
-allocating an external array of 32-bit integers called \emph{Tails} for the
-chunk, with one tail integer per counter. It stores the~$i${\nobreakdash-}th
-counter's higher-order bits in the~$i${\nobreakdash-}th tail. Each chunk
-contains a mode flag indicating if it has a tails array, as depicted in
-\Cref{fig:counter_chunk_with_tails}. If it does, we repurpose the space taken
-up by the extension pool to store a pointer to the tails array. We ensure that
-the extension pool is large enough to accommodate this pointer (i.e., at least
-48 bits\footnote{The upper 16 bits a general 64-bit pointer are unused on
-modern machines. As such, we only store the lower 48 bits of the pointer.})
-when tuning the number of counters per chunk~$c$ and the stub size~$s$. Any
-extra space after the pointer is left unused.
+the extensions beyond the size of the chunk. \counterencodingabbrv\ handles
+this case by allocating an external array of 32-bit integers called
+\emph{Tails} for the chunk, with one tail integer per counter. It stores
+the~$i${\nobreakdash-}th counter's higher-order bits in
+the~$i${\nobreakdash-}th tail. Each chunk contains a mode flag indicating if it
+has a tails array, as depicted in \Cref{fig:counter_chunk_with_tails}. If it
+does, we repurpose the space taken up by the extension pool to store a pointer
+to the tails array. We ensure that the extension pool is large enough to
+accommodate this pointer (i.e., at least 48 bits\footnote{The upper 16 bits a
+general 64-bit pointer are unused on modern machines. As such, we only store
+the lower 48 bits of the pointer.}) when tuning the number of counters per
+chunk and the stub size. Any space after the pointer is unused.
 
 \textbf{Adaptive Tuning.}
 Whenever more than~$1\%$ of the chunks start using tails arrays, \sketchcms
-adapts the tuning of the number of counters per chunk~$c$ and the stub
-length~$s$ to minimize the memory footprint. It does this by scanning the
-entire sketch and computing the number of counter values of each binary length.
-It uses this summary to calculate the expected total extension length within a
-chunk for a given combination of parameters~$c$ and $s$. It enumerates the
-possible combinations by first varying~$c$ from largest to smallest, trying to
-pack as many counters as possible within each chunk. For each fixed~$c$, it
-enumerates the stub length~$s$ from smallest to largest, aiming to leave the
-largest amount of space for the extensions within a chunk. For each fixed
-combination, it then applies Chebyshev's inequality to the expected total
-extension length to derive a conservative probabilistic bound on the number of
-chunks that will use tails arrays. It chooses the first combination that yields
-a bound smaller than~$0.5\%$. Doing so ensures extensions rarely outgrow their
-chunks, making the memory overhead of the tails arrays negligible. The
-amortized overhead of this tuning process is constant, as many more insertions
-must take place compared to the total number of counters before this process is
-triggered.
+adapts the tuning of \counterencodingabbrv's parameters, i.e., the number of
+counters per chunk~$c$ and the stub length~$s$, to minimize the memory
+footprint. It does this by scanning the entire sketch and computing the number
+of counter values of each binary length. It uses this summary to calculate the
+expected total length of a chunk's extensions for a given combination of
+parameters~$c$ and $s$. It enumerates the possible combinations by first
+varying~$c$ from largest to smallest and enumerating the stub length~$s$ from
+smallest to largest for each fixed~$c$. For each combination, it then applies
+Chebyshev's inequality to the expected total extension length to derive a
+conservative bound on the number of chunks that will use tails arrays. It
+chooses the first combination that yields a bound smaller than~$0.5\%$. In
+doing so, \sketchcms ensures \counterencodingabbrv\ packs as many counters as
+possible within each chunk and the stubs leave the largest amount of space for
+the extensions. Thus, extensions rarely outgrow their chunks, making the memory
+overhead of the tails arrays negligible. The amortized overhead of this tuning
+process is constant, as many more insertions must take place compared to the
+number of counters before this process~is~triggered.
 
 \begin{figure}
     \centering
