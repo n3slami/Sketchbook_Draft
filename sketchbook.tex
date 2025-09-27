@@ -230,7 +230,7 @@ Misra-Gries~\cite{MisraGries} (\Cref{sec:mg}) and apply our techniques to them.
         \cmidrule{1-2}
         $c$ & Number of counters in each chunk. \\
         $s$ & Length of each stub in bits. \\
-        $w^*(N)$ & Size function. \\
+        $W(N)$ & Size function. \\
         %\cmidrule{1-2}
         %AAE & Average Absolute Error, i.e., $\text{avg}_x|\hat{f}(x) - f(x)|$. \\
         %ARE & Average Relative Error, i.e., $\text{avg}_x\frac{|\hat{f}(x) - f(x)|}{f(x)}$. \\
@@ -687,7 +687,7 @@ accuracy and space for a stream of unknown length by expanding and contracting
 the sketch. At the same time, \sketch\ supports deletions and maintains high
 performance. We first describe \sketch\ as applied to the Count-Min
 Sketch~(CMS), denoted as \sketchcms. We apply it to other sketches in
-Sections~\ref{sec:cs}~and~\ref{sec:mg}.
+\Cref{sec:cs} and \Cref{sec:mg}.
 
 \subsection{Accommodating Skew}\label{sec:accommodating_skew}
 Under skew, many counter values in CMS will be small and not use all the bits
@@ -1302,8 +1302,8 @@ estimate.
 
 \sketchcms chooses the expansion thresholds such that the size of the last
 sketch's arrays is always similar to the value of a user-defined \emph{Size
-Function}~$w^*(N)$. This allows it to simulate processing the entire stream
-with a hypothetical sketch preallocated with arrays of size~$w^*(N)$, as if~$N$
+Function}~$W(N)$. This allows it to simulate processing the entire stream
+with a hypothetical sketch preallocated with arrays of size~$W(N)$, as if~$N$
 was known upfront. We show in \Cref{sec:theoretical_analysis} that, in doing
 so, it achieves a similar accuracy guarantee to that of the hypothetical
 sketch. Moreover, because the last sketch in the chain is the dominating factor
@@ -1374,7 +1374,7 @@ approximately the same as that of the preallocated sketch.
             %\node[inner sep=0pt] at (3*\arrayw+\lastsketcharrayw/2+2*\cmssep+\leftcountercount*\counterw/2-\rightcountercount*\counterw/2,\i*\arraysep+\i*\arrayh-0.5*\arrayh-\arraysep) {\small $\dots$};
         }
         %\draw[decorate,decoration={brace,raise=1pt,amplitude=2pt,mirror}] (3*\arrayw+2*\cmssep,0) -- (3*\arrayw+\lastsketcharrayw+2*\cmssep,0)
-        %    node[pos=0.435,below=5.65pt,inner sep=1pt] {\small $\, w^*(N) / 2 \leq w \leq w^*(N)$};
+        %    node[pos=0.435,below=5.65pt,inner sep=1pt] {\small $\, W(N) / 2 \leq w \leq W(N)$};
 
         % Expansion Lines
         \node[inner sep=1pt,anchor=north] (first_expansion_threshold) at (\arrayw+0.5*\cmssep,-\arraysep/2) {\small $N > 4$};
@@ -1471,19 +1471,19 @@ approximately the same as that of the preallocated sketch.
 \end{figure}
 
 \textbf{Size Function.} 
-The size function~$w^*(N)$ exposes a rich spectrum of accuracy-memory
-tradeoffs: the faster~$w^*(N)$ grows with respect to the total number of keys
+The size function~$W(N)$ exposes a rich spectrum of accuracy-memory
+tradeoffs: the faster~$W(N)$ grows with respect to the total number of keys
 in the stream~$N$, the sooner \sketchcms expands, thereby tracking more of the
 stream's keys more accurately in exchange for a larger memory footprint. We
 recommend setting the size function to a \emph{Sub-Linear Power} of the
-form~$w^*(N)=N^\alpha/\epsilon$ and tuning the constants~$\alpha \in [0,1)$ and
+form~$W(N)=N^\alpha/\epsilon$ and tuning the constants~$\alpha \in [0,1)$ and
 $\epsilon$ to balance accuracy with memory. We prove in
 \Cref{sec:theoretical_analysis} that using a sub-linear power yields an error
-bound of~$O(N/w^*(N))=O(\epsilon \cdot N^{1-\alpha})$. This matches the error
-bound of a sketch preallocated with arrays of size~$w^*(N)$, which is known to
+bound of~$O(N/W(N))=O(\epsilon \cdot N^{1-\alpha})$. This matches the error
+bound of a sketch preallocated with arrays of size~$W(N)$, which is known to
 be optimal~\cite{CountMin}.
 
-One may set~$w^*(N)=N/\epsilon$ in hopes of achieving an error bound
+One may set~$W(N)=N/\epsilon$ in hopes of achieving an error bound
 of~$O(\epsilon)$. Yet, we show in \Cref{sec:theoretical_analysis} that, without
 knowing the ultimate length of the stream, the best error bound achievable by a
 sketch with~$O(N/\epsilon)$ counters\footnote{More precisely, we show this for
@@ -1494,22 +1494,22 @@ memory budget and is thus optimal.
 
 \textbf{Expansions.} 
 \sketchcms sets the expansion thresholds as the values of~$N$ that make the
-size function~$w^*(N)$ double after each expansion. This ensures that the last
-sketch's arrays always have a size in the range~$[w^*(N)/2,w^*(N)]$. The
+size function~$W(N)$ double after each expansion. This ensures that the last
+sketch's arrays always have a size in the range~$[W(N)/2,W(N)]$. The
 inequalities at the bottom of \Cref{fig:sketchbook_chain} illustrate the
-expansion thresholds when the size function is~$w^*(N)=N^{0.5}$.
+expansion thresholds when the size function is~$W(N)=N^{0.5}$.
 
 When using a sub-linear power as the size function, triggering an expansion
 requires inserting the majority of the stream's keys into the last
-sketch.\footnote{More generally, this holds when~$w^*(N)$ is an increasing
+sketch.\footnote{More generally, this holds when~$W(N)$ is an increasing
 concave function of~$N$.} As such, the error resulting from the last sketch is
 the dominant factor in the overall error bound of \sketchcms. Since this sketch
-has an error of approximately~$N/w^*(N)$, this yields an overall error
-of~$O(N/w^*(N))$, as we prove in \Cref{sec:theoretical_analysis}.
+has an error of approximately~$N/W(N)$, this yields an overall error
+of~$O(N/W(N))$, as we prove in \Cref{sec:theoretical_analysis}.
 
 \textbf{Contractions.} 
 Whenever deletions drop~$N$ below the previous threshold, i.e., halving the
-size function~$w^*(N)$, \sketchcms contracts to save memory. It does so by
+size function~$W(N)$, \sketchcms contracts to save memory. It does so by
 transferring the updates of the last sketch to the penultimate sketch and
 discarding it. This information transfer is challenging, as the sketches do not
 store the keys, barring us from rehashing them into the penultimate sketch. We
@@ -1998,14 +1998,129 @@ and the added cost of the hash table.
 
 
 \section{Theoretical Analysis}\label{sec:theoretical_analysis}
-We prove {\sketch}'s accuracy and confidence guarantees. We further prove a
-memory lower bound, showing that \sketch\ is space-optimal.
+We prove {\sketch}'s accuracy, confidence, and performance guarantees for
+general streams of keys. We further show that \sketch\ is space-optimal by
+proving a memory lower bound for frequency estimation sketches that do not know
+the stream's ultimate length.
 
+\textbf{Accuracy and Confidence.}
+
+\iffalse
 We prove in~\Cref{sec:theoretical_analysis} that Sketchbook maintains its
 confidence without varying the number of arrays. One can also expand the number
 of arrays to improve confidence over time. We omit this from our exposition due
 to its similarity to the approach of expanding the number of counters in each
-array. 
+array.
+\fi
+
+\textbf{Memory Footprint.}
+Since the tuning procedure ensures few chunks use tails arrays, {\sketch}'s
+memory footprint is dominated by the space cost of encoding each counter using
+a stub and an extension. From the mechanics of :
+\begin{lemma}
+    \label{lemma:single_counter_space}
+    When working with unsigned counters and stubs of length~$s$, an counter
+    value~$v$ is encoded in~$s$ bits if $v < 2^s$ and in $s+2 \cdot (\lfloor
+    \log_3 \lfloor v/2^s \rfloor \rfloor + 2) \leq 4 + 1.26 \log_2 v$ bits
+    otherwise. Signed counter values take one more bit to encode in both cases.
+\end{lemma}
+\iffalse
+\begin{proof}
+    If~$v < 2^s$, it fits in its stub and occupies~$s$ bits. If~$v \geq 2^s$,
+    its~$s$ lower-order bits are stored in the stub, and the remaining bits
+    encoding the value~$\lfloor v/2^s \rfloor$ are encoded in an extension.
+    This extension has~$\lfloor \log_3 \lfloor v/2^s \rfloor \rfloor + 2$
+    fragments to represent the digits and the delimiter. Thus, the extension
+    occupies~$2 \cdot (\lfloor \log_3 \lfloor v/2^s \rfloor \rfloor + 2)$ bits.
+    Combining this with the cost of the stub and noting that~$\log_3 \lfloor
+    v/2^s \rfloor = \log_3 2 \cdot \log_2 \lfloor v/2^s \rfloor \approx 1.26
+    \cdot \log_2 \lfloor v/2^s \rfloor$ yields the desired bound. A signed
+    counter uses one extra bit to encode the sign.
+\end{proof}
+\fi
+Applying \Cref{lemma:single_counter_space} to all of an array's counters
+yields:
+\begin{theorem}
+    \label{thm:all_counters_space}
+    When storing~$N$ keys in an array of~$w$ counters, the total memory
+    footprint of the array is~$O(w \cdot (\log_2 (N/w) + 1))$ bits. Applied to
+    all~$d$ arrays in \sketch\ when using a size function~$W(N)$, this
+    corresponds to a space of~$O(d \cdot W(N) \cdot (\log_2 (N/W(N)) + 1))$
+    bits.
+\end{theorem}
+\begin{proof}
+    Letting~$v_i$ be the value of the~$i${\nobreakdash-}th counter, by
+    \Cref{lemma:single_counter_space}, the array uses at most~$m = \sum_i
+    O(1+\log_2 |v_i|) = O\left( w+\sum_i \log_2 |v_i| \right)$ bits. Since the
+    logarithm is a concave function, Jensen's inequality implies~$m \leq
+    O\left( w+\log_2 \left[ 1/w \cdot \sum_i |v_i| \right] \right)$. Moreover,
+    since the logarithm is an increasing function and~$\sum_i |v_i| \leq N$, it
+    must be that~$m \leq O(w \cdot (\log_2 (N/w) + 1))$. Applying this bound
+    to~$d$ arrays and noticing that the last sketch in \sketch\ dominates the
+    memory footprint yields the desired result.
+\end{proof}
+
+% Should I mention that when~$W(N)=\Theta(N)$, the space cost is actually
+% higher by a factor of~$\log \log N$?
+
+\textbf{Memory Footprint Lower Bound.}
+To prove a memory footprint lower bound for frequency estimation sketches, we
+use them to implement a filter and apply known lower bounds for filters. A
+filter is a compact data structure that answers whether a query key exists in a
+given set of keys. A filter never returns a false negative, but it may return a
+false positive with a probability called the \emph{False Positive Rate (FPR)}.
+The lower the FPR, the larger the filter's memory footprint must be. The
+following theorem states a memory footprint lower bound for filters supporting
+sets of unknown size:
+\begin{theorem}[Theorem 3.1 of~\cite{PaghExpandability}, Simplified]
+    \label{thm:filter_expandability}
+    Letting~$n$ denote the size of a growing set of keys, any filter that
+    maintains an FPR of at most~$\delta$ for this set at all times must have a
+    memory footprint of at least~$n \cdot (\log_2 1/\delta + \log_2 \log_2 n) -
+    o(n)$ bits.
+\end{theorem}
+Therefore, a frequency estimation sketch that can be used to implement such a
+filter must also use at least this much memory.
+
+To illustrate the argument, consider a frequency estimation sketch with only
+overestimation errors (e.g., CMS). Suppose this sketch guarantees an error of
+at most~$\epsilon(N)$ and a confidence of~$1-\delta$ for streams of length~$N$.
+One can use this sketch to implement a filter with an FPR of~$\delta$ over a
+set of size~$N/(\epsilon(N)+1)$ by inserting each key~$\epsilon(N)+1$ times.
+Querying a key within the set returns an estimate that is always at least as
+large as~$\epsilon(N)+1$. Querying a key outside of the set yields an estimate
+strictly less than~$\epsilon(N)+1$ with a probability of at least~$1-\delta$
+and a larger estimate with a probability of~$\delta$. Thus, filtering proceeds
+by checking if the frequency of a given key is at least~$\epsilon(N)+1$,
+returning a positive if it is and a negative otherwise. As such,
+\Cref{thm:filter_expandability} must apply to this sketch. We generalize this
+argument to sketches with two-sided errors in
+\Cref{proof:sketch_expandability}, yielding the following theorem:
+\begin{theorem}
+    \label{thm:sketch_expandability}
+    A frequency estimation sketch providing an error bound of~$\epsilon(N)$ and
+    a confidence of~$\delta$ when processing a stream of size~$N$, i.e.,
+    $\Pr\left( |\hat{f}(x) - f(x)| \leq \epsilon(N) \right) \geq 1-\delta$,
+    must have a memory footprint of at least~$\Omega\left( N/\epsilon(N) \cdot
+    [\log 1/\delta + \log\log (N/\epsilon(N))] \right)$ bits.
+\end{theorem}
+As per \Cref{thm:all_counters_space}, when using a constant number of
+arrays~$d$ to achieve a constant confidence bound, \sketch\ uses~$O(W(N) \cdot
+(\log_2 (N/W(N)+1))$ bits of memory. and a sublinear power as the size
+function~$W(N)$, \sketch\ achieves an error of~$\epsilon(N)=N/W(N)$. Plugging
+this into \Cref{thm:sketch_expandability} shows that  ,
+
+. This almost matches the bound
+of \Cref{thm:sketch_expandability}, with a slight difference in the logarithmic
+terms. Compressing the counter arrays by coarsely quantizing the counter values
+and applying run-length encoding allows \sketch\ to match the bound of
+\Cref{thm:sketch_expandability}.
+
+\textbf{Performance.}
+For \sketchcms, as insertions, deletions, and queries are handled by the
+aggregated sketch, their time complexity is~$O(d)$. The same holds for
+\sketchcs as well, with the added overhead of maintaining the~$\ell_2$-norm
+estimate for the stream.
 
 \section{Evaluation}\label{sec:evaluation}
 
@@ -2147,6 +2262,8 @@ decrementing the counters and employing an auxiliary heap to locate and discard
 keys with zero counts. The query time can be further improved to~$O(1)$ using a
 specialized data structures similar to a linked list in exchange for a higher
 memory footprint~\cite{SpaceSaving}.
+
+\section{Proof of \Cref{thm:sketch_expandability}}\label{proof:sketch_expandability}
 
 \end{document}
 \endinput
