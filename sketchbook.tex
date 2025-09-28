@@ -865,9 +865,9 @@ using these extensions in conjunction with short stubs enables
 \counterencodingabbrv\ to encode each counter's value in space close to the
 length of its binary encoding. 
 
-As such, \counterencodingabbrv\ is able to compactly encode arbitrary
-variable-length data by treating them as counter values. Thus, it has potential
-use cases in other applications operating on variable-length data.
+Treating arbitrary variable-length data as counters allows
+\counterencodingabbrv\ to compactly encode them. Thus, it can be used in other
+applications operating on such data to improve memory efficiency.
 
 \textbf{Locating an Extension.}
 To decode an overflowing counter, \counterencodingabbrv\ must locate its
@@ -1077,24 +1077,26 @@ the lower 48 bits of the pointer.}) when tuning the number of counters per
 chunk and the stub size. Any space after the pointer is unused.
 
 \textbf{Adaptive Tuning.}
-Whenever more than~$1\%$ of the chunks start using tails arrays, \sketchcms
-adapts the tuning of \counterencodingabbrv's parameters, i.e., the number of
-counters per chunk~$c$ and the stub length~$s$, to minimize the memory
-footprint. It does this by scanning the entire sketch and computing the number
-of counter values of each binary length. It uses this summary to calculate the
-expected total length of a chunk's extensions for a given combination of
-parameters~$c$ and $s$. It enumerates the possible combinations by first
-varying~$c$ from largest to smallest and enumerating the stub length~$s$ from
-smallest to largest for each fixed~$c$. For each combination, it then applies
-Chebyshev's inequality to the expected total extension length to derive a
-conservative bound on the number of chunks that will use tails arrays. It
-chooses the first combination that yields a bound smaller than~$0.5\%$. In
-doing so, \sketchcms ensures \counterencodingabbrv\ packs as many counters as
-possible within each chunk and the stubs leave the largest amount of space for
-the extensions. Thus, extensions rarely outgrow their chunks, making the memory
-overhead of the tails arrays negligible. The amortized overhead of this tuning
-process is constant, as many more insertions must take place compared to the
-number of counters before this process~is~triggered.
+If more than~$1\%$ of the chunks use tails arrays after an insertion or if
+there are more than two unused bits per counter after a deletion, \sketchcms
+adapts \counterencodingabbrv's tuning, i.e., the number of counters per
+chunk~$c$ and the stub length~$s$, to minimize the memory footprint. It does
+this by scanning the entire sketch and computing the number of counter values
+of every binary length. It uses this summary to calculate the expected total
+length of a chunk's extensions for a given combination of parameters~$c$ and
+$s$. It enumerates the possible combinations by first varying~$c$ from largest
+to smallest and enumerating the stub length~$s$ from smallest to largest for
+each fixed~$c$. For each combination, it then applies Chebyshev's inequality to
+the total extension length to derive a conservative bound on the number of
+chunks that will use tails arrays. It chooses the first combination that yields
+a bound smaller than~$0.5\%$. In doing so, \sketchcms ensures
+\counterencodingabbrv\ packs as many counters as possible within each chunk and
+the stubs have as few unused bits as possible. It also ensures that extensions
+rarely outgrow their chunks, making the memory overhead of the tails arrays
+negligible. The amortized overhead of this tuning process is constant, as many
+more insertions and deletions compared to the number counters must take place
+before this process is triggered.
+
 
 \begin{figure}
     \centering
@@ -1495,7 +1497,7 @@ One may set~$W(N)=N/\epsilon$ in hopes of achieving an error bound
 of~$O(\epsilon)$. Yet, we show in \Cref{sec:theoretical_analysis} that, without
 knowing the ultimate length of the stream, the best error bound achievable by a
 sketch with~$O(N/\epsilon)$ counters\footnote{More precisely, we show this for
-any sketch using~$O\left( N/\epsilon \cdot \frac{\log \log N}{\log N} \right)$
+any sketch using~$O\left( N/\epsilon \cdot \frac{\log\log N}{\log N} \right)$
 bits of space.} is~$O(\epsilon \cdot \log N)$. Moreover, we show that, with a
 slight space optimization, \sketchcms attains this error bound under the same
 memory budget and is thus optimal.
@@ -1797,7 +1799,7 @@ to implement contractions, they become redundant under these workloads.
 \sketchcms discards the old sketches to reduce the memory footprint by at least
 50\% in such workloads.
 
-\subsection{Generalization to Count Sketch}\label{sec:cs}
+\subsection{Applying \sketch\ to Count Sketch}\label{sec:cs}
 %For example, in join size estimation, multiplying overestimated counts from the input tables leads to an overly large join size.
 
 \textbf{Count Sketch (CS).}
@@ -2022,70 +2024,70 @@ array.
 \fi
 
 \textbf{Memory Footprint.}
-Since the tuning procedure ensures few chunks use tails arrays, {\sketch}'s
-memory footprint is dominated by the space cost of encoding each counter using
-a stub and an extension. From the mechanics of :
+Since \counterencodingabbrv's tuning procedure ensures few bits are unused per
+counter and few chunks use tails arrays, {\sketch}'s memory footprint is
+dominated by the space occupied by the stubs and the extensions. For a single
+counter, this cost is:
 \begin{lemma}
     \label{lemma:single_counter_space}
-    When working with unsigned counters and stubs of length~$s$, an counter
-    value~$v$ is encoded in~$s$ bits if $v < 2^s$ and in $s+2 \cdot (\lfloor
-    \log_3 \lfloor v/2^s \rfloor \rfloor + 2) \leq 4 + 1.26 \log_2 v$ bits
-    otherwise. Signed counter values take one more bit to encode in both cases.
+    When working with unsigned counters and stubs of length~$s$,
+    \counterencodingabbrv\ encodes a counter value~$v$ in $s$ bits if $v < 2^s$
+    and in $4 + 1.26 \cdot \log_2 v$ bits otherwise. Signed counters take one
+    more bit to encode the sign in both cases.
 \end{lemma}
-\iffalse
 \begin{proof}
-    If~$v < 2^s$, it fits in its stub and occupies~$s$ bits. If~$v \geq 2^s$,
-    its~$s$ lower-order bits are stored in the stub, and the remaining bits
-    encoding the value~$\lfloor v/2^s \rfloor$ are encoded in an extension.
-    This extension has~$\lfloor \log_3 \lfloor v/2^s \rfloor \rfloor + 2$
-    fragments to represent the digits and the delimiter. Thus, the extension
-    occupies~$2 \cdot (\lfloor \log_3 \lfloor v/2^s \rfloor \rfloor + 2)$ bits.
-    Combining this with the cost of the stub and noting that~$\log_3 \lfloor
-    v/2^s \rfloor = \log_3 2 \cdot \log_2 \lfloor v/2^s \rfloor \approx 1.26
-    \cdot \log_2 \lfloor v/2^s \rfloor$ yields the desired bound. A signed
-    counter uses one extra bit to encode the sign.
+    If~$v < 2^s$, it fits in its stub and occupies~$s$ bits. Otherwise, its~$s$
+    lower-order bits are stored in its stub, and its higher-order bits
+    encoding~$\lfloor v/2^s \rfloor$ are stored in an extension. This extension
+    has~$\lfloor \log_3 \lfloor v/2^s \rfloor \rfloor + 2$ fragments to
+    represent the digits and the delimiter. Thus, it occupies
+    $$ 2 \cdot (\lfloor \log_3 \lfloor v/2^s \rfloor \rfloor + 2) \leq 2 \cdot (\log_3 2 \cdot \log_2 \lfloor v/2^s \rfloor + 2) \leq 4 - s + 1.26 \cdot \log_2 v $$
+    bits. This, combined with the cost of the stub, yields the result.
 \end{proof}
-\fi
-Applying \Cref{lemma:single_counter_space} to all of an array's counters
-yields:
+Applying \Cref{lemma:single_counter_space} to all counters yields:
 \begin{theorem}
     \label{thm:all_counters_space}
-    When storing~$N$ keys in an array of~$w$ counters, the total memory
-    footprint of the array is~$O(w \cdot (\log_2 (N/w) + 1))$ bits. Applied to
-    all~$d$ arrays in \sketch\ when using a size function~$W(N)$, this
-    corresponds to a space of~$O(d \cdot W(N) \cdot (\log_2 (N/W(N)) + 1))$
-    bits.
+    When an array of~$w$ counters has processed at total of~$N$ increments and
+    decrements, its total memory footprint is~$O(w \cdot (\log_2 (N/w) + 1))$
+    bits. Applied to all~$d$ arrays in \sketch\ when sketches are not
+    aggregated, this corresponds to a memory footprint of~$O(d \cdot W(N) \cdot
+    (\log_2 (N/W(N)) + 1))$ bits.
 \end{theorem}
 \begin{proof}
-    Letting~$v_i$ be the value of the~$i${\nobreakdash-}th counter, by
-    \Cref{lemma:single_counter_space}, the array uses at most~$m = \sum_i
-    O(1+\log_2 |v_i|) = O\left( w+\sum_i \log_2 |v_i| \right)$ bits. Since the
-    logarithm is a concave function, Jensen's inequality implies~$m \leq
-    O\left( w+\log_2 \left[ 1/w \cdot \sum_i |v_i| \right] \right)$. Moreover,
-    since the logarithm is an increasing function and~$\sum_i |v_i| \leq N$, it
-    must be that~$m \leq O(w \cdot (\log_2 (N/w) + 1))$. Applying this bound
-    to~$d$ arrays and noticing that the last sketch in \sketch\ dominates the
-    memory footprint yields the desired result.
+    Denoting the signed value of the~$i${\nobreakdash-}th counter by~$v_i$ and
+    applying \Cref{lemma:single_counter_space}, the array occupies~$m = \sum_i
+    O(1+\log_2 |v_i|) = O\left( w+\sum_i \log_2 |v_i| \right)$ bits. Due to the
+    concavity of the logarithm, it must be that~$\sum_i \log_2 |v_i| \leq w
+    \cdot \log_2(1/w \cdot \sum_i |v_i|)$. Because the logarithm is an
+    increasing function and~$\sum_i |v_i| \leq N$, it must be that~$w \cdot
+    \log_2(1/w \cdot \sum_i |v_i|) \leq w \cdot \log_2(N/w)$. Plugging this
+    into the first expression in the proof yields~$m \leq O(w \cdot (\log_2
+    (N/w) + 1))$. Recalling that the last sketch in \sketch's chain dominates
+    the memory and that its arrays are of size~$\approx W(N)$ proves the
+    result.
 \end{proof}
-
-% Should I mention that when~$W(N)=\Theta(N)$, the space cost is actually
-% higher by a factor of~$\log \log N$?
+When~$W(N)$ is a sublinear power, the bound for \sketch\ in
+\Cref{thm:all_counters_space} still holds when aggregating the sketches, since
+the total increments and decrements in the last sketch is~$O(N)$. Yet,
+when~$W(N)=\widetilde{O}(N)$, the total increments and decrements in the last
+sketch is~$O(N \log N)$. As such, the space bound increases slightly by an
+additive~$O(d \cdot W(N) \cdot \log\log N)$ bits.
 
 \textbf{Memory Footprint Lower Bound.}
 To prove a memory footprint lower bound for frequency estimation sketches, we
-use them to implement a filter and apply known lower bounds for filters. A
-filter is a compact data structure that answers whether a query key exists in a
-given set of keys. A filter never returns a false negative, but it may return a
-false positive with a probability called the \emph{False Positive Rate (FPR)}.
-The lower the FPR, the larger the filter's memory footprint must be. The
-following theorem states a memory footprint lower bound for filters supporting
-sets of unknown size:
+use them to implement filters and leverage their memory lower bounds. A filter
+is a compact data structure that answers whether a query key exists in a given
+set of keys. A filter never returns a false negative, but it may return a false
+positive with a probability called the \emph{False Positive Rate (FPR)}. The
+lower the FPR, the larger the filter's memory footprint must be. The following
+theorem states a memory footprint lower bound for filters supporting sets of
+unknown size:
 \begin{theorem}[Theorem 3.1 of~\cite{PaghExpandability}, Simplified]
     \label{thm:filter_expandability}
     Letting~$n$ denote the size of a growing set of keys, any filter that
     maintains an FPR of at most~$\delta$ for this set at all times must have a
     memory footprint of at least~$n \cdot (\log_2 1/\delta + \log_2 \log_2 n) -
-    o(n)$ bits.
+    \Theta(n)$ bits.
 \end{theorem}
 Therefore, a frequency estimation sketch that can be used to implement such a
 filter must also use at least this much memory.
@@ -2102,33 +2104,27 @@ and a larger estimate with a probability of~$\delta$. Thus, filtering proceeds
 by checking if the frequency of a given key is at least~$\epsilon(N)+1$,
 returning a positive if it is and a negative otherwise. As such,
 \Cref{thm:filter_expandability} must apply to this sketch. We generalize this
-argument to sketches with two-sided errors in
-\Cref{proof:sketch_expandability}, yielding the following theorem:
-\begin{theorem}
+argument to sketches with two-sided errors in \Cref{sec:ommitted_proofs},
+yielding the following theorem:
+\begin{restatable}{theorem}{thmsketchexpandabilitylabel}
     \label{thm:sketch_expandability}
     A frequency estimation sketch providing an error bound of~$\epsilon(N)$ and
-    a confidence of~$\delta$ when processing a stream of size~$N$, i.e.,
+    a confidence of~$1-\delta$ when processing a stream of size~$N$, i.e.,
     $\Pr\left( |\hat{f}(x) - f(x)| \leq \epsilon(N) \right) \geq 1-\delta$,
     must have a memory footprint of at least~$\Omega\left( N/\epsilon(N) \cdot
     [\log 1/\delta + \log\log (N/\epsilon(N))] \right)$ bits.
-\end{theorem}
-As per \Cref{thm:all_counters_space}, when using a constant number of
-arrays~$d$ to achieve a constant confidence bound, \sketch\ uses~$O(W(N) \cdot
-(\log_2 (N/W(N)+1))$ bits of memory. and a sublinear power as the size
-function~$W(N)$, \sketch\ achieves an error of~$\epsilon(N)=N/W(N)$. Plugging
-this into \Cref{thm:sketch_expandability} shows that  ,
-
-. This almost matches the bound
-of \Cref{thm:sketch_expandability}, with a slight difference in the logarithmic
-terms. Compressing the counter arrays by coarsely quantizing the counter values
-and applying run-length encoding allows \sketch\ to match the bound of
-\Cref{thm:sketch_expandability}.
+\end{restatable}
+When using a constant number of arrays~$d$ to achieve a constant confidence
+bound, \sketch\ uses~$O(W(N) \cdot (\log_2 (N/W(N)+1))$ bits of memory, as
+shown in \Cref{thm:all_counters_space}. One can verify when~$W(N)$ is a
+sublinear power or a near-linear function, this memory footprint can be
+expressed as~$O\left( N/\epsilon(N) \cdot \log (N/\epsilon(N)) \right)$. This
+almost matches the bound of \Cref{thm:sketch_expandability} with a slight
+difference in the logarithmic terms. Compressing the counter arrays by coarsely
+quantizing their values and applying run-length encoding allows \sketch\ to
+match the bound of \Cref{thm:sketch_expandability}.
 
 \textbf{Performance.}
-For \sketchcms, as insertions, deletions, and queries are handled by the
-aggregated sketch, their time complexity is~$O(d)$. The same holds for
-\sketchcs as well, with the added overhead of maintaining the~$\ell_2$-norm
-estimate for the stream.
 
 \section{Evaluation}\label{sec:evaluation}
 
@@ -2165,7 +2161,7 @@ out).
 \newpage
 \appendix
 
-\section{Generalization to Misra-Gries}\label{sec:mg}
+\section{Applying \sketch\ to Misra-Gries}\label{sec:mg}
 \textbf{Misra-Gries (MG).}
 Although CMS and CS benefit from more skew due to distinct keys colliding less
 frequently, using dedicated counters to track the most frequent keys yields
@@ -2271,7 +2267,59 @@ keys with zero counts. The query time can be further improved to~$O(1)$ using a
 specialized data structures similar to a linked list in exchange for a higher
 memory footprint~\cite{SpaceSaving}.
 
-\section{Proof of \Cref{thm:sketch_expandability}}\label{proof:sketch_expandability}
+\section{Omitted Proofs}\label{sec:ommitted_proofs}
+\thmsketchexpandabilitylabel*
+\begin{proof}
+    It is impossible to implement a filter using a sketch with two-sided errors
+    by thresholding the estimates. This is because underestimation errors may
+    introduce false negatives. Nevertheless, we show taht the lower bound still
+    holds by adapting the techniques used in the proof of Theorem~3.1
+    in~\cite{PaghExpandability} to these sketches. At a high level, our proof
+    follows a contradiction argument. We show that if a frequency estimation
+    sketch~$\mathcal{S}$ with an error bound of~$\epsilon(N)$ and confidence
+    of~$1-\delta$ exists that is ``too space-efficient,'' it can be used to
+    compress many sequences of~$n=N/(\epsilon(N)+1)$
+    keys~$\sigma=\sigma_1,\dots,\sigma_n$ coming from a large universe~$U$ of
+    size~$u \gg N$ to a size smaller than their entropy, which must be
+    impossible. We do this by simulating a filter as best as possible with the
+    sketch, despite there being false negatives. Our argument holds regardless
+    of the time complexity of~$\mathcal{S}$'s operations.
+
+    First, we show that, w.l.o.g., we can assume that~$\mathcal{S}$ is a
+    deterministic sketch which only has estimation errors larger
+    than~$\epsilon(N)$ on a~$2\delta$ fraction of the elements in~$U$. We
+    denote the fraction of such elements in~$U$ after inserting each of the
+    sequence~$\sigma$'s keys $\epsilon(N)+1$ times into $\mathcal{S}$ as
+    $\mu_{\mathcal{S}}(\sigma)$. We follow a similar argument to that of
+    Section~3.1 in~\cite{PaghExpandability}:
+    \begin{lemma}
+        \label{lemma:derandomization}
+        We can fix the internal randomness of the sketch~$\mathcal{S}$ such
+        that, for at least half of the possible sequences~$\sigma$,
+        $\mu_{\mathcal{S}}(\sigma) \leq 2\delta$.
+    \end{lemma}
+    \begin{proof}
+        The randomized version of~$\mathcal{S}$ has a confidence of~$1-\delta$.
+        Thus, denoting the internal random bits of~$\mathcal{S}$ by $r$, for
+        any sequence~$\sigma \in U^n$, we have that~$\mathbb{E}_r\left[ 
+        \mu_{\mathcal{S}}(\sigma) \right] \leq \delta$. Thus, by Markov's
+        inequality, it holds that 
+        $$ \Pr_r\left[ \mu_{\mathcal{S}}(\sigma) \geq 2\delta \right] \leq \frac{1}{2}. $$
+        Considering the complement even yields
+        $$ \Pr_r\left[ \mu_{\mathcal{S}}(\sigma) < 2\delta \right] \geq \frac{1}{2}. $$
+        Thus, the expected number of sequences~$\sigma$ that
+        satisfy~$\mu_{\mathcal{S}}(\sigma) < 2\delta$ is at least~$u^n/2$,
+        i.e., half of all possible sequences. An averaging argument implies
+        that there is some choice of~$\mathcal{S}$'s internal randomness that
+        satisfies~$\mu_{\mathcal{S}}(\sigma) < 2\delta$ for at least half of
+        all sequences.
+    \end{proof}
+    Thus, given a randomized sketch, we can convert it into a deterministic
+    sketch~$\mathcal{S}$ by fixing the internal randomness to the choice
+    mentioned in \Cref{lemma:derandomization} with the desired property.
+
+    We now use~$\mathcal{S}$ to compress the~$u^n/2$ sequences that 
+\end{proof}
 
 \end{document}
 \endinput
