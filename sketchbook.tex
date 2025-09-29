@@ -373,7 +373,7 @@ policies.
 
 Other approaches compress the counters using algorithms such as compressive
 sensing~\cite{TreeSensing,BitSense} or hypergraph peeling~\cite{CodingSketch}.
-However, these methods impose a heavy decompression overhead on queries.
+Yet, these methods impose heavy decompression overheads on queries.
 
 Counter sharing approaches store the counter values in a hierarchy of counters,
 with the lowest level storing the counter values in short counters and the
@@ -1458,12 +1458,12 @@ this issue for each sketch by generalizing it to expand the number of its
 counters as the stream grows. In the case of CMS, \sketchcms first allocates a
 sketch with arrays consisting of a few counters. It inserts and deletes keys
 from this sketch until~$N$ exceeds an internally chosen threshold. Once this
-occurs, \sketchcms expands by allocating a with arrays twice the size of those
-in the old sketch, with counters initialized to zeros. It directs insertions
-and deletions to this new sketch so that they benefit from its higher tracking
-accuracy. Whenever~$N$ again exceeds a threshold, \sketchcms allocates another
-sketch double the size of the previous one. It arranges these sketches from
-oldest to newest in a chain, yielding the structure shown in
+occurs, \sketchcms expands by allocating a new sketch with arrays twice the
+size of those in the old sketch, with counters initialized to zeros. It directs
+insertions and deletions to this new sketch so that they benefit from its
+higher tracking accuracy. Whenever~$N$ again exceeds a threshold, \sketchcms
+allocates another sketch double the size of the previous one. It arranges these
+sketches from oldest to newest in a chain, yielding the structure shown in
 \Cref{fig:sketchbook_chain}. All sketches along this chain have the same number
 of arrays~$d$ to enable a constant confidence bound. A query checks each sketch
 in the chain, sums the estimates from corresponding arrays, and reports the
@@ -1476,8 +1476,8 @@ values of~$N$ that double the value of a user-defined \emph{Size Function},
 denoted as~$W(N)$. We set~$W(N)=\sqrt{N}$ by default, which corresponds to
 expanding the sketch whenever~$N$ quadruples, as shown at the bottom of
 \Cref{fig:sketchbook_chain}. These thresholds keep the size of the last
-sketch's arrays within a factor of two of~$\sqrt{N}$. Moreover, they cause the
-last sketch to process the majority of the stream, making it the dominant
+sketch's arrays within a factor of two of~$W(N)=\sqrt{N}$. Moreover, they cause
+the last sketch to process the majority of the stream, making it the dominant
 factor in both the overall error bound and memory. Intuitively, this means that
 \sketchcms simulates processing the entire stream with a sketch allocated
 upfront with arrays of size~$\sqrt{N}$, as if~$N$ was known.
@@ -2004,20 +2004,20 @@ decrements it. The following theorem holds for AMS sketches:
 Thus, it suffices to keep~$O(\log N)$ AMS sketches in memory to
 approximate~$N_2$ with high probability at all points in time. Since~$N$ is
 bounded by the maximum value representable in a 64-bit machine word in
-practice, \sketchcs employs~64 AMS sketches. It uses SIMD to
-update\footnote{More generally, approximating~$N_2$ by maintaining~$k$ AMS
-sketches, where~$k$ is the machine word size, is possible in constant time with
-high probability. We omit the proof of this statement due to space
-constraints.} and query these sketches in parallel.
+practice, \sketchcs employs~64 AMS sketches. It uses SIMD to quickly
+update\footnote{More generally, it is possible to maintain~$k$ AMS sketches,
+where~$k$ is the machine word size, in constant time with high probability to
+approximate~$N_2$. We omit the proof of this statement due to space
+constraints.} and query these sketches.
 %The algorithm by batching every~$O(\log N)$ updates together and applying them to the sketches in parallel.
 %We also show that this algorithm can be deamortized to achieve a constat worst-case time complexity.
 
-As shown in \Cref{sec:theoretical_analysis}, using a sub-linear power size
-function of the form~$W(N_2^2)=N_2^{2\alpha}/\epsilon$ allows \sketchcs to
-achieve an error bound of~$O(N_2^{1-\alpha})$, matching that of a preallocated
-CS of size~$W(N)$, which is optimal~\cite{CountSketch}. As in the case of
-\sketchcms, setting~$W(N)=N/\epsilon$ yields an error bound of~$O(\epsilon
-\cdot \log N)$ with the lowest memory footprint possible.
+Similarly to \sketchcms, using a sub-linear power size function of the
+form~$W(N_2^2)=N_2^{2\alpha}/\epsilon$ in \sketchcs yields an error bound
+of~$O(N_2^{1-\alpha})$, matching that of a preallocated CS of size~$W(N_2^2)$,
+which is optimal~\cite{CountSketch}. Moreover,
+setting~$W(N_2^2)=N_2^2/\epsilon$ yields an error bound of~$O(\epsilon \cdot
+\log N_2)$ with the least possible memory.
 
 \iffalse
 \textbf{Comparison.}
@@ -2157,41 +2157,51 @@ filter must also use at least this much memory.
 
 To illustrate the argument, consider a frequency estimation sketch with only
 overestimation errors (e.g., CMS). Suppose this sketch guarantees an error of
-at most~$\epsilon(N)$ and a confidence of~$1-\delta$ for streams of length~$N$.
-One can use this sketch to implement a filter with an FPR of~$\delta$ over a
-set of size~$N/(\epsilon(N)+1)$ by inserting each key~$\epsilon(N)+1$ times.
-Querying a key within the set returns an estimate that is always at least as
-large as~$\epsilon(N)+1$. Querying a key outside of the set yields an estimate
-strictly less than~$\epsilon(N)+1$ with a probability of at least~$1-\delta$
-and a larger estimate with a probability of~$\delta$. Thus, filtering proceeds
-by checking if the frequency of a given key is at least~$\epsilon(N)+1$,
-returning a positive if it is and a negative otherwise. As such,
-\Cref{thm:filter_expandability} must apply to this sketch. We generalize this
-argument to sketches with two-sided errors in \Cref{sec:ommitted_proofs},
-yielding the following theorem:
+at most~$E(N)$ and a confidence of~$1-\delta$ for streams of length~$N$. One
+can use this sketch to implement a filter with an FPR of~$\delta$ over a set of
+size~$N/(E(N)+1)$ by inserting each key~$E(N)+1$ times. Filtering proceeds by
+checking if the frequency of a given key is at least~$E(N)+1$, returning a
+positive if it is and a negative otherwise. Querying a key within the set
+returns an estimate that is always at least as large as~$E(N)+1$ (i.e., a true
+positive) while querying a key outside of the set only yields an estimate
+of~$E(N)+1$ and above (i.e., a false positive) with a probability of~$\delta$.
+As such, \Cref{thm:filter_expandability} must apply to this sketch:
+\begin{theorem}
+    Any frequency estimation sketch with only overestimation errors that
+    processes growing streams with an error bound of~$E(N)$ and a confidence
+    of~$1-\delta$ must have a memory footprint of at least~$\Omega(N/E(N) \cdot [\log 1/\delta +
+    \log\log (N/E(N)])$ bits.
+\end{theorem}
+It is difficult to implement a filter with a sketch that has two-sided errors,
+since underestimations may introduce false negatives. Nevertheless, we prove in
+\Cref{sec:ommitted_proofs} that if the estimates of such a sketch have a
+variance that yields an error bound of~$E(N)$ with a confidence of~$1-\delta$
+(similarly to CS), the same lower bound holds:
 \begin{restatable}{theorem}{thmsketchexpandabilitylabel}
     \label{thm:sketch_expandability}
-    A frequency estimation sketch providing an error bound of~$\epsilon(N)$ and
-    a confidence of~$1-\delta$ when processing a stream of size~$N$, i.e.,
-    $\Pr\left( |\hat{f}(x) - f(x)| \leq \epsilon(N) \right) \geq 1-\delta$,
-    must have a memory footprint of at least~$\Omega\left( N/\epsilon(N) \cdot
-    [\log 1/\delta + \log\log (N/\epsilon(N))] \right)$ bits.
+    A linear frequency estimation sketch providing an estimate with a variance
+    of~$E(N)/\delta$ for any key when processing a stream of size~$N$,
+    uses~$\Omega\left( N/E(N) \cdot [\log 1/\delta + \log\log (N/E(N))]
+    \right)$ bits of memory.
 \end{restatable}
-When using a constant number of arrays~$d$ to achieve a constant confidence
-bound, \sketch\ uses~$O(W(N) \cdot (\log_2 (N/W(N)+1))$ bits of memory, as
-shown in \Cref{thm:all_counters_space}. One can verify when~$W(N)$ is a
-sub-linear power or a linear function, this memory footprint can be expressed
-as~$O\left( N/\epsilon(N) \cdot \log (N/\epsilon(N)) \right)$. This almost
-matches the bound of \Cref{thm:sketch_expandability} with a slight difference
-in the logarithmic terms. Compressing the counter arrays by coarsely quantizing
-their values and applying run-length encoding allows \sketch\ to match the
-bound of \Cref{thm:sketch_expandability}.
+
+Recall from \Cref{thm:all_counters_space} that using a constant number of
+arrays~$d$ for a constant confidence bound leads to a memory footprint
+of~$O(W(N) \cdot (\log_2 (N/W(N)+1))$ bits for \sketch. One can verify that
+when~$W(N)$ is a sub-linear power or a linear function, this memory footprint
+can be expressed as~$O\left( N/E(N) \cdot \log (N/E(N)) \right)$ bits,
+where~$E(N)$ is the error corresponding to the choice of~$W(N)$. This almost
+matches the above memory lower bounds with a slight difference in the
+logarithmic terms. Compressing the counter arrays by coarsely quantizing their
+counter values and applying run-length encoding allows \sketch\ to match these
+lower bounds.
 
 \textbf{Performance.}
-%Insertions and Deletions: trivial.
-%Queries: with and without aggregation.
-%Expansions and contractions: amortized cost.
-%Tracking~$\ell_1$ norm: amortized cost.
+As \sketch\ handles insertions, deletions, and queries using the last sketch in
+the chain, their cost is the same as the insertion or deletion cost of the last
+sketch, i.e., $O(d)$ for \sketchcms. Moreover, the amortized cost of expansions
+and contractions is constant, as they modify~$d \cdot W(N) \leq N$ counters
+every time~$N$ more than doubles or halves.
 
 \section{Evaluation}\label{sec:evaluation}
 
@@ -2344,10 +2354,10 @@ modification is required to \counterencodingabbrv, as the counter values are
 all positive.
 
 \textbf{Accommodating Skew.}
-MG does not use hashing to position a key within the array of slots. As such, unlike \sketchcms and \sketchcs
-Point out that for MG, as it doesn't use hashing and is more of an associative
-array, we expand on a slot-by-slot basis to exactly match~$C(N)$, yielding
-potentially higher accuracy. 
+To bound the error for growing streams, \sketchmg generalizes MG to expand its
+array of slots. Since keys are not hashed into the array of slots and can be
+placed in any slot, \sketchmg expands this array on a slot-by-slot basis,
+unlike \sketchcms and \sketchcs that double the size of their arrays.
 
 \section{Omitted Proofs}\label{sec:ommitted_proofs}
 \thmsketchexpandabilitylabel*
