@@ -1988,7 +1988,7 @@ value of~$N_2$ varies based on the workload, with uniform workloads having~$N_2
 therefore expand based on~$N_2^2$ to minimize its memory footprint while
 ensuring bounded errors for any workload. To this end, it defines its size
 function as~$W(N_2^2)$. Whenever~$W(N_2^2)$ doubles, it expands, and whenever
-it halves, it contracts.
+it halves, it contracts. 
 
 To compute~$W(N_2^2)$, \sketchcs must track~$N_2$. It does so by employing an
 array of AMS sketches to approximate~$N_2$~\cite{AMS}. An AMS sketch is a
@@ -2011,6 +2011,13 @@ high probability. We omit the proof of this statement due to space
 constraints.} and query these sketches in parallel.
 %The algorithm by batching every~$O(\log N)$ updates together and applying them to the sketches in parallel.
 %We also show that this algorithm can be deamortized to achieve a constat worst-case time complexity.
+
+As shown in \Cref{sec:theoretical_analysis}, using a sub-linear power size
+function of the form~$W(N_2^2)=N_2^{2\alpha}/\epsilon$ allows \sketchcs to
+achieve an error bound of~$O(N_2^{1-\alpha})$, matching that of a preallocated
+CS of size~$W(N)$, which is optimal~\cite{CountSketch}. As in the case of
+\sketchcms, setting~$W(N)=N/\epsilon$ yields an error bound of~$O(\epsilon
+\cdot \log N)$ with the lowest memory footprint possible.
 
 \iffalse
 \textbf{Comparison.}
@@ -2122,7 +2129,7 @@ Applying \Cref{lemma:single_counter_space} to all counters yields:
     the memory and that its arrays are of size~$\approx W(N)$ proves the
     result.
 \end{proof}
-When~$W(N)$ is a sublinear power, the bound for \sketch\ in
+When~$W(N)$ is a sub-linear power, the bound for \sketch\ in
 \Cref{thm:all_counters_space} still holds when aggregating the sketches, since
 the total increments and decrements in the last sketch is~$O(N)$. Yet,
 when~$W(N)=\widetilde{O}(N)$, the total increments and decrements in the last
@@ -2173,12 +2180,12 @@ yielding the following theorem:
 When using a constant number of arrays~$d$ to achieve a constant confidence
 bound, \sketch\ uses~$O(W(N) \cdot (\log_2 (N/W(N)+1))$ bits of memory, as
 shown in \Cref{thm:all_counters_space}. One can verify when~$W(N)$ is a
-sublinear power or a near-linear function, this memory footprint can be
-expressed as~$O\left( N/\epsilon(N) \cdot \log (N/\epsilon(N)) \right)$. This
-almost matches the bound of \Cref{thm:sketch_expandability} with a slight
-difference in the logarithmic terms. Compressing the counter arrays by coarsely
-quantizing their values and applying run-length encoding allows \sketch\ to
-match the bound of \Cref{thm:sketch_expandability}.
+sub-linear power or a linear function, this memory footprint can be expressed
+as~$O\left( N/\epsilon(N) \cdot \log (N/\epsilon(N)) \right)$. This almost
+matches the bound of \Cref{thm:sketch_expandability} with a slight difference
+in the logarithmic terms. Compressing the counter arrays by coarsely quantizing
+their values and applying run-length encoding allows \sketch\ to match the
+bound of \Cref{thm:sketch_expandability}.
 
 \textbf{Performance.}
 %Insertions and Deletions: trivial.
@@ -2327,7 +2334,17 @@ keys with zero counts. The query time can be further improved to~$O(1)$ using a
 specialized data structures similar to a linked list in exchange for a higher
 memory footprint~\cite{SpaceSaving}.
 
-\textbf{Expansions.}
+\textbf{Accommodating Skew.}
+The counts stored in MG may still exhibit skew within themselves. This causes
+memory wastage if uniformly-sized counters are used. \sketchmg addresses this
+issue by storing the counter values in a separate array that mirrors the
+ordering of the keys within the array of slots. It applies
+\counterencodingabbrv to space efficiently encode these counter values. No
+modification is required to \counterencodingabbrv, as the counter values are
+all positive.
+
+\textbf{Accommodating Skew.}
+MG does not use hashing to position a key within the array of slots. As such, unlike \sketchcms and \sketchcs
 Point out that for MG, as it doesn't use hashing and is more of an associative
 array, we expand on a slot-by-slot basis to exactly match~$C(N)$, yielding
 potentially higher accuracy. 
