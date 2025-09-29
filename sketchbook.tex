@@ -247,23 +247,25 @@ Misra-Gries~\cite{MisraGries} (\Cref{sec:mg}) and apply our techniques to them.
 The core design element of CMS is a counter array consisting of~$w$ counters,
 each initialized to zero. We insert a key~$x$ into this array by hashing it to
 one counter and incrementing it. We delete~$x$ by decrementing its
-corresponding counter. The counter that key~$x$ hashes to provides an estimate
-of~$x$'s count. Due to hash collisions, multiple keys can map to the same
-counter. Because of this, we may overestimate the count of a key~$x$. This
-error is at most~$\frac{N}{w}$ in expectation since a key participates in a
-hash collision with a probability of~$\frac{1}{w}$ and the total count of keys
-different from~$x$ is at most~$N$. Increasing the array's size makes collisions
-less likely, thereby decreasing the error and improving \emph{Accuracy}. Even
-so, the error may deviate from its expectation. The probability that errors do
-not exceed the expectation ``too much'' is known as the sketch's
-\emph{Confidence}. A straight-forward application of Markov's inequality shows
-that the error does not exceed~$\frac{eN}{w}$ with a confidence of at
-least~$1-e^{-1}$, i.e., $\Pr\left( |\hat{f}(x)-f(x)| \leq \frac{eN}{w} \right)
-\geq 1-e^{-1}$ for any key~$x$. Here, we use Euler's constant~$e$ due to
-convention. Any other constant would also work and would replace~$e$ in both
-the accuracy bound and the confidence. This implies that the smaller the
-constant becomes, i.e., the more accurate we expect the sketch to be, the lower
-confidence drops.
+corresponding counter.\footnote{Users must ensure deletions target previously
+inserted keys. This is because frequency estimation sketches do not store the
+keys and cannot check a deletion's validity.} The counter that key~$x$ hashes
+to provides an estimate of~$x$'s count. Due to hash collisions, multiple keys
+can map to the same counter. Because of this, we may overestimate the count of
+a key~$x$. This error is at most~$\frac{N}{w}$ in expectation since a key
+participates in a hash collision with a probability of~$\frac{1}{w}$ and the
+total count of keys different from~$x$ is at most~$N$. Increasing the array's
+size makes collisions less likely, thereby decreasing the error and improving
+\emph{Accuracy}. Even so, the error may deviate from its expectation. The
+probability that errors do not exceed the expectation ``too much'' is known as
+the sketch's \emph{Confidence}. A straight-forward application of Markov's
+inequality shows that the error does not exceed~$\frac{eN}{w}$ with a
+confidence of at least~$1-e^{-1}$, i.e., $\Pr\left( |\hat{f}(x)-f(x)| \leq
+\frac{eN}{w} \right) \geq 1-e^{-1}$ for any key~$x$. Here, we use Euler's
+constant~$e$ due to convention. Any other constant would also work and would
+replace~$e$ in both the accuracy bound and the confidence. This implies that
+the smaller the constant becomes, i.e., the more accurate we expect the sketch
+to be, the lower confidence drops.
 
 Yet, with a single array, confidence is low ($\approx 63\%$). The reason is
 that all keys sharing the same counter as a frequent key will suffer from
@@ -289,7 +291,7 @@ confidence of~$1-e^{-d}$, i.e., $\Pr\left( |\hat{f}(x)-f(x)| \leq \frac{eN}{w}
         \def\arrayw{5}
         \def\arrayh{0.25}
         \def\arraylen{10}
-        \def\arraysep{0.6}
+        \def\arraysep{0.25}
         \def\counterw{0.5}
 
         \foreach \i in {1, ..., \arraycount} {
@@ -299,27 +301,27 @@ confidence of~$1-e^{-d}$, i.e., $\Pr\left( |\hat{f}(x)-f(x)| \leq \frac{eN}{w}
             }
         }
         \def\texty{4.5*\arrayh}
-        \def\inserttextx{-\counterw}
+        \def\inserttextx{-2.25*\counterw}
         \node[inner sep=1pt,align=center] (key) at (\inserttextx,\texty) {\small Insert $x$};
-        \draw (key.south) -- (\inserttextx,-1.5*\arrayh-1.7*\arraysep);
+        \draw (key.south) -- (\inserttextx,-1.5*\arrayh-1.5*\arraysep);
 
         \def\pa{3.0}
         \def\pb{1.0}
         \def\pc{2.0}
-        \draw[-stealth] (\inserttextx,0.5*\arrayh+0.3*\arraysep) -| (\pa*\counterw+0.5*\counterw,0.5*\arrayh) node[pos=0.124,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_1(x)$, $+1$};
-        \draw[-stealth] (\inserttextx,-0.5*\arrayh-0.7*\arraysep) -| (\pb*\counterw+0.5*\counterw,-0.5*\arrayh-1.0*\arraysep) node[pos=0.223,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_2(x)$, $+1$};
-        \draw[-stealth] (\inserttextx,-1.5*\arrayh-1.7*\arraysep) -| (\pc*\counterw+0.5*\counterw,-1.5*\arrayh-2.0*\arraysep) node[pos=0.159,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_3(x)$, $+1$};
+        \draw[-stealth] (\inserttextx,0.5*\arrayh+0.5*\arraysep) -| (\pa*\counterw+0.5*\counterw,0.5*\arrayh) node[pos=0.095,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_1(x)$, $+1$};
+        \draw[-stealth] (\inserttextx,-0.5*\arrayh-0.5*\arraysep) -| (\pb*\counterw+0.5*\counterw,-0.5*\arrayh-1.0*\arraysep) node[pos=0.148,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_2(x)$, $+1$};
+        \draw[-stealth] (\inserttextx,-1.5*\arrayh-1.5*\arraysep) -| (\pc*\counterw+0.5*\counterw,-1.5*\arrayh-2.0*\arraysep) node[pos=0.116,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_3(x)$, $+1$};
 
-        \def\querytextx{\arrayw+\counterw}
+        \def\querytextx{\arrayw+2.25*\counterw}
         \node[inner sep=1pt,align=center] (query) at (\querytextx,\texty) {\small Query $q$ \\[-2pt] \small Result $=1$};
-        \draw[stealth-] (query.south) -- (\querytextx,-1.5*\arrayh-1.7*\arraysep) node[pos=0.5,below=2pt,rotate=90,inner sep=2pt] {\small Min};
+        \draw[stealth-] (query.south) -- (\querytextx,-1.5*\arrayh-1.5*\arraysep) node[pos=0.5,below=2pt,rotate=90,inner sep=2pt] {\small Min};
 
         \def\pa{8.0}
         \def\pb{4.0}
         \def\pc{7.0}
-        \draw (\querytextx,0.5*\arrayh+0.3*\arraysep) -| (\pa*\counterw+0.5*\counterw,0.5*\arrayh) node[pos=0.14,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_1(q)$};
-        \draw (\querytextx,-0.5*\arrayh-0.7*\arraysep) -| (\pb*\counterw+0.5*\counterw,-0.5*\arrayh-1.0*\arraysep) node[pos=0.054,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_2(q)$};
-        \draw (\querytextx,-1.5*\arrayh-1.7*\arraysep) -| (\pc*\counterw+0.5*\counterw,-1.5*\arrayh-2.0*\arraysep) node[pos=0.100,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_3(q)$};
+        \draw (\querytextx,0.5*\arrayh+0.5*\arraysep) -| (\pa*\counterw+0.5*\counterw,0.5*\arrayh) node[pos=0.095,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_1(q)$};
+        \draw (\querytextx,-0.5*\arrayh-0.5*\arraysep) -| (\pb*\counterw+0.5*\counterw,-0.5*\arrayh-1.0*\arraysep) node[pos=0.0445,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_2(q)$};
+        \draw (\querytextx,-1.5*\arrayh-1.5*\arraysep) -| (\pc*\counterw+0.5*\counterw,-1.5*\arrayh-2.0*\arraysep) node[pos=0.074,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_3(q)$};
 
         \draw[fill=gray!20] (\pa*\counterw,0.5*\arrayh) rectangle (\pa*\counterw+\counterw,-0.5*\arrayh);
         \draw[fill=gray!20] (\pb*\counterw,-0.5*\arrayh-1.0*\arraysep) rectangle (\pb*\counterw+\counterw,-1.5*\arrayh-1.0*\arraysep);
@@ -1106,7 +1108,7 @@ before this process is triggered.
         \def\arrayh{0.3}
         \def\tailsarrayw{0.5*\arrayw}
         \def\tailsarrayh{1.0*\arrayh}
-        \def\tailsarrayoffsetx{0.56*\arrayw}
+        \def\tailsarrayoffsetx{0.52*\arrayw}
         \def\tailsarrayoffsety{3.5*\arrayh}
         \def\tailsptrarrowoffset{0.05*\tailsarrayw}
         \def\stubw{0.15*\arrayw}
@@ -1809,9 +1811,12 @@ the same memory budget and is thus optimal.
 CMS, as described in \Cref{sec:background}, has two key shortcomings: (1)~its
 estimations are biased since it only overestimates and (2)~its errors compound
 when it is used in some tasks, particularly those that multiply frequencies. CS
-addresses these issues by providing unbiased estimates. The first two rows of
-\Cref{tab:classic_sketch_stats} summarizes the properties of CS and compares it
-to CMS.
+addresses these issues by providing unbiased estimates.\footnote{In CMS, one
+can subtract the average of the counter values a query key does not hash to
+from the query's counter to derive an unbiased estimate~\cite{CountMeanMin}.
+Yet, the resulting estimate has a marginally higher variance than that of CS.}
+The first two rows of \Cref{tab:classic_sketch_stats} summarizes the properties
+of CS and compares it to CMS.
 
 The core component of CS is a counter array of size~$w$ coupled with a hash
 function~$h_i$ mapping a key to a counter. CS further associates with each key
@@ -1839,12 +1844,14 @@ returns the median estimate, as shown in \Cref{fig:cs_overview}. This improves
 confidence since severe errors are unlikely to occur for enough experiments to
 affect the median. CS takes the median instead of the mean to improve
 robustness to outlier estimates. With~$d$ arrays with~$w$ counters each, CS
-guarantees an error bound of at most~$e \cdot \sqrt{\frac{\sum_{y}
+guarantees an error bound of at most~$\sqrt{\frac{e \cdot \sum_{y}
 (f(y))^2}{w}}$ with a confidence of~$1-e^{-d}$, i.e., $\Pr\left(
 |\hat{f}(x)-f(x)| \leq \sqrt{\frac{e \cdot \sum_{y} (f(y))^2}{w}} \right) \geq
 1-e^{-d}$ for any key~$x$. The error term above is smaller than CMS's error
 term when the frequency distribution is less skewed, as the root slows its
-growth to~$O(\sqrt{N})$ (vs.~$N$) when the summands are small.
+growth to~$O(\sqrt{N})$ (vs.~$N$) when the summands are small. The
+quantity~$\sqrt{\sum_y (f(y))^2}$ is known as the~$\ell_2$-norm of the key
+counts in the stream, which we denote by~$N_2$.
 
 \begin{figure}
     \centering
@@ -1953,11 +1960,57 @@ growth to~$O(\sqrt{N})$ (vs.~$N$) when the summands are small.
     \label{tab:classic_sketch_stats}
 \end{table}
 
-\textbf{Expansions.}
-Point out that for MG, as it doesn't use hashing and is more of an associative
-array, we expand on a slot-by-slot basis to exactly match~$C(N)$, yielding
-potentially higher accuracy. 
+\textbf{Accommodating Skew.}
+Similarly to CMS, CS wastes memory under skewed workloads due to using
+uniformly-sized counters. \sketchcs addresses this problem by generalizing CS
+to use a tailored version of \counterencodingabbrv. To this end, it appends a
+sign bit to each stub. This allows it to store negative counter values by
+setting the corresponding sign bit to~1 and using \counterencodingabbrv\ as
+before to encode the counter's absolute value.
 
+\textbf{Accommodating Unbounded Growth.}
+As with CMS, using CS to process a growing stream yields estimation errors that
+grow with the total key count~$N$. To resolve this problem, \sketchcs extends
+CS to expand the number of its counters. To this end, it creates a chain of
+sketches, similar to that of \sketchcms. It applies the same hashing scheme
+with the use of mother hashes, but also makes use of
+shared~$\sigma_1,\dots,\sigma_d$ to derive consistent update directions across
+the sketches. It applies the same expansion and contraction procedures, and
+handles a query by summing the estimates of the corresponding arrays and taking
+the median. It also speeds up queries by aggregating the old sketches into the
+last one.
+
+\sketchcs differs from \sketchcms in one key aspect: the estimation error of a
+sketch in its chain with arrays of size~$w$ scales with the
+stream's~$\ell_2$-norm, i.e., as $\sqrt{N_2^2/w}$, as opposed to~$N/w$. The
+value of~$N_2$ varies based on the workload, with uniform workloads having~$N_2
+\approx \sqrt{N}$ and skewed workloads having~$N_2 \approx N$. \sketchcs must
+therefore expand based on~$N_2^2$ to minimize its memory footprint while
+ensuring bounded errors for any workload. To this end, it defines its size
+function as~$W(N_2^2)$. Whenever~$W(N_2^2)$ doubles, it expands, and whenever
+it halves, it contracts.
+
+To compute~$W(N_2^2)$, \sketchcs must track~$N_2$. It does so by employing an
+array of AMS sketches to approximate~$N_2$~\cite{AMS}. An AMS sketch is a
+specialized CS with a single array consisting of a single counter. Each
+insertion increments the counter along its update direction and a deletion
+decrements it. The following theorem holds for AMS sketches:
+\begin{theorem}[Theorem 2.2 of~\cite{AMS}, specialized]
+    One can approximate~$N_2^2$ within a factor of two with a probability
+    of~$1-p$ using~$4 \cdot \log 1/p$ AMS sketches. Estimation proceeds by
+    squaring the sketches, averaging them in groups of~4, and taking the
+    median.
+\end{theorem}
+Thus, it suffices to keep~$O(\log N)$ AMS sketches in memory to
+approximate~$N_2$ with high probability at all points in time. Since~$N$ is
+bounded by the maximum value representable in a 64-bit machine word in
+practice, \sketchcs employs~64 AMS sketches. It uses SIMD to
+update\footnote{More generally, approximating~$N_2$ by maintaining~$k$ AMS
+sketches, where~$k$ is the machine word size, is possible in constant time with
+high probability. We omit the proof of this statement due to space
+constraints.} and query these sketches in parallel.
+%The algorithm by batching every~$O(\log N)$ updates together and applying them to the sketches in parallel.
+%We also show that this algorithm can be deamortized to achieve a constat worst-case time complexity.
 
 \iffalse
 \textbf{Comparison.}
@@ -2273,6 +2326,11 @@ decrementing the counters and employing an auxiliary heap to locate and discard
 keys with zero counts. The query time can be further improved to~$O(1)$ using a
 specialized data structures similar to a linked list in exchange for a higher
 memory footprint~\cite{SpaceSaving}.
+
+\textbf{Expansions.}
+Point out that for MG, as it doesn't use hashing and is more of an associative
+array, we expand on a slot-by-slot basis to exactly match~$C(N)$, yielding
+potentially higher accuracy. 
 
 \section{Omitted Proofs}\label{sec:ommitted_proofs}
 \thmsketchexpandabilitylabel*
