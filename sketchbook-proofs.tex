@@ -1,0 +1,322 @@
+%%
+%% This is file `sample-sigconf.tex',
+%% generated with the docstrip utility.
+%%
+%% The original source files were:
+%%
+%% samples.dtx  (with options: `sigconf')
+%% 
+%% IMPORTANT NOTICE:
+%% 
+%% For the copyright see the source file.
+%% 
+%% Any modified versions of this file must be renamed
+%% with new filenames distinct from sample-sigconf.tex.
+%% 
+%% For distribution of the original source see the terms
+%% for copying and modification in the file samples.dtx.
+%% 
+%% This generated file may be distributed as long as the
+%% original source files, as listed above, are part of the
+%% same distribution. (The sources need not necessarily be
+%% in the same archive or directory.)
+%%
+%%
+%% Commands for TeXCount
+%TC:macro \cite [option:text,text]
+%TC:macro \citep [option:text,text]
+%TC:macro \citet [option:text,text]
+%TC:envir table 0 1
+%TC:envir table* 0 1
+%TC:envir tabular [ignore] word
+%TC:envir displaymath 0 word
+%TC:envir math 0 word
+%TC:envir comment 0 0
+%%
+%%
+%% The first command in your LaTeX source must be the \documentclass
+%% command.
+%%
+%% For submission and review of your manuscript please change the
+%% command to \documentclass[manuscript, screen, review]{acmart}.
+%%
+%% When submitting camera ready or to TAPS, please change the command
+%% to \documentclass[sigconf]{acmart} or whichever template is required
+%% for your publication.
+%%
+%%
+\documentclass[sigconf]{acmart}
+
+\usepackage{array}
+\usepackage{breqn}
+\usepackage{booktabs,makecell}
+\usepackage{enumitem}
+\usepackage{tikz,pgfplots}
+\usetikzlibrary{positioning}
+\usetikzlibrary{arrows}
+\usetikzlibrary{patterns}
+\usetikzlibrary{shapes.geometric}
+\usetikzlibrary{decorations.pathreplacing}
+\usetikzlibrary{calligraphy}
+\usetikzlibrary{hobby}
+\usetikzlibrary{calc}
+\usepackage{thm-restate}
+
+\usepackage{pifont}
+\newcommand{\cmark}{\ding{51}}
+\newcommand{\xmark}{\ding{55}}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{corollary}{Corollary}[theorem]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{claim}[theorem]{Claim}
+
+\iffalse
+\usepackage{draftwatermark}
+\SetWatermarkScale{0.2}
+\SetWatermarkAngle{270}
+\SetWatermarkText{Accepted to SIGMOD 2025}
+\SetWatermarkHorCenter{0.95\paperwidth}
+\SetWatermarkVerCenter{0.5\paperheight}
+\fi
+
+\graphicspath{{./figures/}}
+
+%% Align figure captions to the left
+%\captionsetup{justification=raggedright,singlelinecheck=false}
+
+%%
+%% \BibTeX command to typeset BibTeX logo in the docs
+\AtBeginDocument{%
+  \providecommand\BibTeX{{%
+    Bib\TeX}}}
+
+%% Rights management information.  This information is sent to you
+%% when you complete the rights form.  These commands have SAMPLE
+%% values in them; it is your responsibility as an author to replace
+%% the commands and values with those provided to you when you
+%% complete the rights form.
+\setcopyright{acmlicensed}
+\copyrightyear{2025}
+\acmYear{2025}
+\acmDOI{XXXXXXX.XXXXXXX}
+
+%% These commands are for a PROCEEDINGS abstract or paper.
+\acmConference[VLDB '25]{VLDB International Conference on Very Large Databases
+(2025)}{June 22--27, 2025}{London, United Kingdom}
+%%
+%%  Uncomment \acmBooktitle if the title of the proceedings is different
+%%  from ``Proceedings of ...''!
+%%
+%%\acmBooktitle{Woodstock '18: ACM Symposium on Neural Gaze Detection,
+%%  June 03--05, 2018, Woodstock, NY}
+\acmISBN{978-1-4503-XXXX-X/18/06}
+
+
+%%
+%% Submission ID.
+%% Use this when submitting an article to a sponsored event. You'll
+%% receive a unique submission ID from the organizers
+%% of the event, and this ID should be used as the parameter to this command.
+%%\acmSubmissionID{123-A56-BU3}
+
+%%
+%% For managing citations, it is recommended to use bibliography
+%% files in BibTeX format.
+%%
+%% You can then either use BibTeX with the ACM-Reference-Format style,
+%% or BibLaTeX with the acmnumeric or acmauthoryear sytles, that include
+%% support for advanced citation of software artefact from the
+%% biblatex-software package, also separately available on CTAN.
+%%
+%% Look at the sample-*-biblatex.tex files for templates showcasing
+%% the biblatex styles.
+%%
+
+%%
+%% The majority of ACM publications use numbered citations and
+%% references.  The command \citestyle{authoryear} switches to the
+%% "author year" style.
+%%
+%% If you are preparing content for an event
+%% sponsored by ACM SIGGRAPH, you must use the "author year" style of
+%% citations and references.
+%% Uncommenting
+%% the next command will enable that style.
+%%\citestyle{acmauthoryear}
+
+
+%%
+%% end of the preamble, start of the body of the document source.
+\begin{document}
+
+%%
+%% The "title" command has an optional parameter,
+%% allowing the author to define a "short title" to be used in page headers.
+\title{Sketcbook Upper Bounds}
+
+%%
+%% The "author" command and its associated commands are used to define
+%% the authors and their affiliations.
+%% Of note is the shared affiliation of the first two authors, and the
+%% "authornote" and "authornotemark" commands
+%% used to denote shared contribution to the research.
+
+
+%%
+%% By default, the full list of authors will be used in the page
+%% headers. Often, this list is too long, and will overlap
+%% other information printed in the page headers. This command allows
+%% the author to define a more concise list
+%% of authors' names for this purpose.
+%\renewcommand{\shortauthors}{Eslami, Dayan.}
+
+%%
+%% The abstract is a short summary of the work to be presented in the
+%% article.
+\begin{abstract}
+  
+\end{abstract}
+
+%%
+%% The code below is generated by the tool at http://dl.acm.org/ccs.cfm.
+%% Please copy and paste the code instead of the example below.
+%%
+\begin{CCSXML}
+<ccs2012>
+   <concept>
+       <concept_id>10003752.10003809.10010055.10010056</concept_id>
+       <concept_desc>Theory of computation~Bloom filters and hashing</concept_desc>
+       <concept_significance>500</concept_significance>
+   </concept>
+   <concept>
+       <concept_id>10002951.10002952.10002971.10003450.10010830</concept_id>
+       <concept_desc>Information systems~Unidimensional range search</concept_desc>
+       <concept_significance>500</concept_significance>
+   </concept>
+ </ccs2012>
+\end{CCSXML}
+
+\ccsdesc[500]{Theory of computation~Bloom filters and hashing}
+\ccsdesc[500]{Information systems~Unidimensional range search}
+
+%%
+%% Keywords. The author(s) should pick words that accurately describe
+%% the work being presented. Separate the keywords with commas.
+\keywords{Range Filter, Dynamic Data Structure, Data Growth, Scalability.}
+
+\received{16 April 2024}
+\received[revised]{4 June 2024}
+\received[accepted]{8 August 2024}
+
+%%
+%% This command processes the author and affiliation and title
+%% information and builds the first part of the formatted document.
+\maketitle
+
+
+\section{Theoretical Analysis and Results}\label{sec:theoretical_analysis_and_results}
+
+\section{Proof of Theorem for Insertion-only Streams}
+
+We will do the analysis assuming a general size function $w^*$ and then discuss how the analysis proceeds for specific values of  $w^*$. Note that both CS and CMS share the same general structure: they contain $d$ counter arrays of size $w$. 
+
+Fix some size function $w^*$. Note that we perform doubling each time the function $w^*$ doubles. In the CMS case, $w^*$ is a function of $N$, the $\ell_1$ norm of the stream. In the CS case,  $w^*$ is a function of the $\ell_2$ norm of the stream. In either case, we can track the moments \emph{in time} in which the value of the function doubles. Formally, instead of thinking of $w^*$ as a function of the the $\ell_1$ or $\ell_2$ norms of the stream, we think of it as a function of time such that, at any point in time $t$, $w^*(t)$ is the number of counters the sketch uses at time $t$.
+
+Now let $T_0$ be the first time the sketch is instantiated (i.e., this sketch has $d$ counters and $w^*(T_0))$. %For simplicity's sake, we can assume  $w^*(T_0))$ is a power of two, and let $k \geq 0$ be such that $w^*(T_0))=2^k$.  
+We then define $T_i$ for $i\geq 1$ to be the first moment in time when the length of each array doubles, i.e., $w^*(T_{i}) = 2\cdot w^*(T_{i-1})$. Note that, in between times $T_{i}$ and $T_{i+1}$, the length of each array stays the same (i.e., it is equal to $w^*(T_{i})$). We call this period of time epoch $i$ and denote by $\mathcal{S}_{i}$ the \emph{active} sketch during this epoch (i.e., the one that has arrays of length $w^*(T_{i})$). According to our design, updates to the stream during Epoch $i$ are executed directly on $\mathcal{S}_{i}$. For the purposes of executing queries fast, we also aggregate all previous sketches into the active sketch. 	
+
+Formally, let $(x,\Delta)$ be an update that occured in some epoch $0\leq j < i$ before the current epoch. In the aggregation step, this update operation is replicated on all the counters in $\mathcal{S}_i$ that $x$ could have hashed into. Namely, if $x$ hashed to an index $\alpha$ in epoch $j$ for one of the arrays, then, during epoch $i$, all of the $2^{j-1}$ counters $\alpha \circ \{0,1\}^{j-i}$ ingest the update $(x,\Delta)$, where $\circ$ denotes concatenation and $ \{0,1\}^{j-i}$ denotes all binary strings of length $j-1$. From the perspective of fixed counter, what this means is that the counter must also ingest previous updates from elements that don't technically hash into it.
+
+Formally, let $\alpha$ be a counter in epoch $i$, and assume for simplicity that we only have one array in the sketch (i.e., $d=1$ and $h_1(x) = h(x)$). This counter ingests the following operations:
+
+\begin{itemize}
+	\item updates $(x,\Delta)$ from epoch $i$ and for which $h(x) = \alpha$.This event occurs with probability $1/w^*(T_i)$ since there are $w^*(T_i)$ counters in the array.
+	\item updates $(x,\Delta)$ from epoch $i-1$ and for which $h(x) = \alpha\circ 0$ or $h(x) = \alpha \circ 1$. This event occurs with probability $2/w^*(T_i)$.
+	\item  in general, updates $(x,\Delta)$ from epoch $j <i $ and for which $h(x) = \alpha\circ \{0,1\}^{i-j}$. This event occurs with probability $2^{i-j}/w^*(T_i)$.
+\end{itemize}
+
+While updates from previous epochs have a higher chance of hashing into $\alpha$ than updates in epoch $i$, they are nevertheless bounded in number, i.e., during epoch $i$, we have $T_{i+1}-T_{i}$ insertions. In the following, we bound the effect this has on each counter. We first cluster all the insertions that occur during a given epoch into one big insertion per element. Formally, let $f_i(x)$ denote the total count of updates  of the form $(x,\Delta)$ that occur in the stream during epoch $i$. Note that $\sum_x f_j(x) = T_{j+1}-T_j$ for all $j\geq 0$.
+
+\medskip\noindent
+\textbf{Bounds for CMS}. In the case of CMS, each counter gathers the sum of frequencies of elements that hash into it: 
+
+\begin{align*}
+	E[\alpha] &= \sum_{j=0}^i   \sum_x \frac{2^{i-j}}{w^*(T_i)} \cdot f_j(x) = \frac{1}{w^*(T_i)} \cdot  \sum_{j=0}^i   \sum_x 2^{i-j} \cdot f_j(x)\\
+&=	\frac{1}{w^*(T_i)} \cdot  \sum_{j=0}^i   2^{i-j}  \sum_x f_j(x) = \frac{1}{w^*(T_i)} \cdot  \sum_{j=0}^i  2^{i-j} \cdot  (T_{j+1} - T_j) \;.
+\end{align*}
+
+In other words, the increase in error we get because of aggregating the sketches is dominated by the term $\sum_{j=0}^i  2^{i-j} \cdot  (T_{j+1} - T_j)$. This is where the specific size function $w^*$ we employ has an effect, since it translates into bounds on $T_i$ (and specifically their relative sizes). We now consider various special cases and discuss their respective behavior:
+
+\medskip\noindent
+\textbf{Setting $w^*(N) =  N/\epsilon$ in CMS.} In this case, we start with the original sketch $\mathcal{S}_0$ with a capacity for $T_0$ elements. The size function doubles whenever the number of elements doubles. In this case $T_{j+1} = 2 \cdot T_j$ for all $j\geq 0$ and, in general, $T_j = 2^j \cdot T_0$ for all $j\geq 0$. The additional error term then becomes:
+\begin{align*}
+	\sum_{j=0}^i  2^{i-j} \cdot  (T_{j+1} - T_j) & =	\sum_{j=0}^i  2^{i-j} \cdot  (2^{j+1}\cdot T_0 - 2^{j}\cdot T_0)\\
+	&=  \sum_{j=0}^i  2^{i-j} \cdot  2^j \cdot T_0 = i \cdot 2^i \cdot T_0  \;.
+\end{align*}	
+Since the $\ell_1$ norm of the stream doubles in each epoch, we have that $2^i \cdot T_0 = T_i$ and so, in expectation,
+$$ E[\alpha]  =  \frac{1}{w^*(T_i)} \cdot i \cdot T_i = i/\epsilon\;.$$
+This is also an upper bound on the expected error we get for an element $x$. \textcolor{olive}{blah blah}
+
+\medskip\noindent
+\textbf{Setting $w^*(N) =  N^{1-c}/\epsilon$ in CMS, for some $0<c<1$.} In this case, the size function doubles more rarely, whenever $T_{i+1} = 2^{1/(1-c)} \cdot T_i$. Since $0<c<1$, note that this implies that $T_{i+1}$ is bigger than $2T_i$. This difference is why we avoid the extra dependency on $i$ in the error term. Formally, we have that $T_i = 2^{i/(1-c)} \cdot T_0$ and thus:
+
+\begin{align*}
+	\sum_{j=0}^i  2^{i-j} \cdot  (T_{j+1} - T_j) & =	\sum_{j=0}^i  2^{i-j} \cdot  (2^{(j+1)/(1-c)}\cdot T_0 - 2^{j/(1-c)}\cdot T_0)\\
+	&=  \sum_{j=0}^i  2^{i-j} \cdot  2^{j/(1-c)} \cdot T_0 \cdot (2^{1/(1-c)} -1) \\
+	&= 2^i \cdot T_0 \cdot (2^{1/(1-c)} -1) \cdot   \sum_{j=0}^i   2^{j/(1-c) - j}   \;.
+\end{align*}	
+
+For simplicity, we define $2^{1/(1-c)-1} = a$ and observe that:
+$$ \sum_{j=0}^i   2^{j/(1-c) - j}   =  \sum_{j=0}^i   a^j =  (a^{i+1}-1)/(a-1) \;.   $$
+
+We then get that:
+
+\begin{align*}
+	\sum_{j=0}^i  2^{i-j} \cdot  (T_{j+1} - T_j) & = 2^i \cdot T_0 \cdot (2^{1/(1-c)} -1) \cdot   \sum_{j=0}^i   2^{j/(1-c) - j}  \\
+&= 2^i \cdot T_0 \cdot (2a -1) \cdot (a^{i+1}-1)/(a-1)  \\
+	&\leq  2^{i+1} \cdot T_0 \cdot (a^{i+1}-1) \leq  2^{i+1} \cdot T_0 \cdot a^{i+1} \;.\\
+\end{align*}	
+
+At this point, it is worth mentioning that the expected error we are comparing against is $T_i/w^*(T_i)$, i.e., the error that we get by aggregating is close to the error we would get if we didn't expand and just allocated $S_i$ as a sketch from the beginning. To this end, we first notice that $2a = 2^{1/(1-c)}$ and so
+$$ 2^{i+1} \cdot T_0 \cdot a^{i+1} = 2^{(i+1)/(1-c)} \cdot T_0  = 2^{1/(1-c)} \cdot T_i\;.$$
+
+\noindent Therefore, the expected error becomes:
+\begin{align*}
+	E[\alpha]  &\leq   \frac{1}{w^*(T_i)} \cdot 	\sum_{j=0}^i  2^{i-j} \cdot  (T_{j+1} - T_j) \leq  2^{1/(1-c)} \cdot \frac{T_i}{w^*(T_i)} \;,
+\end{align*}
+as desired. We note that the above holds whenever $c<1$. In particular, $c$ does not need to be a constant. 
+%
+%We can expand the last term and get that:
+%\begin{align*}
+%	 \sum_{j=0}^i  2^{i-j} \cdot  (T_{j+1} - T_j) & =T_{i+1}-2^i \cdot T_0 + \sum_{j=1}^{i+1} 2^{i-j} \cdot T_i
+%\end{align*}	
+
+\medskip\noindent
+\textbf{Streams with deletions.} \textcolor{olive}{to be filled}
+
+\medskip\noindent
+\textbf{Bounds for CS.} . In the case of CS, we are interested in describing the behavior of the random variable $\alpha \cdot \sigma(x)$ for any $x$, where $\sigma(x)$ is the associated sign function (for simplicity, we again assume that $d=1$). The same argument as in the classical CS analysis shows that in expectation, $\alpha \cdot \sigma(x)$ is an unbiased estimator, i.e. $E[\alpha \cdot \sigma(x)] = f_x$. We are interested in bounding the variance of this estimator, and in particular, in bounding how much bigger it becomes when compared to $\sqrt{F_i/w^*(T_i)}$, where $F_i$ is the $\ell_2$ norm of the stream at time $T_i$. We begin by writing the indicator
+
+\begin{align*}
+	\textsf{Var}[\alpha \cdot \sigma(x)] &= \frac{1}{w^*(T_i)} \cdot  \sum_{j=0}^i  2^{i-j}   \cdot \sum_y  (f_j(y))^2 \;.
+\end{align*}
+
+
+
+
+In the CS case, the size function $w^*$ is defined as a function of the $\ell_2$ norm of the stream. This does not directly translates into bounds on $T_{i+1}$ vs $T_i$. Nevertheless, we can still say something meaningful in this case.
+
+
+
+
+
+
+
+
+
+
+\end{document}
+\endinput
+%%
+%% End of file `sample-sigconf.tex'.

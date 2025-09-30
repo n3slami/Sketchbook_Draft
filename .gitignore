@@ -1,0 +1,7 @@
+*.aux
+sketchbook.bbl
+sketchbook.blg
+sketchbook.log
+sketchbook.out
+sketchbook.synctex.gz
+.DS_Store
