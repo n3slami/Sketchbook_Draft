@@ -217,6 +217,15 @@
 
 \section{Theoretical Analysis and Results}\label{sec:theoretical_analysis_and_results}
 
+\newcommand{\POECMS}{\mathsf{PoE_{CMS}}}
+\renewcommand{\Pr}[1]{{\mathrm{Pr}}\left[ #1 \right]}
+\newcommand{\parentheses}[1]{\left(#1\right)}
+\newcommand{\expectation}[1]{\mathsf{E}\left[ #1 \right]}
+\newcommand{\variance}[1]{\textsf{Var}\left[ #1 \right]}
+
+We define $\POECMS(d,w,N)$ to denote the extra error we incur in CMS by not knowing the $\ell_1$ norm of the stream in advance. Namely, we compare the error of Sketchbook with that of a CMS with $d$ arrays of length $w$ after it has processed a stream of $\ell_1$ norm $N$.
+
+\textcolor{olive}{this needs more work, because it does involve arguing about the probability of deviating from the expected value..}
 \section{Proof of Theorem for Insertion-only Streams}
 
 We will do the analysis assuming a general size function $w^*$ and then discuss how the analysis proceeds for specific values of  $w^*$. Note that both CS and CMS share the same general structure: they contain $d$ counter arrays of size $w$. 
@@ -231,15 +240,20 @@ Formally, let $(x,\Delta)$ be an update that occured in some epoch $0\leq j < i$
 Formally, let $\alpha$ be a counter in epoch $i$, and assume for simplicity that we only have one array in the sketch (i.e., $d=1$ and $h_1(x) = h(x)$). This counter ingests the following operations:
 
 \begin{itemize}
-	\item updates $(x,\Delta)$ from epoch $i$ and for which $h(x) = \alpha$.This event occurs with probability $1/w^*(T_i)$ since there are $w^*(T_i)$ counters in the array.
-	\item updates $(x,\Delta)$ from epoch $i-1$ and for which $h(x) = \alpha\circ 0$ or $h(x) = \alpha \circ 1$. This event occurs with probability $2/w^*(T_i)$.
-	\item  in general, updates $(x,\Delta)$ from epoch $j <i $ and for which $h(x) = \alpha\circ \{0,1\}^{i-j}$. This event occurs with probability $2^{i-j}/w^*(T_i)$.
+	\item updates $(x,\Delta)$ from epoch $i$ and for which $h(x) = \alpha$. This event occurs with probability $1/w^*(T_i)$ since there are $w^*(T_i)$ counters in the array. For ease of analysis, we define $\mathcal{J}_{i,\alpha}(x)$ to be the indicator random variable that is $1$ if this event occurs, and $0$ otherwise. Then $\Pr{\mathcal{J}_{i,\alpha}(x) =1}= 1/w^*(T_i)$.
+	\item updates $(x,\Delta)$ from epoch $i-1$ that, during epoch $i-1$, hashed into a counter that matches the leftmost $\log w^*(T_i) - 1$ bits of $\alpha$ in the binary representation (meaning, their current $h(x)$ value differs from $\alpha$ in at most the last $1$ bit of their binary representation). This event occurs with probability at most $2/w^*(T_i)$. We emphasize that this is merely an upper bound: the additional factor of $2$ accounts for the mistakes that the aggregation step makes, i.e., processing updates from previous epoch that would not have hashed into $\alpha$ in the current epoch.
+	\item  in general, updates $(x,\Delta)$ from epoch $j <i $ and for which $h(x)$ differs from $\alpha$ only in the last $i-j$ bits of its binary representation. This event occurs with probability at most $2^{i-j}/w^*(T_i)$. Similarly as before, we define $\mathcal{J}_{j,\alpha}(x)$ to be the indicator random variable that is $1$ if this event occurs, and $0$ otherwise. Then  $\Pr{\mathcal{J}_{j,\alpha}(x) =1}\leq  2^{i-j}/w^*(T_i)$. Similarly as before, note that this is merely an upper bound: for $x$ such that $h(x) = \alpha$, the $\Pr{\mathcal{J}_{j,\alpha}(x) =1 | h(x) = \alpha}=1$ no matter when the update to $x$ was processed in the stream.
 \end{itemize}
 
 While updates from previous epochs have a higher chance of hashing into $\alpha$ than updates in epoch $i$, they are nevertheless bounded in number, i.e., during epoch $i$, we have $T_{i+1}-T_{i}$ insertions. In the following, we bound the effect this has on each counter. We first cluster all the insertions that occur during a given epoch into one big insertion per element. Formally, let $f_i(x)$ denote the total count of updates  of the form $(x,\Delta)$ that occur in the stream during epoch $i$. Note that $\sum_x f_j(x) = T_{j+1}-T_j$ for all $j\geq 0$.
 
 \medskip\noindent
-\textbf{Bounds for CMS}. In the case of CMS, each counter gathers the sum of frequencies of elements that hash into it: 
+\textbf{Bounds for CMS}. In the case of CMS, each counter gathers the sum of frequencies of elements that hash into it. Namely, the random variable $\alpha$ can be expressed as:
+
+$$ \alpha =\sum_{j=0}^i   \sum_x \mathcal{J}_{j,\alpha}(x) \cdot f_j(x)   \;.$$
+
+\noindent
+By linearity of expectation, we get that:
 
 \begin{align*}
 	E[\alpha] &= \sum_{j=0}^i   \sum_x \frac{2^{i-j}}{w^*(T_i)} \cdot f_j(x) = \frac{1}{w^*(T_i)} \cdot  \sum_{j=0}^i   \sum_x 2^{i-j} \cdot f_j(x)\\
@@ -296,10 +310,85 @@ as desired. We note that the above holds whenever $c<1$. In particular, $c$ does
 \textbf{Streams with deletions.} \textcolor{olive}{to be filled}
 
 \medskip\noindent
-\textbf{Bounds for CS.} . In the case of CS, we are interested in describing the behavior of the random variable $\alpha \cdot \sigma(x)$ for any $x$, where $\sigma(x)$ is the associated sign function (for simplicity, we again assume that $d=1$). The same argument as in the classical CS analysis shows that in expectation, $\alpha \cdot \sigma(x)$ is an unbiased estimator, i.e. $E[\alpha \cdot \sigma(x)] = f_x$. We are interested in bounding the variance of this estimator, and in particular, in bounding how much bigger it becomes when compared to $\sqrt{F_i/w^*(T_i)}$, where $F_i$ is the $\ell_2$ norm of the stream at time $T_i$. We begin by writing the indicator
+\textbf{Bounds for CS.} In the case of CS, we are interested in describing the behavior of the random variable $\hat{f}(z) = \alpha \cdot \sigma(z)$ for any query $z$, where $\sigma(z)$ is the associated sign function (for simplicity, we again assume that $d=1$). Using the notation we introduced before, the random variable $\alpha$ can be expressed as:
+
+$$ \alpha =\sum_{j=0}^i   \sum_x \mathcal{J}_{j,\alpha}(x) \cdot f_j(x) \cdot \sigma(x)  = \sum_x \mathcal{C}(x)  \;,$$
+
+where  $\mathcal{C}(x) =  \sum_{j=0}^i   \mathcal{J}_{j,\alpha}(x) \cdot f_j(x) \cdot \sigma(x)$ denotes the contribution throughout the epoch of updates to $x$.
+
+We begin by computing the expected value of the estimator $\hat{f}(z)$ as in the classical CS analysis that shows that in expectation, $\alpha \cdot \sigma(z)$ is an unbiased estimator, i.e. $E[\alpha \cdot \sigma(z)] = f(z)$. By linearity of expectation
+
+$$	\textsf{E}[\hat{f}(z)] =  \sum_{x \neq z}\expectation{\mathcal{C}(x) \cdot \sigma(z) } + \expectation{\mathcal{C}(z)\sigma(z)} = \sum_{j=0}^i f_j(z) = f(z)\;,$$
+
+where the last step uses the fact that $\expectation{\mathcal{C}(x) \cdot \sigma(z) } =0$ by construction and that $\Pr{ \mathcal{J}_{j,\alpha}(z)}=1$ since $h(z)=\alpha$. We will now bound the variance of this estimator, and in particular, we will be interested in how much bigger it becomes when compared to $\sqrt{F_i/w^*(T_i)}$, where $F_i$ is the squared $\ell_2$ norm of the stream at time $T_i$.  Using a similar argument when expanding the variance of the estimator, we get that:
 
 \begin{align*}
-	\textsf{Var}[\alpha \cdot \sigma(x)] &= \frac{1}{w^*(T_i)} \cdot  \sum_{j=0}^i  2^{i-j}   \cdot \sum_y  (f_j(y))^2 \;.
+	\variance{\hat{f}(z)} &= \expectation{\parentheses{\sum_x \mathcal{C}(x) \sigma(z)}^2}  - (f(z))^2 \\
+	& = \sum_x \expectation{\parentheses{\mathcal{C}(x)}^2} + \sum_x \sum_{y \neq x}\expectation{ \mathcal{C}(x) \mathcal{C}(y)} -  (f(z))^2 \\
+	&=\sum_x \expectation{\parentheses{\mathcal{C}(x)}^2} - (f(z))^2 \;,
+\end{align*}
+where we  use the fact that $\expectation{\sigma(x) \cdot \sigma(y) } =0$  for any $x\neq y$ to establish that $\expectation{ \mathcal{C}(x) \mathcal{C}(y)}=0$. We now bound $\expectation{\parentheses{\mathcal{C}(x)}^2}$. Recall that we defined $\mathcal{C}(x) =  \sum_{j=0}^i   \mathcal{J}_{j,\alpha}(x) \cdot f_j(x) \cdot \sigma(x)$. Then:
+
+\begin{align*}
+	\expectation{\parentheses{\mathcal{C}(x)}^2} &= \expectation{\parentheses{ \sum_{j=0}^i   \mathcal{J}_{j,\alpha}(x) \cdot f_j(x)    }^2}\\
+	&=\sum_{j=0}^i   \expectation{ \parentheses{ \mathcal{J}_{j,\alpha}(x) \cdot f_j(x) }^2} +\\
+	&+ 2\cdot \sum_{j=0}^{i-1}  \sum_{k=j+1}^i   \expectation{ \mathcal{J}_{j,\alpha}(x) \cdot f_j(x) \cdot  \mathcal{J}_{k,\alpha}(x) \cdot f_k(x) } \\
+	&= \sum_{j=0}^i    {f_j(x) }^2 \cdot \expectation{ \mathcal{J}_{j,\alpha}(x)} +\\
+	&+  2\cdot \sum_{j=0}^{i-1}  \sum_{k=j+1}^i   f_j(x)  \cdot f_k(x) \cdot   \expectation{ \mathcal{J}_{j,\alpha}(x) \cdot   \mathcal{J}_{k,\alpha}(x) } \;.
+\end{align*}
+
+For bounding the $\expectation{ \mathcal{J}_{j,\alpha}(x)}$, we can use the fact that $\expectation{ \mathcal{J}_{j,\alpha}(x)}  \leq 2^{i-j}/w^*(T_i)$. For   $\expectation{ \mathcal{J}_{j,\alpha}(x) \cdot   \mathcal{J}_{k,\alpha}(x) }$, we note that the product of the two random variables is $0$ only when both of them are zero. Having said that, the two random variables are not independent: if $\mathcal{J}_{k,\alpha}(x) =1$, then $ \mathcal{J}_{j,\alpha}(x)=1$ for any $k\geq j$. Namely, if during epoch $k$, $x$ hashed into a counter that was a prefix of $\alpha$, then the same would have happened during epoch $j \leq k$.  We get that:
+
+$$\expectation{ \mathcal{J}_{j,\alpha}(x) \cdot   \mathcal{J}_{k,\alpha}(x) } = \expectation{  \mathcal{J}_{k,\alpha}(x) } \;.$$
+
+\noindent
+The whole sums becomes:
+
+\begin{align*}
+	\sum_{j=0}^{i-1}  \sum_{k=j+1}^i   f_j(x)  \cdot f_k(x) \cdot   \expectation{ \mathcal{J}_{k,\alpha}(x) } &= \sum_{k=1}^i \sum_{j=0}^{k-1}  f_j(x)  \cdot f_k(x) \cdot   \expectation{ \mathcal{J}_{k,\alpha}(x) }\\
+	&= \sum_{k=1}^i   f_k(x) \cdot   \expectation{ \mathcal{J}_{k,\alpha}(x) } \cdot \sum_{j=0}^{k-1}  f_j(x)\\
+	&=  \sum_{k=1}^i   f_k(x) \cdot   \expectation{ \mathcal{J}_{k,\alpha}(x) } \cdot f_{\leq k-1}(x)
+\end{align*}
+
+where, for simplicity, we denoted $f_{\leq {i}}(x) =  \sum_{j=0}^{i}  f_i(x)$ the sum of frequencies accumulated by $x$ through epochs $0$ to $i$ and set $f_{\leq -1}(x)=0$. Then:
+
+\begin{align*}
+	\expectation{\parentheses{\mathcal{C}(x)}^2} &= \sum_{j=0}^i   \parentheses{{f_j(x) }^2  + 2 f_j(x) \cdot f_{\leq j-1}(x)} \cdot \expectation{ \mathcal{J}_{j,\alpha}(x)}  \\
+	&=  \sum_{j=0}^i   \parentheses{{f_{\leq j}(x) }^2  - {f_{\leq j-1}(x) }^2} \cdot \expectation{ \mathcal{J}_{j,\alpha}(x)}\;.
+\end{align*}
+
+
+While the term ${f_{\leq j}(x) }^2  - {f_{\leq j-1}(x) }^2$ might seem contrited, we note that $\sum_x{f_{\leq j}(x) }^2  - {f_{\leq j-1}(x) }^2 = F_{j} - F_{j-1}$ denotes the increase in the squared $\ell_2$ norm of the stream vector as we move from epoch $j-1$ to epoch $j$. We thus get that:
+
+
+\begin{align*}
+		\variance{\hat{f}(z)} &= \sum_x \expectation{\parentheses{\mathcal{C}(x)}^2} - (f(z))^2\\
+		&= \sum_x \sum_{j=0}^i   \parentheses{{f_{\leq j}(x) }^2  - {f_{\leq j-1}(x) }^2} \cdot \expectation{ \mathcal{J}_{j,\alpha}(x)} -  (f(z))^2\\
+		&\leq  \sum_{j=0}^{i}  \parentheses{F_{j} - F_{j-1}} \cdot \frac{2^{i-j}}{w^*(T_i)}\;.
+\end{align*}
+
+At this point, it becomes perhaps more natural to understand why we defined the size function to depend on the squared $\ell_2$ norm of the stream vector. We now discuss different bounds we get on the variance depending on the size function.
+
+\medskip\noindent
+\textbf{Setting $w^*(F) =  F/\epsilon$ in CMS.}   In this case, we start with the original sketch $\mathcal{S}_0$ that allows streams for which their squared $\ell_2$ norm is at most some $F_0$ elements. The size function doubles whenever the number of elements doubles. In this case $F_{j+1} = 2 \cdot F_j$ for all $j\geq 0$ and, in general, $F_j = 2^j \cdot F_0$ for all $j\geq 0$. In this case, we get that:
+
+\begin{align*}
+	\variance{\hat{f}(z)} &\leq  \sum_{j=0}^{i}  \parentheses{F_{j} - F_{j-1}} \cdot \frac{2^{i-j}}{w^*(T_i)} \\
+	&\leq \frac{1}{w^*(T_i)} \cdot \parentheses{  F_0\cdot 2^{i}+ \sum_{j=1}^{i}  \parentheses{2^{j} - 2^{j-1}} \cdot F_0 \cdot 2^{i-j}}\\
+	&\leq \frac{1}{w^*(T_i)} \cdot  \parentheses{  F_0\cdot 2^{i}+  \sum_{j=1}^{i}  2^{j-1} \cdot F_0 \cdot 2^{i-j}} \\
+		&\leq \frac{1}{w^*(T_i)} \cdot  \parentheses{  F_0\cdot 2^{i}+  \sum_{j=1}^{i}  F_0 \cdot 2^{i-1}}\\
+		&\leq  \frac{1}{w^*(T_i)} \cdot  \parentheses{  F_i+  (i-1)\cdot F_i/2} =   \frac{F_i}{w^*(T_i)} \cdot  \frac{i+1}{2} \;.
+\end{align*}
+
+
+
+
+
+\newpage
+
+\begin{align*}
+	\textsf{Var}[\alpha \cdot \sigma(z)] &= \frac{1}{w^*(T_i)} \cdot  \sum_{j=0}^i  2^{i-j}   \cdot \sum_x  (f_j(x))^2 
+	\;.
 \end{align*}
 
 
