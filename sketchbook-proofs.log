@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.24 (MiKTeX 22.1) (preloaded format=pdflatex 2023.10.30)  30 SEP 2025 18:29
+This is pdfTeX, Version 3.141592653-2.6-1.40.24 (MiKTeX 22.1) (preloaded format=pdflatex 2023.10.30)  1 OCT 2025 09:35
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1853,12 +1853,15 @@ Overfull \hbox (9.76128pt too wide) detected at line 351
 Class acmart Warning: \vspace should only be used to provide space above/below 
 surrounding objects on input line 372.
 
-[3.3]
 
 Class acmart Warning: \vspace should only be used to provide space above/below 
-surrounding objects on input line 408.
+surrounding objects on input line 397.
 
-[4.4] (sketchbook-proofs.aux)
+
+Package balance Warning: You have called \balance in second column
+(balance)                Columns might not be balanced.
+
+[3.3] (sketchbook-proofs.aux)
  ***********
 LaTeX2e <2023-06-01> patch level 1
 L3 programming layer <2023-10-23>
@@ -1867,11 +1870,11 @@ Package rerunfilecheck Info: File `sketchbook-proofs.out' has not changed.
 (rerunfilecheck)             Checksum: BBBA0660A8D68A77BF58D8324B3E54C5;595.
  ) 
 Here is how much of TeX's memory you used:
- 45077 strings out of 474718
- 1002312 string characters out of 5745599
+ 45079 strings out of 474718
+ 1002381 string characters out of 5745599
  1963033 words of memory out of 5000000
  65827 multiletter control sequences out of 15000+600000
- 708608 words of font info for 320 fonts, out of 8000000 for 9000
+ 708873 words of font info for 322 fonts, out of 8000000 for 9000
  1302 hyphenation exceptions out of 8191
  90i,13n,131p,1016b,609s stack positions out of 10000i,1000n,20000p,200000b,200000s
 {/Users/bercea/Library/Application Support/MiKTeX/texmfs/install/fonts/enc/dv
@@ -1898,9 +1901,9 @@ xmfs/install/fonts/type1/public/newtx/NewTXMI7.pfb></Users/bercea/Library/Appli
 cation Support/MiKTeX/texmfs/install/fonts/type1/public/newtx/txexs.pfb></Users
 /bercea/Library/Application Support/MiKTeX/texmfs/install/fonts/type1/public/ne
 wtx/txsys.pfb>
-Output written on sketchbook-proofs.pdf (4 pages, 410928 bytes).
+Output written on sketchbook-proofs.pdf (3 pages, 409456 bytes).
 PDF statistics:
- 117 PDF objects out of 1000 (max. 8388607)
- 11 named destinations out of 1000 (max. 500000)
+ 113 PDF objects out of 1000 (max. 8388607)
+ 10 named destinations out of 1000 (max. 500000)
  86065 words of extra memory for PDF output out of 89155 (max. 10000000)
 

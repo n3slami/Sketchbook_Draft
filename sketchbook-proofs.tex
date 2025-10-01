@@ -337,7 +337,7 @@ where we  use the fact that $\expectation{\sigma(x) \cdot \sigma(y) } =0$  for a
 	&+  2\cdot \sum_{j=0}^{i-1}  \sum_{k=j+1}^i   f_j(x)  \cdot f_k(x) \cdot   \expectation{ \mathcal{J}_{j,\alpha}(x) \cdot   \mathcal{J}_{k,\alpha}(x) } \;.
 \end{align*}
 
-For bounding the $\expectation{ \mathcal{J}_{j,\alpha}(x)}$, we can use the fact that $\expectation{ \mathcal{J}_{j,\alpha}(x)}  \leq 2^{i-j}/w^*(T_i)$. For   $\expectation{ \mathcal{J}_{j,\alpha}(x) \cdot   \mathcal{J}_{k,\alpha}(x) }$, we note that the product of the two random variables is $0$ only when both of them are zero. Having said that, the two random variables are not independent: if $\mathcal{J}_{k,\alpha}(x) =1$, then $ \mathcal{J}_{j,\alpha}(x)=1$ for any $k\geq j$. Namely, if during epoch $k$, $x$ hashed into a counter that was a prefix of $\alpha$, then the same would have happened during epoch $j \leq k$.  We get that:
+For bounding the $\expectation{ \mathcal{J}_{j,\alpha}(x)}$, we can use the fact that $\expectation{ \mathcal{J}_{j,\alpha}(x)}  \leq 2^{i-j}/w^*(T_i)$. For   $\expectation{ \mathcal{J}_{j,\alpha}(x) \cdot   \mathcal{J}_{k,\alpha}(x) }$, we note that the product of the two indicator random variables is $1$ only when both of them are $1$. Having said that, the two random variables are not independent: if $\mathcal{J}_{k,\alpha}(x) =1$, then $ \mathcal{J}_{j,\alpha}(x)=1$ for any $k\geq j$. Namely, if during epoch $k$, $x$ hashed into a counter that was a prefix of $\alpha$, then the same would have happened during epoch $j \leq k$.  We get that:
 
 $$\expectation{ \mathcal{J}_{j,\alpha}(x) \cdot   \mathcal{J}_{k,\alpha}(x) } = \expectation{  \mathcal{J}_{k,\alpha}(x) } \;.$$
 
@@ -370,7 +370,7 @@ While the term ${f_{\leq j}(x) }^2  - {f_{\leq j-1}(x) }^2$ might seem contrited
 At this point, it becomes perhaps more natural to understand why we defined the size function to depend on the squared $\ell_2$ norm of the stream vector. We now discuss different bounds we get on the variance depending on the size function.
 
 \medskip\noindent
-\textbf{Setting $w^*(F) =  F/\epsilon$ in CMS.}   In this case, we start with the original sketch $\mathcal{S}_0$ that allows streams for which their squared $\ell_2$ norm is at most some $F_0$ elements. The size function doubles whenever the number of elements doubles. In this case $F_{j+1} = 2 \cdot F_j$ for all $j\geq 0$ and, in general, $F_j = 2^j \cdot F_0$ for all $j\geq 0$. In this case, we get that:
+\textbf{Setting $w^*(F) =  F/\epsilon$ in CS.}   In this case, we start with the original sketch $\mathcal{S}_0$ that allows streams for which their squared $\ell_2$ norm is at most some $F_0$. The size function doubles whenever the squared $\ell_2$ norm doubles. In this case $F_{j+1} = 2 \cdot F_j$ for all $j\geq 0$ and, in general, $F_j = 2^j \cdot F_0$ for all $j\geq 0$. In this case, we get that:
 
 \begin{align*}
 	\variance{\hat{f}(z)} &\leq  \sum_{j=0}^{i}  \parentheses{F_{j} - F_{j-1}} \cdot \frac{2^{i-j}}{w^*(T_i)} \\
@@ -384,17 +384,6 @@ At this point, it becomes perhaps more natural to understand why we defined the 
 
 
 
-\newpage
-
-\begin{align*}
-	\textsf{Var}[\alpha \cdot \sigma(z)] &= \frac{1}{w^*(T_i)} \cdot  \sum_{j=0}^i  2^{i-j}   \cdot \sum_x  (f_j(x))^2 
-	\;.
-\end{align*}
-
-
-
-
-In the CS case, the size function $w^*$ is defined as a function of the $\ell_2$ norm of the stream. This does not directly translates into bounds on $T_{i+1}$ vs $T_i$. Nevertheless, we can still say something meaningful in this case.
 
 
 
