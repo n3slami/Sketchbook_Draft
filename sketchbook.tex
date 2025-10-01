@@ -1432,50 +1432,36 @@ and uses each as the hash value of an array.
 Recall from \Cref{sec:problem_analysis} that processing growing streams with
 existing frequency estimation sketches (e.g., CMS) yields an estimation error
 that deteriorates at least linearly with the total key count~$N$. \sketch\
-addresses this issue by generalizing a sketch to increase the number of its
+addresses this issue by generalizing a sketch to increase its number of
 counters as the stream grows. In the case of CMS, \sketchcms expands
 whenever~$N$ exceeds a tunable threshold. An expansion concatenates the current
 sketch with a copy of itself, doubling the size of each array. All subsequent
 insertions benefit from the lower collision probability of these larger arrays.
-\Cref{fig:sketchbook_chain} illustrates \sketchcms just after two expansions,
-as well as its state just before each expansion. Queries proceed similarly to a
-standard CMS.
+\Cref{fig:sketchbook_chain} illustrates \sketchcms just after the second
+expansion took place, as well as its state just before the first and second
+expansions. Queries follow the same algorithm as a standard CMS.
 
 \textbf{Shared Hash Functions.}
-\sketchcms uses the same hash functions for the arrays across expansions. This
-entails taking an additional bit from a key's hash after each expansion to map
-it to a counter within an array. Doing so ensures that a key hashes to either
-the same counter it would have hashed to before expanding, or its copy. For
-example, the query key~$q$ in \Cref{fig:sketchbook_chain} has a hash
+For its~$d$ arrays, \sketchcms uses the same hash functions across expansions.
+It hashes a key to a counter within an array of size~$w$ by taking the~$\log_2
+w$ lower-order bits of its hash. Doing so ensures that after an expansion, a
+key hashes to either the same counter it would have hashed to before, or its
+copy. For example, the query key~$q$ in \Cref{fig:sketchbook_chain} has a hash
 of~$h_1(q)=011\dots$, causing it to hash to the 6th counter in the first array,
-which is the copy of the array's 2nd counter before expansion.
+which is the copy of the array's 2nd counter before expansion. Thus, its
+results before and after the expansion are consistent.
 
 \textbf{Initial Size.}
-\sketchcms starts with a sketch consisting of small arrays and expands to
-minimize the memory footprint at all times. Repeatedly expanding is inexpensive
-since it involves a simple copy operation. Starting with larger arrays reduces
-the overall error by a constant factor, as proven in
-\Cref{sec:theoretical_analysis}.
+\sketchcms starts with each array in the sketch consisting of a single chunk
+(i.e., a cache line) containing~$c$ counters, as described in
+\Cref{sec:accommodating_skew}. Thus, it avoids wasting memory from the onset in
+case the stream grows slowly. We show in \Cref{sec:theoretical_analysis}
+that larger initial arrays reduce the overall error by a constant factor.
 
-\textbf{Expansion Thresholds.} 
-Unlike arrays or hash tables, which expand when~$N$ doubles, \sketchcms expands
-after the total key count~$N$ more than doubles to achieve both sub-linear
-errors and a sub-linear memory footprint. This is equivalent to expanding after
-the value of a user-defined \emph{Size Function}, denoted as~$W(N)$, doubles.
-We set~$W(N)=\sqrt{N}$ by default, which translates to expanding whenever~$N$
-quadruples, as shown at the bottom of \Cref{fig:sketchbook_chain}. Here, the
-size function doubles to 2, 4, and 8 when~$N$ quadruples to 4, 16, and 64,
-triggering expansions. 
-
-Starting with arrays of size~$2 \cdot W(1)=2$ and using the expansion
-thresholds above keeps the size of each array within a factor of two of the
-size function, thereby controlling the sketch size. Moreover, it leads to
-processing the majority of the stream's keys with arrays of size~$\approx
-W(N)=\sqrt{N}$. Intuitively, this simulates handling the entire stream with a
-sketch allocated upfront with arrays of size~$\sqrt{N}$, as if~$N$ were known.
-In contrast to CMS, where the error grows linearly and the memory footprint
-remains fixed, \sketchcms's error grows at a significantly slower rate
-of~$\sqrt{N}$ in exchange for a moderate increase in memory footprint.
+\textbf{Expansion Implementation.}
+An expansion is inexpensive since it simply copies counters without rehashing
+keys. One can further improve performance by leveraging virtual memory to
+expand each array, thereby avoiding physical reallocations.
 
 \begin{figure}
     \centering
@@ -1592,12 +1578,32 @@ of~$\sqrt{N}$ in exchange for a moderate increase in memory footprint.
     \label{fig:contraction}
 \end{figure}
 
+\textbf{Expansion Thresholds.} 
+To achieve both sub-linear errors and a sub-linear memory footprint, \sketchcms
+expands after the total key count~$N$ more than doubles. By default, it expands
+whenever~$N$ quadruples, as shown at the bottom of \Cref{fig:sketchbook_chain}.
+Here, expansions occur when~$N$ quadruples to 4, 16, and 64. 
+
+To connect the expansion thresholds to the memory footprint, we encode them
+using a \emph{Size Function}, denoted as~$W(N)$. Each threshold is encoded as
+the value of~$N$ where the size function doubles. Setting~$W(N)=\sqrt{N}$
+yields the default quadrupling thresholds. By starting with~$c$ counters in the
+chunk of each array and setting the first expansion threshold to~$4c^2$ (i.e.,
+the value of~$N$ satisfying $W(N)=2c$), \sketchcms keeps the size of each array
+within a factor of two of the size function as the stream grows. 
+
+Recall from \Cref{sec:background} that a CMS allocated with arrays of~$w$
+counters has an error bound of~$N/w$. Since \sketchcms processes the majority
+of the stream's keys with arrays of size~$\approx \sqrt{N}$, it captures the
+error bound of a CMS that sets~$w=\sqrt{N}$ (i.e., $N/\sqrt{N}=\sqrt{N}$), as
+if~$N$ were known upfront. The cost is a small constant factor increase in the
+error, which stems from the accumulation of errors from when the sketch was
+small.
+
 \textbf{Deletions and Contractions.} 
-\sketchcms contracts after many deletions to save memory. It sets the
-contraction threshold to the mean of the last two expansion thresholds to avoid
-the churning problem -- i.e., the problem of updates frequently resizing the
-sketch. Contractions cannot simply reduce the size of each array by adding its
-halves together, as this will double the counters copied before the last
+\sketchcms handles deletions as CMS does. It contracts after many deletions to
+save memory. Contractions cannot simply reduce the size of each array by adding
+its halves together, as this will double the counters copied before the last
 expansion, inflating the error. Instead, \sketchcms keeps a record of the
 sketch's state just before each expansion. It extracts the recent updates to
 the current sketch by subtracting out the previous state of the sketch from its
@@ -1607,27 +1613,29 @@ previous sketch and its copy have changed. \sketchcms applies these changes to
 the original counters in the previous sketch. Finally, it discards the current
 sketch and uses the previous sketch to handle subsequent operations.
 Maintaining the sketch record increases the memory footprint by at
-most~$2\times$.
+most~$2\times$. The contraction threshold is set to the mean of the last two
+expansion thresholds to avoid the churning problem -- i.e., the problem of
+updates frequently resizing the sketch.
 
 Because the majority of the stream's keys must be deleted to trigger a
 contraction, \sketchcms always handles most of the stream using arrays that are
-at least as large as the size function~$W(N)$. Thus, the error remains bounded,
+at most twice as large as the size function~$W(N)$. Thus, the error remains bounded,
 despite the state of the sketch depending on the sequence of insertions and
 deletions.
 
-\textbf{Size Function.} 
-Setting the size function~$W(N)$ to functions other than~$\sqrt{N}$ exposes a
-rich spectrum of accuracy-memory tradeoffs. The faster the size function grows
-with respect to the total key count~$N$, the sooner \sketchcms expands, thereby
-tracking more of the stream's keys more accurately in exchange for a larger
-memory footprint. We set the size function to a \emph{Sub-Linear Power} of the
-form~$W(N)=N^\alpha/\epsilon$, with constants~$\alpha \in [0,1)$ and $\epsilon
-> 0$. This corresponds to having~$\lceil 2/\epsilon \rceil$ counters in each
-array at the beginning and expanding when~$N$ increases by a factor
-of~$2^{1/\alpha}$, which is larger than two. We prove in
+\textbf{Tuning.} 
+Setting the size function~$W(N)$ to functions other than the default~$\sqrt{N}$
+exposes a rich spectrum of accuracy-memory tradeoffs. The faster the size
+function grows with respect to the total key count~$N$, the sooner \sketchcms
+expands, thereby tracking more of the stream's keys accurately in exchange for
+a larger memory footprint. We set the size function to a \emph{Sub-Linear
+Power} of the form~$W(N)=N^\alpha/\epsilon$, with constants~$\alpha \in [0,1)$
+and $\epsilon > 0$. This corresponds to having~$(1/\epsilon)\times$ more
+counters in each array at the beginning and expanding when~$N$ grows
+by~$2^{1/\alpha}\times$, which is larger than two. We prove in
 \Cref{sec:theoretical_analysis} that using a sub-linear power yields an error
-bound of~$O(N/W(N))=O(\epsilon \cdot N^{1-\alpha})$. Compared to a fixed-size
-sketch allocated upfront with arrays of size~$W(N)$ (which has an optimal error
+of~$O(N/W(N))=O(\epsilon \cdot N^{1-\alpha})$. Compared to a fixed-size sketch
+allocated upfront with arrays of size~$W(N)$ (which has an optimal error
 bound~\cite{CountMin}), \sketchcms's error is only larger by a small constant
 factor\footnote{The constant factor in question is~$(1-2^{-1/\alpha}) \cdot
 \frac{(2-2^{1-1/\alpha})^{1/\alpha \cdot \log_2 N}-1}{(2-2^{1-1/\alpha})-1}$,
@@ -2228,25 +2236,31 @@ unlike \sketchcms and \sketchcs that double the size of their arrays.
     \sigma_\ell$, with $\sigma_i$ having a length of~$2^i \cdot \sqrt{n}$ and
     $\ell=\log_2 n/2$. We denote the state of~$\mathcal{S}$ after processing
     the subsequences~$\sigma_1, \dots, \sigma_i$ by inserting each key~$E(N)$
-    times as $\mathcal{S}_i$, while denoting its estimate for a key~$x$ as
-    $\hat{f}_i(x)$. We also denote the difference in the estimate of~$x$ after
-    processing~$\sigma_i$ as $\Delta_i(x) = \hat{f}_i(x) - \hat{f}_{i-1}(x)$.
-    Suppose~$y \in U$ is a key that does not appear in~$\sigma$. By the law of
-    total variance, we have
+    times as $\mathcal{S}_i$. We denote $\mathcal{S}_i$'s its estimate for the
+    count of key~$x$ as $\hat{f}_i(x)$ while denoting the ground-truth count
+    as~$f_i(x)$. We also denote the difference in the estimate of~$x$ after
+    processing~$\sigma_i$ as $\hat{\Delta}_i(x) = \hat{f}_i(x) -
+    \hat{f}_{i-1}(x)$, while denoting the actual change in~$x$'s count by
+    $\Delta_i(x) = f_i(x) - f_{i-1}(x)$. By the law of total variance, we have
+    for any key~$x$ that
     \begin{align}
-        \mathrm{Var}\left[ \hat{f}_\ell(y) \right] & = \mathrm{Var}\left[ \Delta_\ell(x) + \hat{f}_{\ell-1}(x) \right] \notag \\
-        & = \mathbb{E}\left[ \mathrm{Var}\left[ \Delta_\ell(y) + \hat{f}_{\ell-1}(y) \;\middle|\; \hat{f}_{\ell-1}(y) \right] \right] \notag \\ 
-        & \; \; \; + \mathrm{Var}\left[ \mathbb{E}\left[ \Delta_{\ell}(y) + \hat{f}_{\ell-1}(y) \;\middle|\; \hat{f}_{\ell-1}(y) \right] \right] \notag \\
-        & = \mathbb{E}\left[ \mathrm{Var}\left[ \Delta_\ell(y) \;\middle|\; \hat{f}_{\ell-1}(y) \right] \right] + \mathrm{Var}\left[ \hat{f}_{\ell-1}(y) \right]. \label{eq:total_variance}
+        \mathrm{Var} & \left[ \hat{f}_\ell(x) - f_\ell(x) \right] = \mathrm{Var}\left[ \hat{\Delta}_\ell(x) + \hat{f}_{\ell-1}(x) - \Delta_\ell(x) - f_{\ell-1}(x) \right] \notag \\
+        & = \mathbb{E}\left[ \mathrm{Var}\left[ \hat{\Delta}_\ell(x) + \hat{f}_{\ell-1}(x) \;\middle|\; \hat{f}_{\ell-1}(x) \right] \right] \notag \\ 
+        & + \mathrm{Var}\left[ \mathbb{E}\left[ \hat{\Delta}_{\ell}(x) - \Delta_{\ell}(x) + \hat{f}_{\ell-1}(x) \;\middle|\; \hat{f}_{\ell-1}(x) \right] - f_{\ell-1}(x) \right] \notag \\
+        & = \mathbb{E}\left[ \mathrm{Var}\left[ \hat{\Delta}_\ell(x) - \Delta_{\ell}(x) \;\middle|\; \hat{f}_{\ell-1}(x) \right] \right] \notag \\ 
+        & + \mathrm{Var}\left[ \left( \mathbb{E}\left[ \hat{\Delta}_{\ell}(x) \;\middle|\; \hat{f}_{\ell-1}(x) \right] - \Delta_{\ell}(x) \right) + \hat{f}_{\ell-1}(x) \right] \notag \\
+        & = \mathbb{E}\left[ \mathrm{Var}\left[ \hat{\Delta}_\ell(x) - \Delta_{\ell}(x) \;\middle|\; \hat{f}_{\ell-1}(x) \right] \right] + \mathrm{Var}\left[ \hat{f}_{\ell-1}(x) \right]. \label{eq:total_variance}
     \end{align}
-    Here, we have simplified the second variance term by using the unbiasedness
-    of $\mathcal{S}$'s estimates in each window of the stream. In particular,
-    in~$\sigma_\ell$, this implies that~$\mathbb{E}[\Delta_\ell(y) |
-    \hat{f}_{\ell-1}(y)] = 0$, since $y$ does not appear in~$\sigma$. This
+    Here, we have removed the constant terms~$\Delta_\ell(x)$ and
+    $f_{\ell-1}(x)$ from the first variance, as they do not affect the result. We have also
+    simplified the second variance term by using the unbiasedness of
+    $\mathcal{S}$'s estimates in each window of the stream. In particular,
+    in~$\sigma_\ell$, this implies that~$\mathbb{E}\left[\Delta_\ell(y) \;\middle|\;
+    \hat{f}_{\ell-1}(y)\right] = 0$, since $y$ does not appear in~$\sigma$. This
     property also implies that
     \begin{align*}
-        \mathrm{Var}\left[ \Delta_\ell(y) | \hat{f}_{\ell-1}(y) \right] & = \mathbb{E}\left[ \mathbb{E}\left[ (\Delta_\ell(y))^2 | \hat{f}_{\ell-1}(y) \right] - \mathbb{E}\left[ \Delta_\ell(y) | \hat{f}_{\ell-1}(y) \right]^2 \right] \\
-        & = \mathbb{E}\left[ (\Delta_\ell(y))^2 \right] - \mathbb{E}\left[ \cancelto{0}{\mathbb{E}\left[ \Delta_\ell(y) | \hat{f}_{\ell-1}(y) \right]^2} \right] \\
+        \mathrm{Var}\left[ \Delta_\ell(y) \;\middle|\; \hat{f}_{\ell-1}(y) \right] & = \mathbb{E}\left[ \mathbb{E}\left[ (\Delta_\ell(y))^2 \;\middle|\; \hat{f}_{\ell-1}(y) \right] - \mathbb{E}\left[ \Delta_\ell(y) \;\middle|\; \hat{f}_{\ell-1}(y) \right]^2 \right] \\
+        & = \mathbb{E}\left[ (\Delta_\ell(y))^2 \right] - \mathbb{E}\left[ \cancelto{0}{\mathbb{E}\left[ \Delta_\ell(y) \;\middle|\; \hat{f}_{\ell-1}(y) \right]^2} \right] \\
         & = \mathbb{E}\left[ (\Delta_\ell(y))^2 \right] = \mathrm{Var}\left[ \Delta_\ell(y) \right].
     \end{align*}
     Here we have used the law of total expectation to simplify the expression
