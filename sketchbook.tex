@@ -23,6 +23,7 @@
 \usepackage{array}
 \usepackage{breqn}
 \usepackage{booktabs,makecell}
+\usepackage[makeroom]{cancel}
 \usepackage{enumitem}
 \usepackage{tikz,pgfplots}
 \usetikzlibrary{positioning}
@@ -1843,7 +1844,7 @@ decrements it. The following theorem holds for AMS sketches:
     squaring the sketches, averaging them in groups of~4, and taking the
     median.
 \end{theorem}
-Thus, it suffices to keep~$O(\log N)$ AMS sketches in memory to
+\noindent Thus, it suffices to keep~$O(\log N)$ AMS sketches in memory to
 approximate~$N_2$ with high probability at all points in time. Since~$N$ is
 bounded by the maximum value representable in a 64-bit machine word in
 practice, \sketchcs employs~64 AMS sketches. It uses SIMD to quickly
@@ -1929,7 +1930,7 @@ array.
 \fi
 
 \textbf{Memory Footprint.}
-Since \counterencodingabbrv's tuning procedure ensures few bits are unused per
+Since \counterencodingabbrv's adaptive tuning ensures few bits are unused per
 counter and few chunks use tails arrays, {\sketch}'s memory footprint is
 dominated by the space occupied by the stubs and the extensions. For a single
 counter, this cost is:
@@ -1952,11 +1953,12 @@ counter, this cost is:
 Applying \Cref{lemma:single_counter_space} to all counters yields:
 \begin{theorem}
     \label{thm:all_counters_space}
-    When an array of~$w$ counters has processed at total of~$N$ increments and
-    decrements, its total memory footprint is~$O(w \cdot (\log_2 (N/w) + 1))$
-    bits. Applied to all~$d$ arrays in \sketch\ when sketches are not
-    aggregated, this corresponds to a memory footprint of~$O(d \cdot W(N) \cdot
-    (\log_2 (N/W(N)) + 1))$ bits.
+    When an array of~$w$ counters has processed~$N$ increments and decrements,
+    it uses~$O(w \cdot (\log_2 (N/w) + 1))$ bits of memory. Applied to all~$d$
+    arrays in \sketch, this corresponds to a memory of~$O(d \cdot W(N) \cdot
+    (\log_2 (N/W(N)) + 1))$ bits when the size function~$W(N)$ is a sub-linear
+    power and~$O(d \cdot W(N) \cdot (\log_2(N \log N/W(N)) + 1))$ bits when it is a linear
+    function.
 \end{theorem}
 \begin{proof}
     Denoting the signed value of the~$i${\nobreakdash-}th counter by~$v_i$ and
@@ -1967,16 +1969,14 @@ Applying \Cref{lemma:single_counter_space} to all counters yields:
     increasing function and~$\sum_i |v_i| \leq N$, it must be that~$w \cdot
     \log_2(1/w \cdot \sum_i |v_i|) \leq w \cdot \log_2(N/w)$. Plugging this
     into the first expression in the proof yields~$m \leq O(w \cdot (\log_2
-    (N/w) + 1))$. Recalling that the last sketch in \sketch's chain dominates
-    the memory and that its arrays are of size~$\approx W(N)$ proves the
-    result.
+    (N/w) + 1))$. 
+
+    Taking the copied counters into account, each array in \sketch\
+    processes~$O(N)$ increments and decrements when the size function is a
+    sub-linear power. When it is a linear function, the total increments and
+    decrements is~$O(N \log N)$. Plugging these values into the formula above
+    and multiplying by the number of arrays~$d$ proves the result.
 \end{proof}
-When~$W(N)$ is a sub-linear power, the bound for \sketch\ in
-\Cref{thm:all_counters_space} still holds when aggregating the sketches, since
-the total increments and decrements in the last sketch is~$O(N)$. Yet,
-when~$W(N)=\widetilde{O}(N)$, the total increments and decrements in the last
-sketch is~$O(N \log N)$. As such, the space bound increases slightly by an
-additive~$O(d \cdot W(N) \cdot \log\log N)$ bits.
 
 \textbf{Memory Footprint Lower Bound.}
 To prove a memory footprint lower bound for frequency estimation sketches, we
@@ -1991,11 +1991,11 @@ unknown size:
     \label{thm:filter_expandability}
     Letting~$n$ denote the size of a growing set of keys, any filter that
     maintains an FPR of at most~$\delta$ for this set at all times must have a
-    memory footprint of at least~$n \cdot (\log_2 1/\delta + \log_2 \log_2 n) -
+    memory footprint of at least~$n \cdot [\log_2 1/\delta + \log_2 \log_2 n] -
     \Theta(n)$ bits.
 \end{theorem}
-Therefore, a frequency estimation sketch that can be used to implement such a
-filter must also use at least this much memory.
+\noindent Therefore, a frequency estimation sketch that can be used to
+implement such a filter must also use at least this much memory.
 
 To illustrate the argument, consider a frequency estimation sketch with only
 overestimation errors (e.g., CMS). Suppose this sketch guarantees an error of
@@ -2014,6 +2014,7 @@ As such, \Cref{thm:filter_expandability} must apply to this sketch:
     of~$1-\delta$ must have a memory footprint of at least~$\Omega(N/E(N) \cdot [\log 1/\delta +
     \log\log (N/E(N)])$ bits.
 \end{theorem}
+
 It is difficult to implement a filter with a sketch that has two-sided errors,
 since underestimations may introduce false negatives. Nevertheless, we prove in
 \Cref{sec:ommitted_proofs} that if the estimates of such a sketch have a
@@ -2021,22 +2022,22 @@ variance that yields an error bound of~$E(N)$ with a confidence of~$1-\delta$
 (similarly to CS), the same lower bound holds:
 \begin{restatable}{theorem}{thmsketchexpandabilitylabel}
     \label{thm:sketch_expandability}
-    A linear frequency estimation sketch providing an estimate with a variance
-    of~$E(N)/\delta$ for any key when processing a stream of size~$N$,
-    uses~$\Omega\left( N/E(N) \cdot [\log 1/\delta + \log\log (N/E(N))]
-    \right)$ bits of memory.
+    A frequency estimation sketch providing an estimate with a variance
+    of~$\delta \cdot (E(N))^2$ for any key when processing a stream of
+    size~$N$, uses~$\Omega\left( N/E(N) \cdot [\log 1/\delta + \log\log
+    (N/E(N))] \right)$ bits of memory.
 \end{restatable}
+\noindent Note that the variance assumption above captures the design of all
+existing frequency estimation sketches.
 
-Recall from \Cref{thm:all_counters_space} that using a constant number of
-arrays~$d$ for a constant confidence bound leads to a memory footprint
-of~$O(W(N) \cdot (\log_2 (N/W(N)+1))$ bits for \sketch. One can verify that
-when~$W(N)$ is a sub-linear power or a linear function, this memory footprint
-can be expressed as~$O\left( N/E(N) \cdot \log (N/E(N)) \right)$ bits,
-where~$E(N)$ is the error corresponding to the choice of~$W(N)$. This almost
-matches the above memory lower bounds with a slight difference in the
-logarithmic terms. Compressing the counter arrays by coarsely quantizing their
-counter values and applying run-length encoding allows \sketch\ to match these
-lower bounds.
+One can verify from \Cref{thm:all_counters_space} that, when fixing the
+confidence using a constant number of arrays~$d$ while using a sub-linear power
+(resp. linear) size function~$W(N)$ to achieve an error of~$E(N)$, the memory
+footprint becomes~$O\left( N/E(N) \cdot \log (N/E(N)) \right)$ (resp. $O(N/E(N)
+\cdot \log N \cdot \log\log N)$) bits. This almost matches the above memory
+lower bounds with a slight difference in the logarithmic terms. Compressing the
+counter arrays by coarsely quantizing their counters and applying run-length
+encoding allows \sketch\ to match these lower bounds.
 
 \textbf{Performance.}
 Reading and modifying a counter in \counterencodingabbrv\ takes constant time.
@@ -2205,55 +2206,130 @@ unlike \sketchcms and \sketchcs that double the size of their arrays.
 \section{Omitted Proofs}\label{sec:ommitted_proofs}
 \thmsketchexpandabilitylabel*
 \begin{proof}
-    It is impossible to implement a filter using a sketch with two-sided errors
-    by thresholding the estimates. This is because underestimation errors may
-    introduce false negatives. Nevertheless, we show taht the lower bound still
-    holds by adapting the techniques used in the proof of Theorem~3.1
-    in~\cite{PaghExpandability} to these sketches. At a high level, our proof
-    follows a contradiction argument. We show that if a frequency estimation
-    sketch~$\mathcal{S}$ with an error bound of~$\epsilon(N)$ and confidence
-    of~$1-\delta$ exists that is ``too space-efficient,'' it can be used to
-    compress many sequences of~$n=N/(\epsilon(N)+1)$
-    keys~$\sigma=\sigma_1,\dots,\sigma_n$ coming from a large universe~$U$ of
-    size~$u \gg N$ to a size smaller than their entropy, which must be
-    impossible. We do this by simulating a filter as best as possible with the
-    sketch, despite there being false negatives. Our argument holds regardless
-    of the time complexity of~$\mathcal{S}$'s operations.
+    At a high level, our proof follows a contradiction argument similar to the
+    proof of Theorem~3.1 in~\cite{PaghExpandability}. That is, we consider a
+    frequency estimation sketch~$\mathcal{S}$ that, given a key~$x$, computes
+    an estimate~$\hat{f}(x)$ with $\mathrm{Var}[\hat{f}(x)] \leq V(N) = \delta
+    \cdot (E(N))^2$. Note that, by Chebyshev's inequality, this sketch
+    guarantees an estimation error of~$E(N)$ with a confidence of~$1-\delta$.
+    We show that if such a sketch is ``too space-efficient,'' it can be used to
+    compress many sequences of~$n=N/(E(N)+1)$ keys~$\sigma=x_1,\dots,x_n$
+    coming from a large universe~$U$ of size~$u \gg n$ to a size smaller than
+    their entropy, which must be impossible. 
 
-    First, we show that, w.l.o.g., we can assume that~$\mathcal{S}$ is a
-    deterministic sketch which only has estimation errors larger
-    than~$\epsilon(N)$ on a~$2\delta$ fraction of the elements in~$U$. We
-    denote the fraction of such elements in~$U$ after inserting each of the
-    sequence~$\sigma$'s keys $\epsilon(N)+1$ times into $\mathcal{S}$ as
-    $\mu_{\mathcal{S}}(\sigma)$. We follow a similar argument to that of
+    Our argument holds regardless of the time complexity of~$\mathcal{S}$'s
+    operations. As such, we may assume w.l.o.g. that the sketch provides
+    unbiased estimates for any key in any window of the stream by iterating
+    over all possible sequences of insertions, computing the bias of the
+    original estimate, and subtracting it out.
+
+    Consider inserting the~$n$ keys in $\sigma$ each $E(N)$ times. We
+    partition~$\sigma$ into contiguous subsequences~$\sigma_1, \sigma_2, \dots,
+    \sigma_\ell$, with $\sigma_i$ having a length of~$2^i \cdot \sqrt{n}$ and
+    $\ell=\log_2 n/2$. We denote the state of~$\mathcal{S}$ after processing
+    the subsequences~$\sigma_1, \dots, \sigma_i$ by inserting each key~$E(N)$
+    times as $\mathcal{S}_i$, while denoting its estimate for a key~$x$ as
+    $\hat{f}_i(x)$. We also denote the difference in the estimate of~$x$ after
+    processing~$\sigma_i$ as $\Delta_i(x) = \hat{f}_i(x) - \hat{f}_{i-1}(x)$.
+    Suppose~$y \in U$ is a key that does not appear in~$\sigma$. By the law of
+    total variance, we have
+    \begin{align}
+        \mathrm{Var}\left[ \hat{f}_\ell(y) \right] & = \mathrm{Var}\left[ \Delta_\ell(x) + \hat{f}_{\ell-1}(x) \right] \notag \\
+        & = \mathbb{E}\left[ \mathrm{Var}\left[ \Delta_\ell(y) + \hat{f}_{\ell-1}(y) \;\middle|\; \hat{f}_{\ell-1}(y) \right] \right] \notag \\ 
+        & \; \; \; + \mathrm{Var}\left[ \mathbb{E}\left[ \Delta_{\ell}(y) + \hat{f}_{\ell-1}(y) \;\middle|\; \hat{f}_{\ell-1}(y) \right] \right] \notag \\
+        & = \mathbb{E}\left[ \mathrm{Var}\left[ \Delta_\ell(y) \;\middle|\; \hat{f}_{\ell-1}(y) \right] \right] + \mathrm{Var}\left[ \hat{f}_{\ell-1}(y) \right]. \label{eq:total_variance}
+    \end{align}
+    Here, we have simplified the second variance term by using the unbiasedness
+    of $\mathcal{S}$'s estimates in each window of the stream. In particular,
+    in~$\sigma_\ell$, this implies that~$\mathbb{E}[\Delta_\ell(y) |
+    \hat{f}_{\ell-1}(y)] = 0$, since $y$ does not appear in~$\sigma$. This
+    property also implies that
+    \begin{align*}
+        \mathrm{Var}\left[ \Delta_\ell(y) | \hat{f}_{\ell-1}(y) \right] & = \mathbb{E}\left[ \mathbb{E}\left[ (\Delta_\ell(y))^2 | \hat{f}_{\ell-1}(y) \right] - \mathbb{E}\left[ \Delta_\ell(y) | \hat{f}_{\ell-1}(y) \right]^2 \right] \\
+        & = \mathbb{E}\left[ (\Delta_\ell(y))^2 \right] - \mathbb{E}\left[ \cancelto{0}{\mathbb{E}\left[ \Delta_\ell(y) | \hat{f}_{\ell-1}(y) \right]^2} \right] \\
+        & = \mathbb{E}\left[ (\Delta_\ell(y))^2 \right] = \mathrm{Var}\left[ \Delta_\ell(y) \right].
+    \end{align*}
+    Here we have used the law of total expectation to simplify the expression
+    in the first line. Plugging this result into \Cref{eq:total_variance}
+    yields
+    $$ \mathrm{Var}\left[ \hat{f}_\ell(y) \right] = \mathrm{Var}\left[ \Delta_\ell(y) \right] + \mathrm{Var}\left[ \hat{f}_{\ell-1}(y) \right]. $$
+    Recursively applying this argument to~$\hat{f}_{\ell-1}$,
+    $\hat{f}_{\ell-2}$, etc., implies
+    \begin{equation}
+        \label{eq:variance_sum}
+        \mathrm{Var}\left[ \hat{f}(y) \right] = \mathrm{Var}\left[ \hat{f}_\ell(y) \right] = \sum_{i=1}^\ell \mathrm{Var}\left[ \Delta_i(y) \right].
+    \end{equation}
+    Since we know that~$\mathrm{Var}\left[ \hat{f}(y) \right] \leq V(N)$,
+    \Cref{eq:variance_sum} implies that, for some~$i$, $\mathrm{Var}\left[ 
+    \Delta_i(y) \right] \leq V(N)/\ell$. By a similar averaging argument, the
+    following lemma holds:
+    \begin{lemma}
+        \label{lemma:lower_window_variance}
+        For at least~$\ell/2$ many values of~$i$, it must be that
+        $\mathrm{Var}\left[ \Delta_i(y) \right] \leq 2 \cdot V(N)/\ell = 4
+        \cdot V(N)/\log_2 n$. In words, the estimates of~$\mathcal{S}$ for a
+        non-existent key in many of the subsequences~$\sigma_i$ must have a
+        significantly lower variance than~$V(N)$.
+    \end{lemma}
+    \Cref{lemma:lower_window_variance} implies that there is some~$i^*$ such
+    that the estimation variance in subsequence~$\sigma_{i^*}$ is small for at
+    least half of the elements~$y \in U-\sigma$, i.e., $\mathrm{Var}\left[ 
+    \Delta_{i^*}(y) \right] \leq 4 \cdot V(N)/\log_2 n$.
+
+    We now fix the internal randomness of~$\mathcal{S}$ to convert it to a
+    deterministic sketch that, for many sequences~$\sigma$, only has estimation
+    errors larger than~$E(N)$ on a $8\delta/\log_2 n$ fraction of the elements
+    in~$U-\sigma$ when processing the subsequence~$\sigma_{i^*}$. When
+    compressing a sequence~$\sigma$, this allows to reliably rule out a large,
+    $(1-8\delta/\log_2 n)$-fraction of the non-existing elements
+    in~$\sigma_{i^*}$, leaving just a~$(8\delta/\log_2 n)$-fraction for us to
+    disambiguate. We denote the fraction of such keys for a given
+    sequence~$\sigma$ as~$\mu(\sigma)$ and follow a similar argument to that of
     Section~3.1 in~\cite{PaghExpandability}:
     \begin{lemma}
         \label{lemma:derandomization}
         We can fix the internal randomness of the sketch~$\mathcal{S}$ such
-        that, for at least half of the possible sequences~$\sigma$,
-        $\mu_{\mathcal{S}}(\sigma) \leq 2\delta$.
+        that, for at least half of the possible sequences~$\sigma$, i.e.,
+        $u^n/2$ many of them, $\mu(\sigma) \leq 8\delta/\log_2 n$.
     \end{lemma}
     \begin{proof}
-        The randomized version of~$\mathcal{S}$ has a confidence of~$1-\delta$.
+        By Chebyshev's inequality, the randomized version of~$\mathcal{S}$ has
+        errors bounded by~$E(N)$ with a confidence of~$1-4\delta/\log_2 n$ for
+        any $y \in U-\sigma$ when processing the subsequence~$\sigma_{i^*}$.
         Thus, denoting the internal random bits of~$\mathcal{S}$ by $r$, for
         any sequence~$\sigma \in U^n$, we have that~$\mathbb{E}_r\left[ 
-        \mu_{\mathcal{S}}(\sigma) \right] \leq \delta$. Thus, by Markov's
+        \mu(\sigma) \right] \leq 4\delta/\log_2 n$. Therefore, by Markov's
         inequality, it holds that 
-        $$ \Pr_r\left[ \mu_{\mathcal{S}}(\sigma) \geq 2\delta \right] \leq \frac{1}{2}. $$
-        Considering the complement even yields
-        $$ \Pr_r\left[ \mu_{\mathcal{S}}(\sigma) < 2\delta \right] \geq \frac{1}{2}. $$
-        Thus, the expected number of sequences~$\sigma$ that
-        satisfy~$\mu_{\mathcal{S}}(\sigma) < 2\delta$ is at least~$u^n/2$,
-        i.e., half of all possible sequences. An averaging argument implies
-        that there is some choice of~$\mathcal{S}$'s internal randomness that
-        satisfies~$\mu_{\mathcal{S}}(\sigma) < 2\delta$ for at least half of
-        all sequences.
+        $$ \Pr_r\left[ \mu(\sigma) \geq 8\delta/\log_2 n \right] \leq \frac{1}{2}. $$
+        Considering the complement even yields 
+        $$ \Pr_r\left[ \mu(\sigma) < 8\delta/\log_2 n \right] \geq \frac{1}{2}. $$
+        That is, each sequence~$\sigma$ satisfies~$\mu(\sigma) < 8\delta/\log_2
+        n$ with a probability of~$1/2$. An averaging argument implies that
+        there is some choice for the internal randomness of~$\mathcal{S}$,
+        i.e., $r$, that satisfies~$\mu(\sigma) < 8\delta/\log_2 n$ for at
+        least half of all~$u^n$ sequences.
     \end{proof}
-    Thus, given a randomized sketch, we can convert it into a deterministic
-    sketch~$\mathcal{S}$ by fixing the internal randomness to the choice
-    mentioned in \Cref{lemma:derandomization} with the desired property.
 
-    We now use~$\mathcal{S}$ to compress the~$u^n/2$ sequences that 
+    We now use the deterministic version of~$\mathcal{S}$ resulting from fixing
+    its randomness according to~\Cref{lemma:derandomization} to compress of
+    the~$u^n/2$ many sequences $\sigma$ with $\mu(\sigma) \leq 8\delta/\log_2
+    n$. Our encoding scheme is as follows:
+    \begin{enumerate}[label=(\roman*)]
+        \item We write the explicit representations of the keys in all
+            subsequences~$\sigma_i$, where $i \neq i^*$. The total cost for
+            writing these representations is of~$(n-|\sigma_{i^*}|) \cdot
+            \log_2 u$ bits.
+        \item For each key in~$\sigma_{i^*}$, we store a bit indicating
+            whether~$\mathcal{S}_{i^*}$ underestimates its count by more
+            than~$E(N)$. Each bit is~1 if the corresponding key has a large
+            underestimation error, and it is~0 otherwise. This takes a total
+            of~$|\sigma_{i^*}|=2^{i^*} \cdot \sqrt{n}$ bits.
+        \item For each bit set to 1 in the previous step, we store the exact
+            representation of the corresponding key using~$\log_2 u$ bits.
+        \item We write the state of the sketch $\mathcal{S}_{i^*}$. This
+            takes~$|\mathcal{S}_{i^*}|$ bits, which is the quantity we want to
+            bound.
+    \end{enumerate}
 \end{proof}
 
 \end{document}
