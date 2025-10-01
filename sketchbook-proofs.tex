@@ -225,6 +225,21 @@
 
 We define $\POECMS(d,w,N)$ to denote the extra error we incur in CMS by not knowing the $\ell_1$ norm of the stream in advance. Namely, we compare the error of Sketchbook with that of a CMS with $d$ arrays of length $w$ after it has processed a stream of $\ell_1$ norm $N$.
 
+\begin{lemma}
+	In the CMS sketch, let $\mathcal{E}_{w^*}$ denote the error we get when we employ $w^*$ as a size function. Then, during epoch $i$:
+	$$\expectation{\mathcal{E}_{w^*}} \leq  \frac{1}{w^*_i} \cdot 	\sum_{j=0}^i  2^{i-j} \cdot  (N_{j+1} - N_j) \;,$$
+	where $N_j$ denotes the $\ell_1$ norm of the stream at the start of epoch $j$. 
+\end{lemma}
+
+
+\begin{lemma}
+	In the CS sketch, let $\mathcal{E}_{w^*}$ denote the error we get when we employ $w^*$ as a size function. Then, during epoch $i$:
+	$$\variance{\mathcal{E}_{w^*}} \leq  \frac{1}{w^*_i} \cdot 	\sum_{j=0}^i  2^{i-j} \cdot  (F_{j+1} - F_j) \;,$$
+	where $F_j$ denotes the squared  $\ell_2$ norm of the stream at the start of epoch $j$. 
+\end{lemma}
+
+
+
 \textcolor{olive}{this needs more work, because it does involve arguing about the probability of deviating from the expected value..}
 \section{Proof of Theorem for Insertion-only Streams}
 
@@ -382,9 +397,14 @@ At this point, it becomes perhaps more natural to understand why we defined the 
 
 
 
+\medskip\noindent
+\textbf{Setting $w^*(F) =  F^{1-c}/\epsilon$ in CS, for some $0<c<1$.} In this case, the size function doubles more rarely, whenever $F_{i+1} = 2^{1/(1-c)} \cdot F_i$. Since $0<c<1$, note that this implies that $F_{i+1}$ is bigger than $2F_i$. This difference is why we avoid the extra dependency on $i$ in the error term. Formally, we have that $F_i = 2^{i/(1-c)} \cdot F_0$ and thus:
 
-
-
+\begin{align*}
+	\sum_{j=0}^i  2^{i-j} \cdot  (F_{j+1} - F_j) & =	\sum_{j=0}^i  2^{i-j} \cdot  (2^{(j+1)/(1-c)}\cdot T_0 - 2^{j/(1-c)}\cdot T_0)\\
+	&=  \sum_{j=0}^i  2^{i-j} \cdot  2^{j/(1-c)} \cdot T_0 \cdot (2^{1/(1-c)} -1) \\
+	&= 2^i \cdot T_0 \cdot (2^{1/(1-c)} -1) \cdot   \sum_{j=0}^i   2^{j/(1-c) - j}   \;.
+\end{align*}	
 
 
 

@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.24 (MiKTeX 22.1) (preloaded format=pdflatex 2023.10.30)  1 OCT 2025 09:35
+This is pdfTeX, Version 3.141592653-2.6-1.40.24 (MiKTeX 22.1) (preloaded format=pdflatex 2023.10.30)  1 OCT 2025 14:38
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1806,62 +1806,79 @@ LaTeX Font Info:    Font shape `T1/LinuxBiolinumT-TLF/m/n' will be
 LaTeX Font Info:    Font shape `T1/LinuxBiolinumT-TLF/m/n' will be
 (Font)              scaled to size 5.5pt on input line 226.
 LaTeX Font Info:    Font shape `T1/LinuxLibertineT-TLF/m/it' will be
-(Font)              scaled to size 9.0pt on input line 233.
+(Font)              scaled to size 9.0pt on input line 229.
+Package hyperref Info: bookmark level for unknown lemma defaults to 0 on input 
+line 229.
+LaTeX Font Info:    Font shape `T1/LinuxBiolinumT-TLF/m/it' will be
+(Font)              scaled to size 9.0pt on input line 237.
 
-
-Class acmart Warning: \vspace should only be used to provide space above/below 
-surrounding objects on input line 250.
-
-
-Underfull \vbox (badness 2662) has occurred while \output is active []
+Underfull \vbox (badness 10000) has occurred while \output is active []
 
  [1.1{/Users/bercea/Library/Application Support/MiKTeX/texmfs/data/fonts/map/pd
 ftex/pdftex.map}
 
-]
+
+pdfTeX warning (ext4): destination with the same identifier (name{lemma.1.2}) h
+as been already used, duplicate ignored
+<argument> ...shipout:D \box_use:N \l_shipout_box 
+                                                  \__shipout_drop_firstpage_...
+l.261 \end{itemize}
+                   ]
 
 Class acmart Warning: \vspace should only be used to provide space above/below 
 surrounding objects on input line 265.
 
 
 Class acmart Warning: \vspace should only be used to provide space above/below 
-surrounding objects on input line 275.
+surrounding objects on input line 280.
 
 
 Class acmart Warning: \vspace should only be used to provide space above/below 
-surrounding objects on input line 309.
+surrounding objects on input line 290.
 
 
 Class acmart Warning: \vspace should only be used to provide space above/below 
-surrounding objects on input line 312.
+surrounding objects on input line 324.
+
+
+Class acmart Warning: \vspace should only be used to provide space above/below 
+surrounding objects on input line 327.
 
 LaTeX Font Info:    Font shape `T1/LinuxBiolinumT-TLF/m/n' will be
-(Font)              scaled to size 7.0pt on input line 332.
+(Font)              scaled to size 7.0pt on input line 339.
 [2.2]
-Overfull \hbox (7.6396pt too wide) in paragraph at lines 340--341
+Overfull \hbox (7.6396pt too wide) in paragraph at lines 355--356
 []\T1/LinuxLibertineT-TLF/m/n/9 (-20) For bound-ing the $\T1/LinuxBiolinumT-TLF
 /m/n/9 (-20) E []$\T1/LinuxLibertineT-TLF/m/n/9 (-20) , we can use the fact tha
 t $\T1/LinuxBiolinumT-TLF/m/n/9 (-20) E [] \LMS/ntxsy/m/n/9 ^^T
  []
 
 
-Overfull \hbox (9.76128pt too wide) detected at line 351
+Overfull \hbox (9.76128pt too wide) detected at line 366
 []
  []
 
 
 Class acmart Warning: \vspace should only be used to provide space above/below 
-surrounding objects on input line 372.
+surrounding objects on input line 387.
 
 
 Class acmart Warning: \vspace should only be used to provide space above/below 
-surrounding objects on input line 397.
+surrounding objects on input line 400.
+
+[3.3]
+
+Class acmart Warning: \vspace should only be used to provide space above/below 
+surrounding objects on input line 417.
 
 
-Package balance Warning: You have called \balance in second column
-(balance)                Columns might not be balanced.
+Overfull \vbox (42.15692pt too high) has occurred while \output is active []
 
-[3.3] (sketchbook-proofs.aux)
+
+Overfull \vbox (42.15692pt too high) has occurred while \output is active []
+
+
+[4.4] (sketchbook-proofs.aux)
  ***********
 LaTeX2e <2023-06-01> patch level 1
 L3 programming layer <2023-10-23>
@@ -1870,16 +1887,16 @@ Package rerunfilecheck Info: File `sketchbook-proofs.out' has not changed.
 (rerunfilecheck)             Checksum: BBBA0660A8D68A77BF58D8324B3E54C5;595.
  ) 
 Here is how much of TeX's memory you used:
- 45079 strings out of 474718
- 1002381 string characters out of 5745599
- 1963033 words of memory out of 5000000
- 65827 multiletter control sequences out of 15000+600000
- 708873 words of font info for 322 fonts, out of 8000000 for 9000
+ 45118 strings out of 474718
+ 1003290 string characters out of 5745599
+ 1964033 words of memory out of 5000000
+ 65841 multiletter control sequences out of 15000+600000
+ 716516 words of font info for 335 fonts, out of 8000000 for 9000
  1302 hyphenation exceptions out of 8191
- 90i,13n,131p,1016b,609s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 90i,13n,131p,1016b,680s stack positions out of 10000i,1000n,20000p,200000b,200000s
 {/Users/bercea/Library/Application Support/MiKTeX/texmfs/install/fonts/enc/dv
-ips/libertine/lbtn_oexx6f.enc}{/Users/bercea/Library/Application Support/MiKTeX
-/texmfs/install/fonts/enc/dvips/libertine/lbtn_25tcsq.enc}{/Users/bercea/Librar
+ips/libertine/lbtn_25tcsq.enc}{/Users/bercea/Library/Application Support/MiKTeX
+/texmfs/install/fonts/enc/dvips/libertine/lbtn_oexx6f.enc}{/Users/bercea/Librar
 y/Application Support/MiKTeX/texmfs/install/fonts/enc/dvips/libertine/lbtn_7gru
 kw.enc}{/Users/bercea/Library/Application Support/MiKTeX/texmfs/install/fonts/e
 nc/dvips/libertine/lbtn_76gpa5.enc}{/Users/bercea/Library/Application Support/M
@@ -1892,18 +1909,19 @@ ers/bercea/Library/Application Support/MiKTeX/texmfs/install/fonts/type1/public
 /libertine/LinBiolinumT.pfb></Users/bercea/Library/Application Support/MiKTeX/t
 exmfs/install/fonts/type1/public/libertine/LinBiolinumTB.pfb></Users/bercea/Lib
 rary/Application Support/MiKTeX/texmfs/install/fonts/type1/public/libertine/Lin
-LibertineT.pfb></Users/bercea/Library/Application Support/MiKTeX/texmfs/install
-/fonts/type1/public/libertine/LinLibertineTB.pfb></Users/bercea/Library/Applica
-tion Support/MiKTeX/texmfs/install/fonts/type1/public/libertine/LinLibertineTI.
-pfb></Users/bercea/Library/Application Support/MiKTeX/texmfs/install/fonts/type
-1/public/newtx/NewTXMI.pfb></Users/bercea/Library/Application Support/MiKTeX/te
-xmfs/install/fonts/type1/public/newtx/NewTXMI7.pfb></Users/bercea/Library/Appli
-cation Support/MiKTeX/texmfs/install/fonts/type1/public/newtx/txexs.pfb></Users
-/bercea/Library/Application Support/MiKTeX/texmfs/install/fonts/type1/public/ne
-wtx/txsys.pfb>
-Output written on sketchbook-proofs.pdf (3 pages, 409456 bytes).
+BiolinumTI.pfb></Users/bercea/Library/Application Support/MiKTeX/texmfs/install
+/fonts/type1/public/libertine/LinLibertineT.pfb></Users/bercea/Library/Applicat
+ion Support/MiKTeX/texmfs/install/fonts/type1/public/libertine/LinLibertineTB.p
+fb></Users/bercea/Library/Application Support/MiKTeX/texmfs/install/fonts/type1
+/public/libertine/LinLibertineTI.pfb></Users/bercea/Library/Application Support
+/MiKTeX/texmfs/install/fonts/type1/public/newtx/NewTXMI.pfb></Users/bercea/Libr
+ary/Application Support/MiKTeX/texmfs/install/fonts/type1/public/newtx/NewTXMI7
+.pfb></Users/bercea/Library/Application Support/MiKTeX/texmfs/install/fonts/typ
+e1/public/newtx/txexs.pfb></Users/bercea/Library/Application Support/MiKTeX/tex
+mfs/install/fonts/type1/public/newtx/txsys.pfb>
+Output written on sketchbook-proofs.pdf (4 pages, 444305 bytes).
 PDF statistics:
- 113 PDF objects out of 1000 (max. 8388607)
- 10 named destinations out of 1000 (max. 500000)
- 86065 words of extra memory for PDF output out of 89155 (max. 10000000)
+ 126 PDF objects out of 1000 (max. 8388607)
+ 14 named destinations out of 1000 (max. 500000)
+ 90161 words of extra memory for PDF output out of 106986 (max. 10000000)
 
