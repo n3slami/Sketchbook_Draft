@@ -1313,18 +1313,17 @@ and uses each as the hash value of an array.
         % First CMS
         \def\counterarray{{3,1,3,1,4,0}}
         \foreach \i in {1, ..., \arraycount} {
-            \draw (0,\i*\arraysep+\i*\arrayh-\arrayh-\arraysep) rectangle (\arrayw,\i*\arraysep+\i*\arrayh-\arraysep);
+            \draw[gray] (0,\i*\arraysep+\i*\arrayh-\arrayh-\arraysep) rectangle (\arrayw,\i*\arraysep+\i*\arrayh-\arraysep);
             \foreach \j in {1, ..., 2} {
                 \pgfmathtruncatemacro{\counterindex}{2*\i+\j-3}
                 \pgfmathparse{\counterarray[\counterindex]}
                 \let\countervalue\pgfmathresult
-                \node[inner sep=0pt] at (\j*\counterw-\counterw/2,\i*\arraysep+\i*\arrayh-\arrayh/2-\arraysep) {\small $\countervalue$};
-                \draw (\j*\counterw,\i*\arraysep+\i*\arrayh-\arrayh-\arraysep) rectangle (\j*\counterw,\i*\arraysep+\i*\arrayh-\arraysep);
+                \node[inner sep=0pt] at (\j*\counterw-\counterw/2,\i*\arraysep+\i*\arrayh-\arrayh/2-\arraysep) {\small \textcolor{gray}{$\countervalue$}};
+                \draw[gray] (\j*\counterw,\i*\arraysep+\i*\arrayh-\arrayh-\arraysep) rectangle (\j*\counterw,\i*\arraysep+\i*\arrayh-\arraysep);
             }
         }
 
         % Second CMS
-        \draw[-stealth] (\arrayw+\arrowsep,\midy) -- (\arrayw+\cmssep-\arrowsep,\midy);
         \def\counterarray{{3,5,4,8,6,3,6,5,9,1,8,2}}
         \foreach \i in {1, ..., \arraycount} {
             \draw (\arrayw+\cmssep,\i*\arraysep+\i*\arrayh-\arrayh-\arraysep) rectangle (3*\arrayw+\cmssep,\i*\arraysep+\i*\arrayh-\arraysep);
@@ -1338,7 +1337,6 @@ and uses each as the hash value of an array.
         }
 
         % Last CMS
-        \draw[-stealth] (3*\arrayw+\cmssep+\arrowsep,\midy) -- (3*\arrayw+2*\cmssep-\arrowsep,\midy);
         \def\lastsketcharrayw{4*\arrayw}
         \def\leftcountercount{4}
         \def\rightcountercount{4}
@@ -1362,15 +1360,20 @@ and uses each as the hash value of an array.
         }
 
         % Expansion Lines
-        \def\sketchtitley{4.75*\arrayh+4.25*\arraysep}
-        %\node[inner sep=0pt] (sketch_0_label) at (\arrayw/2,\sketchtitley) {\small Sketch 0};
+        \draw[-stealth] plot[hobby] coordinates { (2*\arrayw+\cmssep,3*\arrayh+2.25*\arraysep) (3*\arrayw+1.5*\cmssep,3*\arrayh+3*\arraysep) (4*\arrayw+2*\cmssep,3*\arrayh+2.25*\arraysep) };
+        \draw[-stealth] plot[hobby] coordinates { (2*\arrayw+\cmssep,3*\arrayh+2.25*\arraysep) (3*\arrayw+1.5*\cmssep,3*\arrayh+3.5*\arraysep) (6*\arrayw+2*\cmssep,3*\arrayh+2.25*\arraysep) };
+        \node[inner sep=0pt] (expansion_title) at (3*\arrayw+1.5*\cmssep,3*\arrayh+4.25*\arraysep) {\small Expansion};
 
         \node[inner sep=1pt,anchor=north] (first_expansion_threshold) at (\arrayw+0.5*\cmssep,-\arraysep/2) {\small $N > 4$};
         \draw[densely dotted] (\arrayw+0.5*\cmssep,3*\arrayh+3*\arraysep) -- (first_expansion_threshold.north);
-        %\node[inner sep=0pt] (sketch_1_label) at (2*\arrayw+\cmssep,\sketchtitley) {\small Sketch 1};
 
         \node[inner sep=1pt,anchor=north] (second_expansion_threshold) at (3*\arrayw+1.5*\cmssep,-\arraysep/2) {\small $N > 16$};
         \draw[densely dotted] (3*\arrayw+1.5*\cmssep,3*\arrayh+3*\arraysep) -- (second_expansion_threshold.north);
+
+        % Sketch Titles
+        \def\sketchtitley{4.75*\arrayh+4.25*\arraysep}
+        %\node[inner sep=0pt] (sketch_0_label) at (\arrayw/2,\sketchtitley) {\small Sketch 0};
+        %\node[inner sep=0pt] (sketch_1_label) at (2*\arrayw+\cmssep,\sketchtitley) {\small Sketch 1};
         %\node[inner sep=0pt] (sketch_2_label) at (5*\arrayw+2*\cmssep,\sketchtitley) {\small Sketch 2};
 
         \node[inner sep=1pt,anchor=north] (third_expansion_threshold) at (7*\arrayw+3.7*\cmssep,-\arraysep/2) {\small $N > 64$};
@@ -1422,6 +1425,7 @@ and uses each as the hash value of an array.
             \end{pgfonlayer}
         }
     \end{tikzpicture}
+    \vspace*{-8.0pt}
     \caption{\sketchcms expands by concatenating each array with a copy of
     itself. It maps a key to a counter in an array by taking the appropriate
     number of bits from its hash.}
@@ -1431,41 +1435,44 @@ and uses each as the hash value of an array.
 \subsection{Accommodating Unbounded Growth}\label{sec:accommodating_unknown_stream_lengths}
 Recall from \Cref{sec:problem_analysis} that processing growing streams with
 existing frequency estimation sketches (e.g., CMS) yields an estimation error
-that deteriorates at least linearly with the total key count~$N$. \sketch\
+that increases at least linearly with the total key count~$N$. \sketch\
 addresses this issue by generalizing a sketch to increase its number of
 counters as the stream grows. In the case of CMS, \sketchcms expands
 whenever~$N$ exceeds a tunable threshold. An expansion concatenates the current
-sketch with a copy of itself, doubling the size of each array. All subsequent
+sketch with a copy of itself, doubling the size of each array. This operation
+is inexpensive since it simply copies counters without rehashing
+keys.\footnote{We further improve performance by leveraging virtual memory to
+expand each array, thereby avoiding physical reallocations.} All subsequent
 insertions benefit from the lower collision probability of these larger arrays.
 \Cref{fig:sketchbook_chain} illustrates \sketchcms just after the second
 expansion took place, as well as its state just before the first and second
-expansions. Queries follow the same algorithm as a standard CMS.
+expansions. Each half of an array in the current sketch is a copy of the
+corresponding array just before the second expansion. The counters in each
+array before this expansion summed to the expansion threshold of~16 plus the
+total value of~4 of the counters copied from the previous expansion. Queries
+follow the same algorithm as a standard CMS.
 
 \textbf{Shared Hash Functions.}
-For its~$d$ arrays, \sketchcms uses the same hash functions across expansions.
+For its~$d$ arrays, \sketchcms uses the same hash function across expansions.
 It hashes a key to a counter within an array of size~$w$ by taking the~$\log_2
 w$ lower-order bits of its hash. Doing so ensures that after an expansion, a
 key hashes to either the same counter it would have hashed to before, or its
 copy. For example, the query key~$q$ in \Cref{fig:sketchbook_chain} has a hash
-of~$h_1(q)=011\dots$, causing it to hash to the 6th counter in the first array,
-which is the copy of the array's 2nd counter before expansion. Thus, its
+of~$h_1(q)=011\dots$, mapping it to the 6th counter in the first array, which
+is the copy of the array's 2nd counter before expansion. Thus, this query's
 results before and after the expansion are consistent.
 
 \textbf{Initial Size.}
-\sketchcms starts with each array in the sketch consisting of a single chunk
+\sketchcms initializes each of its~$d$ arrays to consist of a single chunk
 (i.e., a cache line) containing~$c$ counters, as described in
 \Cref{sec:accommodating_skew}. Thus, it avoids wasting memory from the onset in
-case the stream grows slowly. We show in \Cref{sec:theoretical_analysis}
-that larger initial arrays reduce the overall error by a constant factor.
-
-\textbf{Expansion Implementation.}
-An expansion is inexpensive since it simply copies counters without rehashing
-keys. One can further improve performance by leveraging virtual memory to
-expand each array, thereby avoiding physical reallocations.
+case the stream grows slowly. We prove in \Cref{sec:theoretical_analysis} that
+larger initial arrays reduce the overall error by a constant factor in exchange
+for a commensurately higher memory footprint.
 
 \begin{figure}
     \centering
-    \vspace*{11.05pt}
+    \vspace*{3.0pt}
     \pgfdeclarelayer{background layer}
     \pgfsetlayers{background layer,main}
     \begin{tikzpicture}
@@ -1474,7 +1481,7 @@ expand each array, thereby avoiding physical reallocations.
         \def\arrayh{0.25}
         \def\arraysep{0.1}
         \def\cmssep{1.0}
-        \def\cmstitley{0.6}
+        \def\cmstitley{0.7}
         \def\insertdeletesep{1.45}
         \def\hashsep{\insertdeletesep-0.4}
         \def\arrowsep{0.2*\cmssep}
@@ -1484,7 +1491,7 @@ expand each array, thereby avoiding physical reallocations.
         \def\countercount{4} % Have to change this thing manually in the for loops, sadly
         \def\counterw{\arrayw/\countercount}
 
-        % Penultimate CMS
+        % Earlier Sketch
         \def\counterarray{{0,9,1,8,2}}
         \foreach \i in {1, ..., \arraycount} {
             \draw (0,\i*\arraysep+\i*\arrayh-\arrayh-\arraysep) rectangle (\arrayw,\i*\arraysep+\i*\arrayh-\arraysep);
@@ -1494,9 +1501,9 @@ expand each array, thereby avoiding physical reallocations.
                 \draw (\j*\counterw,\i*\arraysep+\i*\arrayh-\arrayh-\arraysep) rectangle (\j*\counterw,\i*\arraysep+\i*\arrayh-\arraysep);
             }
         }
-        \node[inner sep=0pt,align=center] (cms_penultimate) at (0.5*\arrayw,\cmstitley) {\small Previous Sketch};
+        \node[inner sep=0pt,align=center] (cms_penultimate) at (0.5*\arrayw-0.265,\cmstitley) {\small 1) Earlier Sketch \\[-4pt] \small \hspace{18pt} Before Expansion};
 
-        % Last CMS
+        % Current Sketch
         \def\counterarray{{0,8,1,4,1,8,3,7,2}}
         \foreach \i in {1, ..., \arraycount} {
             \draw (\arrayw+\cmssep,\i*\arraysep+\i*\arrayh-\arrayh-\arraysep) rectangle (2*\arrayw+\cmssep,\i*\arraysep+\i*\arrayh-\arraysep);
@@ -1508,10 +1515,10 @@ expand each array, thereby avoiding physical reallocations.
             }
         }
         \draw[densely dotted] (2*\arrayw+\cmssep,\arrayh+\arraysep) -- (2*\arrayw+\cmssep,-9*\arraysep);
-        \node[inner sep=0pt,align=center] (cms_last) at (2*\arrayw+\cmssep,\cmstitley) {\small Current Sketch};
+        \node[inner sep=0pt,align=center] (cms_last) at (2*\arrayw+\cmssep-0.2,\cmstitley) {\small 2) Current Sketch \\[-4pt] \small \hspace{20pt} Before Contraction};
 
         % Extraction
-        \def\extractiony{-2.0*\arraysep}
+        \def\extractiony{-2.25*\arraysep}
         \draw[-stealth] (\arrayw,\arrayh/2) -| (\arrayw+0.6*\cmssep,\extractiony) -- (\arrayw+0.80*\cmssep,\extractiony);
         \def\counterarray{{0,9,1,8,2,9,1,8,2}}
         \node[inner sep=0pt] at (\arrayw+0.95*\cmssep,\extractiony-0.04) {\small $-$};
@@ -1519,24 +1526,21 @@ expand each array, thereby avoiding physical reallocations.
             \pgfmathtruncatemacro{\countervalue}{\counterarray[\i]}
             \node[inner sep=0pt] at (\arrayw+\cmssep+\i*\counterw-\counterw/2,\extractiony) {\small $\countervalue$};
         }
-        \def\resulty{-5.5*\arraysep}
+        \def\resulty{-6.5*\arraysep}
         \draw (\arrayw+0.97*\cmssep,\extractiony/2+\resulty/2) -- (3*\arrayw+1.03*\cmssep,\extractiony/2+\resulty/2);
         \def\counterarray{{0,-1,0,-4,-1,-1,2,-1,0}}
         \foreach \i in {1, ..., 8} {
             \pgfmathtruncatemacro{\countervalue}{\counterarray[\i]}
             \node[inner sep=0pt] at (\arrayw+\cmssep+\i*\counterw-\counterw/2,\resulty) {\small $\countervalue$};
         }
-        \node[inner sep=0pt] (updates_label) at (3*\arrayw+1.7*\cmssep,\resulty) {\small Updates};
+        \node[inner sep=0pt] (updates_label) at (3*\arrayw+1.5*\cmssep,\resulty) {\small Deltas};
 
         % Transfer
-        \def\resulty{-7.0*\arraysep}
-        %\node[inner sep=0pt,anchor=north] (msb_0) at (1.5*\arrayw+\cmssep,\arrayh+3*\arraysep) {\small MSB 0};
-        %\node[inner sep=0pt,anchor=north] (msb_1) at (2.5*\arrayw+\cmssep,\arrayh+3*\arraysep) {\small MSB 1};
-
+        \def\resulty{-8.0*\arraysep}
         \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt,mirror}] (\arrayw+\cmssep,\resulty) -- (2*\arrayw+\cmssep,\resulty)
             node[pos=0.5,below=1.5pt,inner sep=0pt] (last_sketch_left_half) { };
-        \def\addy{-2.0*\arraysep}
-        \draw[-stealth] (last_sketch_left_half) |- (\arrayw+0.4*\cmssep,\resulty-1.9*\arraysep) |- (\arrayw+0.05*\cmssep,\addy);
+        \def\addy{-2.25*\arraysep}
+        \draw[-stealth] (last_sketch_left_half) |- (\arrayw+0.4*\cmssep,\resulty-3.0*\arraysep) |- (\arrayw+0.05*\cmssep,\addy);
         \node[inner sep=0pt] at (-\counterw/10,\addy-0.0175) {\small $+$};
         \foreach \j in {1, ..., 4} {
             \pgfmathtruncatemacro{\countervalue}{\counterarray[\j]}
@@ -1545,19 +1549,19 @@ expand each array, thereby avoiding physical reallocations.
 
         \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt,mirror}] (2*\arrayw+\cmssep,\resulty) -- (3*\arrayw+\cmssep,\resulty)
             node[pos=0.5,below=1.5pt,inner sep=0pt] (last_sketch_right_half) { };
-        \def\addy{-5.2*\arraysep}
-        \draw[-stealth] (last_sketch_right_half) |- (\arrayw+0.3*\cmssep,\resulty-3.0*\arraysep) |- (\arrayw+0.05*\cmssep,\addy);
+        \def\addy{-6.0*\arraysep}
+        \draw[-stealth] (last_sketch_right_half) |- (\arrayw+0.2*\cmssep,\resulty-5.0*\arraysep) |- (\arrayw+0.05*\cmssep,\addy);
         \node[inner sep=0pt] at (-\counterw/10,\addy-0.0175) {\small $+$};
         \foreach \i in {5, ..., 8} {
             \pgfmathtruncatemacro{\countervalue}{\counterarray[\i]}
             \node[inner sep=0pt] at (\i*\counterw-4.5*\counterw,\addy) {\small $\countervalue$};
         }
 
-        \def\resulty{-8.25*\arraysep}
+        \def\resulty{-9.5*\arraysep}
         \draw (-0.03*\cmssep,\addy/2+\resulty/2) -- (\arrayw+0.03*\cmssep,\addy/2+\resulty/2);
 
-        % New Last Sketch
-        \def\newlastsketchy{-\arrayh-7.52*\arraysep}
+        % New Current Sketch
+        \def\newlastsketchy{-\arrayh-9.0*\arraysep}
         \draw (0,\newlastsketchy) rectangle (\arrayw,\newlastsketchy+\arrayh);
         \def\counterarray{{0,7,3,3,1}}
         \foreach \i in {1, ..., 4} {
@@ -1570,8 +1574,9 @@ expand each array, thereby avoiding physical reallocations.
             \pgfmathtruncatemacro{\countervalue}{\counterarray[\i]}
             \node[inner sep=0pt] at (\i*\counterw-\counterw/2,\newlastsketchy+\arrayh/2) {\small $\countervalue$};
         }
+        \node[inner sep=0pt,align=center] (cms_last_new) at (\arrayw/2-0.2,\newlastsketchy-1.5*\arrayh) {\small 3) Current Sketch \\[-4pt] \small \hspace{14pt} After Contraction};
     \end{tikzpicture}
-    \vspace*{10.2pt}
+    \vspace*{-7.0pt}
     \caption{During contractions, \sketchcms extracts the recent updates by
     subtracting the previous sketch. It adds the results to the previous sketch
     to transfer the updates.}
@@ -1579,54 +1584,54 @@ expand each array, thereby avoiding physical reallocations.
 \end{figure}
 
 \textbf{Expansion Thresholds.} 
-To achieve both sub-linear errors and a sub-linear memory footprint, \sketchcms
-expands after the total key count~$N$ more than doubles. By default, it expands
-whenever~$N$ quadruples, as shown at the bottom of \Cref{fig:sketchbook_chain}.
-Here, expansions occur when~$N$ quadruples to 4, 16, and 64. 
-
-To connect the expansion thresholds to the memory footprint, we encode them
-using a \emph{Size Function}, denoted as~$W(N)$. Each threshold is encoded as
-the value of~$N$ where the size function doubles. Setting~$W(N)=\sqrt{N}$
-yields the default quadrupling thresholds. By starting with~$c$ counters in the
-chunk of each array and setting the first expansion threshold to~$4c^2$ (i.e.,
-the value of~$N$ satisfying $W(N)=2c$), \sketchcms keeps the size of each array
-within a factor of two of the size function as the stream grows. 
-
-Recall from \Cref{sec:background} that a CMS allocated with arrays of~$w$
-counters has an error bound of~$N/w$. Since \sketchcms processes the majority
-of the stream's keys with arrays of size~$\approx \sqrt{N}$, it captures the
-error bound of a CMS that sets~$w=\sqrt{N}$ (i.e., $N/\sqrt{N}=\sqrt{N}$), as
-if~$N$ were known upfront. The cost is a small constant factor increase in the
-error, which stems from the accumulation of errors from when the sketch was
-small.
+By default, \sketchcms expands whenever~$N$ quadruples. As shown at the bottom
+of \Cref{fig:sketchbook_chain}, expansions occur when the number of keys~$N$
+reaches 4, 16, ans 64. These thresholds cause the number of counters in each
+array to grow as~$\sqrt{N}$. This enables achieving a sub-linear memory
+footprint and sub-linear errors. To see why, recall from \Cref{sec:background}
+that a CMS allocated with arrays of~$w$ counters has an error bound of~$N/w$.
+By maintaining arrays of size~$\sqrt{N}$, \sketchcms attains an error bound
+of~$O(N/\sqrt{N})=O(\sqrt{N})$. Although keys inserted when the sketch was
+smaller contribute disproportionally to the error due to their counts
+duplicating with expansions, they are exponentially fewer in number. As such,
+they only increase the error by a small constant factor. In sum, compared to a
+standard CMS with linear errors and a fixed memory footprint, \sketchcms
+achieves significantly lower errors at a modest space cost. As such, it strikes
+a better tradeoff for applications that require maintaining low errors as the
+stream grows. 
 
 \textbf{Deletions and Contractions.} 
 \sketchcms handles deletions as CMS does. It contracts after many deletions to
-save memory. Contractions cannot simply reduce the size of each array by adding
-its halves together, as this will double the counters copied before the last
-expansion, inflating the error. Instead, \sketchcms keeps a record of the
-sketch's state just before each expansion. It extracts the recent updates to
-the current sketch by subtracting out the previous state of the sketch from its
-left and right halves. We illustrate this for the first array on the right side
-of \Cref{fig:contraction}. The result indicates how much each counter from the
-previous sketch and its copy have changed. \sketchcms applies these changes to
-the original counters in the previous sketch. Finally, it discards the current
-sketch and uses the previous sketch to handle subsequent operations.
-Maintaining the sketch record increases the memory footprint by at
-most~$2\times$. The contraction threshold is set to the mean of the last two
-expansion thresholds to avoid the churning problem -- i.e., the problem of
-updates frequently resizing the sketch.
+save memory. Even though contractions are the inverse of expansions, they
+cannot reduce the size of each array by simply folding its halves onto each
+other and adding up the counters. The reason is that doing so adds the counters
+copied during the last expansion to the originals, doubling them and inflating
+the error. Instead, \sketchcms keeps a record of the sketch's state just before
+each expansion. It extracts the recent updates made to the current sketch by
+subtracting the state of the sketch before the last expansion from its left and
+right halves. We illustrate this for the first array on the right side of
+\Cref{fig:contraction}. The result is an array of deltas indicating how each
+counter from the earlier sketch and its copy have changed. \sketchcms applies
+these deltas to the original counters in the earlier sketch. Finally, it
+discards the current sketch and uses the earlier sketch to handle future
+operations. Maintaining the sketch record increases the memory footprint by at
+most~$2\times$. 
 
-Because the majority of the stream's keys must be deleted to trigger a
-contraction, \sketchcms always handles most of the stream using arrays that are
-at most twice as large as the size function~$W(N)$. Thus, the error remains bounded,
-despite the state of the sketch depending on the sequence of insertions and
-deletions.
+The contraction threshold is set to the mean of the last two expansion
+thresholds to avoid the churning problem -- i.e., the problem of updates
+frequently resizing the sketch. As such, contractions trigger when the majority
+of the stream's keys are deleted. Therefore, \sketchcms always handles most of
+the stream using arrays that are at most twice as large as~$\sqrt{N}$. Thus,
+the error bound remains the same as before, despite the state of the sketch
+depending on the sequence of insertions and deletions.
 
-\textbf{Tuning.} 
-Setting the size function~$W(N)$ to functions other than the default~$\sqrt{N}$
-exposes a rich spectrum of accuracy-memory tradeoffs. The faster the size
-function grows with respect to the total key count~$N$, the sooner \sketchcms
+\textbf{Rich Space of Tradeoffs.}
+Expanding when the total key count~$N$ increases by a factor other than~4
+exposes a rich spectrum of accuracy-memory tradeoffs. We encode these policies
+using a \emph{Size Function}, denoted as~$W(N)$. The expansion thresholds are
+the values of~$N$ where the size function doubles. These thresholds keep the
+size of each array within a factor of two of the size function. Thus, the
+faster the size function grows with respect to~$N$, the sooner \sketchcms
 expands, thereby tracking more of the stream's keys accurately in exchange for
 a larger memory footprint. We set the size function to a \emph{Sub-Linear
 Power} of the form~$W(N)=N^\alpha/\epsilon$, with constants~$\alpha \in [0,1)$
@@ -1641,8 +1646,8 @@ factor\footnote{The constant factor in question is~$(1-2^{-1/\alpha}) \cdot
 \frac{(2-2^{1-1/\alpha})^{1/\alpha \cdot \log_2 N}-1}{(2-2^{1-1/\alpha})-1}$,
 which is at most~$\frac{1-2^{-1/\alpha}}{1-2^{1-1/\alpha}}$ and converges
 to~$\log_2 N$ as $\alpha$ tends to 1.}. We call this factor the ``\emph{Price
-of Expandability}.'' Setting~$\alpha=0.5$ and $\epsilon=1$ yields the
-default~$W(N)=\sqrt{N}$.
+of Expandability}.'' Setting~$\alpha=0.5$ and $\epsilon=1$, i.e.,
+$W(N)=\sqrt{N}$, yields the default policy of expanding when~$N$ quadruples.
 
 One may hope to achieve an error of~$\epsilon$ by setting~$W(N)=N/\epsilon$.
 This translates to \sketchcms expanding when~$N$ doubles. Yet, we prove in
@@ -1657,52 +1662,6 @@ and is thus optimal.
 
 \subsection{Applying \sketch\ to Count Sketch}\label{sec:cs}
 %For example, in join size estimation, multiplying overestimated counts from the input tables leads to an overly large join size.
-
-\textbf{Count Sketch (CS).}
-CMS, as described in \Cref{sec:background}, has two key shortcomings: (1)~its
-estimations are biased since it only overestimates and (2)~its errors compound
-when it is used in some tasks, particularly those that multiply frequencies. CS
-addresses these issues by providing unbiased estimates.\footnote{In CMS, one
-can subtract the average of the counter values a query key does not hash to
-from the query's counter to derive an unbiased estimate~\cite{CountMeanMin}.
-Yet, the resulting estimate has a marginally higher variance than that of CS.}
-The first two rows of \Cref{tab:classic_sketch_stats} summarizes the properties
-of CS and compares it to CMS.
-
-The core component of CS is a counter array of size~$w$ coupled with a hash
-function~$h_i$ mapping a key to a counter. CS further associates with each key
-a random ``update direction'' from the set~$\{-1,+1\}$ by hashing it with
-another hash function~$\sigma_i$.\footnote{The~$\sigma_i$ form a 4-wise
-independent family of hash functions, yielding a bound on the probability of
-large errors~\cite{CountSketch}.} It inserts a new key~$x$ by incrementing or
-decrementing its counter according to~$\sigma_i$, as shown in
-\Cref{fig:cs_overview}. CS deletes~$x$ by subtracting~$\sigma_i(x)$ from its
-counter to undo its insertion. Since each key's update direction is random, the
-expected interference on~$x$'s counter from any other key is zero due to the
-positive and negative possibilities canceling out. Thus, the value of the
-counter along the update direction is an estimate of~$x$'s frequency, which CS
-returns during a query. Although this estimate may be smaller or larger than
-the ground-truth frequency, the zero expected interference allows it to match
-the ground-truth on average, removing bias. Increasing the array's size reduces
-the likelihood of hash collisions and the average deviation.
-
-As with CMS, a frequent key will adversely impact the estimates of keys sharing
-the same counter, degrading confidence. CS addresses this by employing~$d$
-independent arrays, each with its own hash functions~$h_i$ and $\sigma_i$.
-Unlike CMS, CS cannot answer a query by returning the minimum estimate, as it
-may greatly underestimate the result due to two-sided errors. Instead, it
-returns the median estimate, as shown in \Cref{fig:cs_overview}. This improves
-confidence since severe errors are unlikely to occur for enough experiments to
-affect the median. CS takes the median instead of the mean to improve
-robustness to outlier estimates. With~$d$ arrays with~$w$ counters each, CS
-guarantees an error bound of at most~$\sqrt{\frac{e \cdot \sum_{y}
-(f(y))^2}{w}}$ with a confidence of~$1-e^{-d}$, i.e., $\Pr\left(
-|\hat{f}(x)-f(x)| \leq \sqrt{\frac{e \cdot \sum_{y} (f(y))^2}{w}} \right) \geq
-1-e^{-d}$ for any key~$x$. The error term above is smaller than CMS's error
-term when the frequency distribution is less skewed, as the root slows its
-growth to~$O(\sqrt{N})$ (vs.~$N$) when the summands are small. The
-quantity~$\sqrt{\sum_y (f(y))^2}$ is known as the~$\ell_2$-norm of the key
-counts in the stream, which we denote by~$N_2$.
 
 \begin{figure}
     \centering
@@ -1759,6 +1718,52 @@ counts in the stream, which we denote by~$N_2$.
     directions enable unbiased estimation.}
     \label{fig:cs_overview}
 \end{figure}
+
+\textbf{Count Sketch (CS).}
+CMS, as described in \Cref{sec:background}, has two key shortcomings: (1)~its
+estimations are biased since it only overestimates and (2)~its errors compound
+when it is used in some tasks, particularly those that multiply frequencies. CS
+addresses these issues by providing unbiased estimates.\footnote{In CMS, one
+can subtract the average of the counter values a query key does not hash to
+from the query's counter to derive an unbiased estimate~\cite{CountMeanMin}.
+Yet, the resulting estimate has a marginally higher variance than that of CS.}
+The first two rows of \Cref{tab:classic_sketch_stats} summarizes the properties
+of CS and compares it to CMS.
+
+The core component of CS is a counter array of size~$w$ coupled with a hash
+function~$h_i$ mapping a key to a counter. CS further associates with each key
+a random ``update direction'' from the set~$\{-1,+1\}$ by hashing it with
+another hash function~$\sigma_i$.\footnote{The~$\sigma_i$ form a 4-wise
+independent family of hash functions, yielding a bound on the probability of
+large errors~\cite{CountSketch}.} It inserts a new key~$x$ by incrementing or
+decrementing its counter according to~$\sigma_i$, as shown in
+\Cref{fig:cs_overview}. CS deletes~$x$ by subtracting~$\sigma_i(x)$ from its
+counter to undo its insertion. Since each key's update direction is random, the
+expected interference on~$x$'s counter from any other key is zero due to the
+positive and negative possibilities canceling out. Thus, the value of the
+counter along the update direction is an estimate of~$x$'s frequency, which CS
+returns during a query. Although this estimate may be smaller or larger than
+the ground-truth frequency, the zero expected interference allows it to match
+the ground-truth on average, removing bias. Increasing the array's size reduces
+the likelihood of hash collisions and the average deviation.
+
+As with CMS, a frequent key will adversely impact the estimates of keys sharing
+the same counter, degrading confidence. CS addresses this by employing~$d$
+independent arrays, each with its own hash functions~$h_i$ and $\sigma_i$.
+Unlike CMS, CS cannot answer a query by returning the minimum estimate, as it
+may greatly underestimate the result due to two-sided errors. Instead, it
+returns the median estimate, as shown in \Cref{fig:cs_overview}. This improves
+confidence since severe errors are unlikely to occur for enough experiments to
+affect the median. CS takes the median instead of the mean to improve
+robustness to outlier estimates. With~$d$ arrays with~$w$ counters each, CS
+guarantees an error bound of at most~$\sqrt{\frac{e \cdot \sum_{y}
+(f(y))^2}{w}}$ with a confidence of~$1-e^{-d}$, i.e., $\Pr\left(
+|\hat{f}(x)-f(x)| \leq \sqrt{\frac{e \cdot \sum_{y} (f(y))^2}{w}} \right) \geq
+1-e^{-d}$ for any key~$x$. The error term above is smaller than CMS's error
+term when the frequency distribution is less skewed, as the root slows its
+growth to~$O(\sqrt{N})$ (vs.~$N$) when the summands are small. The
+quantity~$\sqrt{\sum_y (f(y))^2}$ is known as the~$\ell_2$-norm of the key
+counts in the stream, which we denote by~$N_2$.
 
 \begin{table}
     \centering
