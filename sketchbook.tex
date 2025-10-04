@@ -1440,34 +1440,34 @@ addresses this issue by generalizing a sketch to increase its number of
 counters as the stream grows. In the case of CMS, \sketchcms expands
 whenever~$N$ exceeds a tunable threshold. An expansion concatenates the current
 sketch with a copy of itself, doubling the size of each array. This operation
-is inexpensive since it simply copies counters without rehashing
-keys.\footnote{We further improve performance by leveraging virtual memory to
-expand each array, thereby avoiding physical reallocations.} All subsequent
-insertions benefit from the lower collision probability of these larger arrays.
+is inexpensive since it simply copies counters without rehashing keys. These
+larger arrays reduce the collision probability of future insertions.
 \Cref{fig:sketchbook_chain} illustrates \sketchcms just after the second
-expansion took place, as well as its state just before the first and second
-expansions. Each half of an array in the current sketch is a copy of the
-corresponding array just before the second expansion. The counters in each
-array before this expansion summed to the expansion threshold of~16, plus the
-total value of~4 of the counters copied from the previous expansion. Queries
-follow the same algorithm as CMS, targeting the newly expanded sketch.
+expansion took place (on the right), as well as its state just before the first
+expansion (left) and the second (middle). Each half of an array in the largest
+sketch is a copy of the corresponding array just before the second expansion.
+The counters in each array before this expansion sum to the expansion threshold
+of~16, plus the total value of the counters copied from the previous expansion,
+i.e., 4. Queries follow the same algorithm as CMS, targeting the newly
+expanded, largest sketch.
 
-\textbf{Shared Hash Functions.}
-\sketchcms uses the same hash function for each of its~$d$ arrays across
-expansions. It hashes a key to a counter within an array of size~$w$ by taking
-the~$\log_2 w$ lower-order bits of its hash. Doing so ensures that after an
-expansion, a key hashes to either the same counter it would have hashed to
-before, or its copy. For example, the query key~$q$ in
-\Cref{fig:sketchbook_chain} has a hash of~$h_1(q)=011\dots$, mapping it to the
-6th counter in the first array, which is the copy of the array's 2nd counter
-before expansion. Thus, this query's results before and after the expansion are
-consistent.
+\textbf{Consistent Hash Functions.}
+\sketchcms maintains~$d$ arrays across expansions to ensure the same confidence
+bound on the errors. It uses the same hash function for each of these arrays
+across expansions. It hashes a key to a counter within an array of size~$w$ by
+taking the~$\log_2 w$ lower-order bits of its hash. Doing so ensures that after
+an expansion, a key hashes to either the same counter it would have hashed to
+before, or its copy. For example, the queried key~$q$ in
+\Cref{fig:sketchbook_chain} has~$h_1(q)=011\dots$ as its hash. Since the size
+of the array before expansion was~4, we only needed the first~$\log_2 4=2$ bits
+of $q$'s hash, i.e., 01, to map it to the 2nd counter in the first array. After
+expansion, we use the first~$\log_2 8=3$ bits of the hash, i.e., 011, to map it
+to the~6th counter, which is a copy of the 2nd counter before expansion.
 
 \textbf{Initial Size.}
-\sketchcms initializes each of its~$d$ arrays to consist of a single chunk
-(i.e., a cache line) containing~$c$ counters, as described in
-\Cref{sec:accommodating_skew}. Thus, it avoids wasting memory from the onset in
-case the stream grows slowly.
+\sketchcms initializes each of its~$d$ arrays to a single chunk (i.e., a cache
+line) containing~$c$ counters, as described in \Cref{sec:accommodating_skew}.
+Thus, it avoids wasting memory from the onset in case the stream grows slowly.
 
 \begin{figure}
     \centering
@@ -1589,75 +1589,80 @@ reaches 4, 16, and 64. These thresholds cause the number of counters in each
 array to grow as~$\sqrt{N}$. As a consequence, we achieve a sub-linear memory
 footprint and sub-linear errors. To see why, recall from \Cref{sec:background}
 that a CMS allocated with arrays of~$w$ counters has an expected error
-of~$N/w$. By plugging in~$\sqrt{N}$ for $w$, \sketchcms attains an error
-of~$O(N/\sqrt{N})=O(\sqrt{N})$. Although keys inserted when the sketch was
-smaller contribute disproportionally to the error due to their counts
-duplicating with expansions, they are exponentially fewer in number. Therefore,
-they only increase the error by a small constant factor, as proven in
-\Cref{sec:theoretical_analysis}. In sum, compared to a standard CMS with linear
-errors and a fixed memory footprint, \sketchcms achieves significantly lower
-errors at a slightly higher space cost. As such, it strikes a better tradeoff
-for applications that require maintaining low errors as the stream grows
-indefinitely. 
+of~$N/w$. By making~$w$ grow as~$\sqrt{N}$, \sketchcms instead attains an
+expected error of~$O(N/\sqrt{N})=O(\sqrt{N})$. Although keys inserted when the
+sketch was smaller contribute disproportionally to the error due to their
+counts duplicating with expansions, they are exponentially fewer in number. In
+\Cref{sec:theoretical_analysis}, we prove that they only increase the error by
+a small constant factor. In sum, compared to a standard CMS with linear errors
+and a fixed memory footprint, \sketchcms achieves significantly lower errors at
+a slightly higher space cost. As such, it is a better fit for applications that
+require maintaining low errors as the stream grows indefinitely. 
 
 \textbf{Deletions and Contractions.} 
-\sketchcms handles deletions as CMS does. It contracts after many deletions to
-save memory. Contractions are the inverse of expansions in that they reduce the
-size of each array by half. Yet, they cannot simply fold the halves of each
-array onto each other and add up the counters. The reason is that doing so adds
-the counters copied during the last expansion to the originals, doubling them
-and inflating the error. Instead, \sketchcms keeps a record of the sketch's
-state just before each expansion. It extracts the recent updates made to the
-current sketch by subtracting the state of the sketch before the last expansion
-from its left and right halves. We illustrate this for a single array in
-\Cref{fig:contraction}. The result is an array of deltas indicating how each
-counter from the earlier sketch and its copy have changed. \sketchcms applies
-these deltas to the original counters in the earlier sketch. Finally, it
-discards the current sketch and uses the earlier sketch to handle future
-operations. Maintaining the sketch record increases the memory footprint by at
-most~$2\times$. 
+\sketchcms handles deletions as CMS, though it eventually contracts after many
+deletions to save memory. The simplest way to contract is to revert an
+expansion by folding the halves of each array onto each other and adding up the
+counters. Yet, this approach would inflate the error since it adds the counters
+copied during the last expansion to the originals, thereby doubling them.
+Instead, \sketchcms keeps a record of the sketch's state just before each
+expansion. It extracts the recent updates made to the current sketch by
+subtracting the state of the sketch before the last expansion from its left and
+right halves. We illustrate this for a single array in \Cref{fig:contraction}.
+The result is an array of deltas indicating how each counter from the earlier
+sketch and its copy have changed. \sketchcms applies these deltas to the
+original counters in the earlier sketch. Finally, it discards the current
+sketch and uses the earlier sketch to handle future operations.
 
 The contraction threshold is set to the mean of the last two expansion
-thresholds to avoid the churning problem -- i.e., the problem of updates
-frequently resizing the sketch. As such, contractions trigger when the majority
-of the stream's keys are deleted. Therefore, \sketchcms always handles most of
-the stream using arrays that are at most twice as large as~$\sqrt{N}$. Thus,
-the error bound remains the same as before, despite the state of the sketch
+thresholds to avoid the problem of updates frequently resizing the sketch. As
+such, a contraction is triggered when the majority of the stream's keys are
+deleted. Therefore, \sketchcms always handles most of the stream using arrays
+that are at most twice as large as~$\sqrt{N}$. Thus, the expected error and the
+size of each array remains the same as before, despite the state of the sketch
 depending on the sequence of insertions and deletions.
 
-\textbf{Rich Space of Tradeoffs.}
-Expanding when the total key count~$N$ increases by a factor other than~4
-exposes a rich spectrum of accuracy-memory tradeoffs. We encode these policies
-using a \emph{Size Function}, denoted as~$W(N)$, which captures the growth rate
-of the number of counters in each array with respect to~$N$. Thus, the faster
-the size function grows with respect to~$N$, the sooner \sketchcms expands,
-thereby tracking more of the stream's keys accurately in exchange for a larger
-memory footprint. By default, the size function is set to~$W(N)=\sqrt{N}$. We
-generalize it to a \emph{Sub-Linear Power} of the
-form~$W(N)=N^\alpha/\epsilon$, with constants~$\alpha \in [0,1)$ and $\epsilon
-> 0$. This corresponds to having~$(1/\epsilon)\times$ more counters in each
-array at the beginning and expanding when~$N$ grows by~$2^{1/\alpha}\times$,
-which is larger than two. We prove in \Cref{sec:theoretical_analysis} that
-such a size function yields an error of~$O(N/W(N))=O(\epsilon \cdot
-N^{1-\alpha})$. Compared to a fixed-size sketch allocated upfront with arrays
-of size~$W(N)$ (which has an optimal expected error bound~\cite{CountMin}),
-\sketchcms's error is only larger by a small constant factor\footnote{The
-constant factor in question is~$(1-2^{-1/\alpha}) \cdot
-\frac{(2-2^{1-1/\alpha})^{1/\alpha \cdot \log_2 N}-1}{(2-2^{1-1/\alpha})-1}$,
-which is at most~$\frac{1-2^{-1/\alpha}}{1-2^{1-1/\alpha}}$ and converges
-to~$\log_2 N$ as $\alpha$ tends to 1.}. We call this factor the ``\emph{Price
-of Expandability}.'' 
+Maintaining the sketch record increases the memory footprint by at
+most~$2\times$. When the total key count fluctuates, the memory saved by
+contracting outweighs this cost.
 
-One may hope to achieve an error of~$\epsilon$ by setting~$W(N)=N/\epsilon$.
-This translates to \sketchcms expanding when~$N$ doubles. Yet, we prove in
-\Cref{sec:theoretical_analysis} that, without knowing the ultimate length of
-the stream, the best error bound achievable by a sketch that maintains arrays
-of~$N/\epsilon$ counters\footnote{More precisely, we show this for any sketch
-using~$O\left( N/\epsilon \cdot \frac{\log\log N}{\log N} \right)$ bits of
-space.} is~$\Omega(\epsilon \cdot \log N)$, i.e., the price of expandability
-is~$\Omega(\log N)$. By setting~$W(N)=N/\epsilon$ and applying slight space
-optimizations, \sketchcms attains this error bound under the same memory budget
-and is thus optimal.
+\textbf{Rich Space of Tradeoffs.}
+By varying the expansion thresholds, we expose a rich spectrum of
+accuracy-memory tradeoffs. We encode these policies using a \emph{Size
+Function}, denoted as~$W(N)$, which captures the growth rate of the number of
+counters in each array with respect to~$N$. The faster the size function grows
+with respect to~$N$, the sooner \sketchcms expands, thereby tracking more of
+the stream's keys accurately in exchange for a larger memory footprint. By
+default, the size function is set to~$W(N)=\sqrt{N}$. We generalize it to a
+\emph{Sub-Linear Power} of the form~$W(N)=N^\alpha/\epsilon$, with
+constants~$\alpha \in [0,1)$ and $\epsilon > 0$. This corresponds to
+having~$(1/\epsilon)\times$ more counters in each array at the beginning and
+expanding when~$N$ grows by~$2^{1/\alpha}\times$, which is larger than two. We
+prove in \Cref{sec:theoretical_analysis} that such a size function
+yields~$O(N/W(N))=O(\epsilon \cdot N^{1-\alpha})$ expected errors. Compared to
+a fixed-size CMS allocated upfront with arrays of size~$W(N)$, \sketchcms's
+error is only larger by a small constant factor\footnote{The constant factor in
+question is~$(1-2^{-1/\alpha}) \cdot \frac{(2-2^{1-1/\alpha})^{1/\alpha \cdot
+\log_2 N}-1}{(2-2^{1-1/\alpha})-1}$, which is at
+most~$\frac{1-2^{-1/\alpha}}{1-2^{1-1/\alpha}}$ and converges to~$\log_2 N$ as
+$\alpha$ tends to 1.}. We call this factor the ``\emph{Price of
+Expandability}.'' 
+
+One may hope to achieve a constant (i.e., non-increasing) expected error by
+setting the number of counters to grow linearly with the data size, i.e.,
+$W(N)=N/\epsilon$. Yet, we prove in \Cref{sec:theoretical_analysis} that,
+without knowing the ultimate length of the stream, the best expected error
+achievable by a sketch that maintains~$N/\epsilon$ counters per
+array\footnote{More precisely, we show this for any sketch using~$O\left(
+N/\epsilon \cdot \frac{\log\log N}{\log N} \right)$ bits of space.}
+is~$\Omega(\epsilon \cdot \log N)$, i.e., the price of expandability
+is~$\Omega(\log N)$. 
+
+\sketchcms matches the expected error of a preallocated CMS of the same size
+when the size function~$W(N)$ is a sub-linear power, which is
+optimal~\cite{CountMin}. Moreover, by setting~$W(N)=N/\epsilon$, it attains the
+optimal expected error of~$O(\log N)$. As such, it provides the best possible
+expected error under all these regimes, and is thus space-optimal.
 
 \subsection{Applying \sketch\ to Count Sketch}\label{sec:cs}
 %For example, in join size estimation, multiplying overestimated counts from the input tables leads to an overly large join size.
@@ -1755,14 +1760,16 @@ returns the median estimate, as shown in \Cref{fig:cs_overview}. This improves
 confidence since severe errors are unlikely to occur for enough experiments to
 affect the median. CS takes the median instead of the mean to improve
 robustness to outlier estimates. With~$d$ arrays with~$w$ counters each, CS
-guarantees an error bound of at most~$\sqrt{\frac{e \cdot \sum_{y}
+guarantees an error bound of at most~$e \cdot \sqrt{\frac{\sum_{y}
 (f(y))^2}{w}}$ with a confidence of~$1-e^{-d}$, i.e., $\Pr\left(
-|\hat{f}(x)-f(x)| \leq \sqrt{\frac{e \cdot \sum_{y} (f(y))^2}{w}} \right) \geq
-1-e^{-d}$ for any key~$x$. The error term above is smaller than CMS's error
-term when the frequency distribution is less skewed, as the root slows its
-growth to~$O(\sqrt{N})$ (vs.~$N$) when the summands are small. The
-quantity~$\sqrt{\sum_y (f(y))^2}$ is known as the~$\ell_2$-norm of the key
-counts in the stream, which we denote by~$N_2$.
+|\hat{f}(x)-f(x)| \leq e \cdot \sqrt{\frac{\sum_{y} (f(y))^2}{w}} \right) \geq
+1-e^{-d}$ for any key~$x$. The quantity~$\sqrt{\sum_y (f(y))^2}$ is known as
+the~$\ell_2$-norm of the key counts in the stream, which we denote by~$N_2$.
+The value of~$N_2$ varies based on the workload's distribution, with uniform
+workloads having~$N_2=O(\sqrt{N})$ due to the summands beings small, and skewed
+workloads having~$N_2 \approx N$. This leads to CS's error bound (i.e.,
+$\sqrt{N_2^2/w} = O(\sqrt{N/w})$) being smaller than that of CMS (i.e., $N/w$)
+under less skew.
 
 \begin{table}
     \centering
@@ -1795,7 +1802,7 @@ counts in the stream, which we denote by~$N_2$.
         \footnotesize CS 
         & \scriptsize Unbiased 
         & \scriptsize Low
-        & \footnotesize $\sqrt{\frac{e \cdot \sum_y (f(y))^2}{w}}$ 
+        & \footnotesize $e \cdot \sqrt{\frac{\sum_y (f(y))^2}{w}}$ 
         & \footnotesize $1-e^{-d}$ 
         & \footnotesize $O(d)$ 
         & \footnotesize $O(d)$ 
@@ -1826,30 +1833,28 @@ before to encode the counter's absolute value.
 \textbf{Accommodating Unbounded Growth.}
 As with CMS, using CS to process a growing stream yields estimation errors that
 grow with the total key count~$N$. To resolve this problem, \sketchcs extends
-CS to expand the number of its counters. To this end, it creates a chain of
-sketches, similar to that of \sketchcms. It applies the same hashing scheme
-with the use of mother hashes, but also makes use of
-shared~$\sigma_1,\dots,\sigma_d$ to derive consistent update directions across
-the sketches. It applies the same expansion and contraction procedures, and
-handles a query by summing the estimates of the corresponding arrays and taking
-the median. It also speeds up queries by aggregating the old sketches into the
-last one.
+CS to expand and contract the number of its counters, similarly to \sketchcms.
+It uses the same hash functions~$h_1,\dots,h_d$ and $\sigma_1,\dots,\sigma_d$
+to map keys to consistent counters and employ consistent update directions
+across expansions. It handles insertions, deletions, and queries as in the case
+of a standard CS.
 
-\sketchcs differs from \sketchcms in one key aspect: the estimation error of a
-sketch in its chain with arrays of size~$w$ scales with the
-stream's~$\ell_2$-norm, i.e., as $\sqrt{N_2^2/w}$, as opposed to~$N/w$. The
-value of~$N_2$ varies based on the workload, with uniform workloads having~$N_2
-\approx \sqrt{N}$ and skewed workloads having~$N_2 \approx N$. \sketchcs must
-therefore expand based on~$N_2^2$ to minimize its memory footprint while
-ensuring bounded errors for any workload. To this end, it defines its size
-function as~$W(N_2^2)$. Whenever~$W(N_2^2)$ doubles, it expands, and whenever
-it halves, it contracts. 
+\sketchcs differs from \sketchcms in one key aspect: its estimation error
+scales with the stream's~$\ell_2$-norm, i.e., as $\sqrt{N_2^2/w}$ when it has
+arrays of size~$w$, as opposed to~$N/w$. Thus, it has lower errors when the
+workload is uniform, and thus benefits from expanding at a slower rate.
+\sketchcs implements this behavior defining its size function based on $N_2^2$,
+i.e., as~$W(N_2^2)$. Thus, whenver~$N_2^2$ grows by the factor defined
+by~$W(N_2^2)$, the sketch expands. Analogously, the sketch contracts
+when~$N_2^2$ drops enough.
 
-To compute~$W(N_2^2)$, \sketchcs must track~$N_2$. It does so by employing an
-array of AMS sketches to approximate~$N_2$~\cite{AMS}. An AMS sketch is a
-specialized CS with a single array consisting of a single counter. Each
-insertion increments the counter along its update direction and a deletion
-decrements it. The following theorem holds for AMS sketches:
+To implement this policy, \sketchcs must track~$N_2^2$. It does so by employing
+an array of AMS sketches, which are sketches tailored to
+approximating~$N_2^2$~\cite{AMS}. An AMS sketch is a specialized CS with a
+single array consisting of a single counter. Each insertion increments the
+counter along its update direction and a deletion decrements it. Squaring the
+value of the counter yields an estimate of~$N_2^2$. The following theorem
+characterizes the estimation error:
 \begin{theorem}[Theorem 2.2 of~\cite{AMS}, specialized]
     One can approximate~$N_2^2$ within a factor of two with a probability
     of~$1-p$ using~$4 \cdot \log 1/p$ AMS sketches. Estimation proceeds by
@@ -1857,22 +1862,22 @@ decrements it. The following theorem holds for AMS sketches:
     median.
 \end{theorem}
 \noindent Thus, it suffices to keep~$O(\log N)$ AMS sketches in memory to
-approximate~$N_2$ with high probability at all points in time. Since~$N$ is
-bounded by the maximum value representable in a 64-bit machine word in
-practice, \sketchcs employs~64 AMS sketches. It uses SIMD to quickly
-update\footnote{More generally, it is possible to maintain~$k$ AMS sketches,
-where~$k$ is the machine word size, in constant time with high probability to
-approximate~$N_2$. We omit the proof of this statement due to space
+approximate~$N_2$ with high probability at times. Since~$N$ is bounded by the
+maximum value representable in a 64-bit machine word in practice, \sketchcs
+employs~64 AMS sketches. It uses SIMD to quickly update\footnote{More
+generally, it is possible to maintain~$k$ AMS sketches, where~$k$ is the
+machine word size, in constant time with high probability to
+approximate~$N_2^2$. We omit the proof of this statement due to space
 constraints.} and query these sketches.
-%The algorithm by batching every~$O(\log N)$ updates together and applying them to the sketches in parallel.
-%We also show that this algorithm can be deamortized to achieve a constat worst-case time complexity.
 
-Similarly to \sketchcms, using a sub-linear power size function of the
-form~$W(N_2^2)=N_2^{2\alpha}/\epsilon$ in \sketchcs yields an error bound
-of~$O(N_2^{1-\alpha})$, matching that of a preallocated CS of size~$W(N_2^2)$,
-which is optimal~\cite{CountSketch}. Moreover,
-setting~$W(N_2^2)=N_2^2/\epsilon$ yields an error bound of~$O(\epsilon \cdot
-\log N_2)$ with the least possible memory.
+We prove in \Cref{sec:theoretical_analysis} that using a sub-linear power size
+function of the form~$W(N_2^2)=N_2^{2\alpha}/\epsilon^2$ in \sketchcs yields an
+error bound of~$O(\epsilon \cdot N_2^{1-\alpha})$, while
+setting~$W(N_2^2)=N_2^2/\epsilon^2$ yields an error bound of~$O(\epsilon \cdot
+\log N_2)$. The former error bound matches that of a preallocated CS of the
+same size up to a constant factor, and is thus optimal~\cite{CountSketch}. We
+prove that the latter is also the best error bound achievable with the memory
+footprint of \sketchcs. Therefore, \sketchcs is space-optimal in all regimes.
 
 \iffalse
 \textbf{Comparison.}
