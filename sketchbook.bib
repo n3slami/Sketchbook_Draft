@@ -878,30 +878,30 @@
 }
 
 @article{CountMin,
-    author = {Cormode, Graham and Muthukrishnan, S.},
-    title = {An improved data stream summary: the count-min sketch and its applications},
-    year = {2005},
-    issue_date = {April 2005},
-    publisher = {Academic Press, Inc.},
-    address = {USA},
-    volume = {55},
-    number = {1},
-    issn = {0196-6774},
-    url = {https://doi.org/10.1016/j.jalgor.2003.12.001},
-    doi = {10.1016/j.jalgor.2003.12.001},
-    abstract = {We introduce a new sublinear space data structure--the
-        count-min sketch--for summarizing data streams. Our sketch allows
-            fundamental queries in data stream summarization such as point,
-        range, and inner product queries to be approximately answered very
-            quickly; in addition, it can be applied to solve several important
-            problems in data streams such as finding quantiles, frequent items,
-        etc. The time and space bounds we show for using the CM sketch to solve
+    author={Cormode, Graham and Muthukrishnan, S.},
+    title={An improved data stream summary: the count-min sketch and its applications},
+    year={2005},
+    issue_date={April 2005},
+    publisher={Academic Press, Inc.},
+    address={USA},
+    volume={55},
+    number={1},
+    issn={0196-6774},
+    url={https://doi.org/10.1016/j.jalgor.2003.12.001},
+    doi={10.1016/j.jalgor.2003.12.001},
+    abstract={We introduce a new sublinear space data structure--the count-min
+        sketch--for summarizing data streams. Our sketch allows fundamental
+            queries in data stream summarization such as point, range, and
+            inner product queries to be approximately answered very quickly; in
+            addition, it can be applied to solve several important problems in
+            data streams such as finding quantiles, frequent items, etc. The
+            time and space bounds we show for using the CM sketch to solve
             these problems significantly improve those previously
             known--typically from 1/ε2 to 1/ε in factor.},
-    journal = {J. Algorithms},
-    month = apr,
-    pages = {58–75},
-    numpages = {18}
+    journal={J. Algorithms},
+    month=apr,
+    pages={58–75},
+    numpages={18}
 }
 
 @article{CountSketch,
@@ -2715,4 +2715,364 @@
     doi={10.1006/jcss.1998.1627}
 }
 
+% Intro Citations
+@Inbook{SensorDataAnalytics,
+    author={Aggarwal, Charu C.},
+    editor={Aggarwal, Charu C.},
+    title={An Introduction to Sensor Data Analytics},
+    bookTitle={Managing and Mining Sensor Data},
+    year={2013},
+    publisher={Springer US},
+    address={Boston, MA},
+    pages={1--8},
+    abstract={The increasing advances in hardware technology for sensor
+        processing and mobile technology has resulted in greater access and
+            availability of sensor data from a wide variety of applications.
+            For example, the commodity mobile devices contain a wide variety of
+            sensors such as GPS, accelerometers, and other kinds of data. Many
+            other kinds of technology such as RFID-enabled sensors also produce
+            large volumes of data over time. This has lead to a need for
+            principled methods for efficient sensor data processing. This
+            chapter will provide an overview of the challenges of sensor data
+            analytics and the different areas of research in this context. We
+            will also present the organization of the chapters in this book in
+            this context.},
+    isbn={978-1-4614-6309-2},
+    doi={10.1007/978-1-4614-6309-2_1},
+    url={https://doi.org/10.1007/978-1-4614-6309-2_1}
+}
+
+@article{RobustAggregationSensorNetworks,
+    title={Robust Aggregation in Sensor Networks},
+    author={George Kollios and John Byers and Jeffrey Considine and Marios
+        Hadjieleftheriou and Feifei Li},
+    journal={Bulletin of the IEEE Computer Society Technical Committee on Data
+        Engineering},
+    year={2005},
+    note={Special Issue on Data Management in Sensor Networks},
+    url={https://www2.cs.arizona.edu/classes/cs645/fall05/cs645-papers/DataAggregation/dataC.pdf}
+}
+
+@article{RandomizedAdmissionEstimation,
+    author={Ben Basat, Ran and Chen, Xiaoqi and Einziger, Gil and Friedman, Roy
+        and Kassner, Yaron},
+    title={Randomized Admission Policy for Efficient Top-k, Frequency, and
+        Volume Estimation},
+    year={2019},
+    issue_date={August 2019},
+    publisher={IEEE Press},
+    volume={27},
+    number={4},
+    issn={1063-6692},
+    url={https://doi.org/10.1109/TNET.2019.2918929},
+    doi={10.1109/TNET.2019.2918929},
+    abstract={Network management protocols often require timely and meaningful
+        insight about per flow network traffic. This paper introduces
+            Randomized Admission Policy RAP –a novel algorithm for the
+            frequency, top-k, and byte volume estimation problems, which are
+            fundamental in network monitoring. We demonstrate space reductions
+            compared to the alternatives, for the frequency estimation problem,
+        by a factor of up to 32 on real packet traces and up to 128 on
+            heavy-tailed workloads. For top-$k$ identification, RAP exhibits
+            memory savings by a factor of between 4 and 64 depending on the
+            workloads’ skewness. These empirical results are backed by formal
+            analysis, indicating the asymptotic space improvement of our
+            probabilistic admission approach. In Addition, we present d-way
+            RAP, a hardware friendly variant of RAP that empirically maintains
+            its space and accuracy benefits.},
+    journal={IEEE/ACM Trans. Netw.},
+    month=aug,
+    pages={1432–1445},
+    numpages={14}
+}
+
+@inproceedings{SketchingStreamsNet,
+    author={Cormode, Graham and Garofalakis, Minos},
+    title={Sketching streams through the net: distributed approximate query
+        tracking},
+    year={2005},
+    isbn={1595931546},
+    publisher={VLDB Endowment},
+    abstract={Emerging large-scale monitoring applications require continuous
+        tracking of complex data-analysis queries over collections of
+            physically-distributed streams. Effective solutions have to be
+            simultaneously space/time efficient (at each remote monitor site),
+        communication efficient (across the underlying communication network),
+        and provide continuous, guaranteed-quality approximate query answers.
+            In this paper, we propose novel algorithmic solutions for the
+            problem of continuously tracking a broad class of complex aggregate
+            queries in such a distributed-streams setting. Our tracking schemes
+            maintain approximate query answers with provable error guarantees,
+        while simultaneously optimizing the storage space and processing time
+            at each remote site, and the communication cost across the network.
+                They rely on tracking general-purpose randomized sketch
+                summaries of local streams at remote sites along with concise
+                prediction models of local site behavior in order to produce
+                highly communication- and space/time-efficient solutions. The
+                result is a powerful approximate query tracking framework that
+                readily incorporates several complex analysis queries
+                (including distributed join and multi-join aggregates, and
+                 approximate wavelet representations), thus giving the first
+                known low-overhead tracking solution for such queries in the
+                distributed-streams model.},
+    booktitle={Proceedings of the 31st International Conference on Very Large Data Bases},
+    pages={13–24},
+    numpages={12},
+    location={Trondheim, Norway},
+    series={VLDB '05}
+}
+
+@inproceedings{Blink,
+    author={Holterbach, Thomas and Molero, Edgar Costa and Apostolaki, Maria
+        and Dainotti, Alberto and Vissicchio, Stefano and Vanbever, Laurent},
+    title={Blink: fast connectivity recovery entirely in the data plane},
+    year={2019},
+    isbn={9781931971492},
+    publisher={USENIX Association},
+    address={USA},
+    abstract={We present Blink, a data-driven system that leverages TCP-induced
+        signals to detect failures directly in the data plane. The key
+            intuition behind Blink is that a TCP flow exhibits a predictable
+            behavior upon disruption: retransmitting the same packet over and
+            over, at epochs exponentially spaced in time. When compounded over
+            multiple flows, this behavior creates a strong and characteristic
+            failure signal. Blink efficiently analyzes TCP flows to: (i) select
+            which ones to track; (ii) reliably and quickly detect major traffic
+            disruptions; and (iii) recover connectivity--all this, completely
+            in the data plane.We present an implementation of Blink in P4
+            together with an extensive evaluation on real and synthetic traffic
+            traces. Our results indicate that Blink: (i) achieves sub-second
+            rerouting for large fractions of Internet traffic; and (ii)
+            prevents unnecessary traffic shifts even in the presence of noise.
+            We further show the feasibility of Blink by running it on an actual
+            Tofino switch.},
+    booktitle={Proceedings of the 16th USENIX Conference on Networked Systems Design and Implementation},
+    pages={161–176},
+    numpages={16},
+    location={Boston, MA, USA},
+    series={NSDI'19}
+}
+
+@inproceedings{LOFT,
+    author={Scherrer, Simon and Wu, Che-Yu and Chiang, Yu-Hsi and Rothenberger,
+        Benjamin and Asoni, Daniele and Sateesan, Arish and Vliegen, Jo and
+            Mentens, Nele and Hsiao, Hsu-Chun and Perrig, Adrian},
+    year={2021},
+    month={09},
+    pages={265-276},
+    title={Low-Rate Overuse Flow Tracer (LOFT): An Efficient and Scalable
+        Algorithm for Detecting Overuse Flows},
+    doi={10.1109/SRDS53918.2021.00034}
+}
+
+@INPROCEEDINGS{RealTimeBurstDetection,
+    author={Ebina, Ryohei and Nakamura, Kenji and Oyanagi, Shigeru},
+    booktitle={2011 IEEE 23rd International Conference on Tools with Artificial
+        Intelligence}, 
+    title={A Real-Time Burst Detection Method}, 
+    year={2011},
+    pages={1040-1046},
+    keywords={Data structures;Real time systems;Aggregates;Time frequency
+        analysis;Time series analysis;Blogs;Detection algorithms;burst
+            detection;data stream;real-time;data mining;algorithm},
+    doi={10.1109/ICTAI.2011.177}
+}
+
+@inproceedings{BurstyHierarchicalStreams,
+    author={Kleinberg, Jon},
+    title={Bursty and hierarchical structure in streams},
+    year={2002},
+    isbn={158113567X},
+    publisher={Association for Computing Machinery},
+    address={New York, NY, USA},
+    url={https://doi.org/10.1145/775047.775061},
+    doi={10.1145/775047.775061},
+    abstract={A fundamental problem in text data mining is to extract
+        meaningful structure from document streams that arrive continuously
+            over time. E-mail and news articles are two natural examples of
+            such streams, each characterized by topics that appear, grow in
+            intensity for a period of time, and then fade away. The published
+            literature in a particular research field can be seen to exhibit
+            similar phenomena over a much longer time scale. Underlying much of
+            the text mining work in this area is the following intuitive
+            premise --- that the appearance of a topic in a document stream is
+            signaled by a "burst of activity," with certain features rising
+            sharply in frequency as the topic emerges.The goal of the present
+            work is to develop a formal approach for modeling such "bursts," in
+            such a way that they can be robustly and efficiently identified,
+        and can provide an organizational framework for analyzing the
+            underlying content. The approach is based on modeling the stream
+            using an infinite-state automaton, in which bursts appear naturally
+            as state transitions; in some ways, it can be viewed as drawing an
+            analogy with models from queueing theory for bursty network
+            traffic. The resulting algorithms are highly efficient, and yield a
+            nested representation of the set of bursts that imposes a
+            hierarchical structure on the overall stream. Experiments with
+            e-mail and research paper archives suggest that the resulting
+            structures have a natural meaning in terms of the content that gave
+            rise to them.},
+    booktitle={Proceedings of the Eighth ACM SIGKDD International Conference on
+        Knowledge Discovery and Data Mining},
+    pages={91–101},
+    numpages={11},
+    location={Edmonton, Alberta, Canada},
+    series={KDD '02}
+}
+
+@inproceedings{AssociationRules,
+    author={Agrawal, Rakesh and Srikant, Ramakrishnan},
+    title={Fast Algorithms for Mining Association Rules in Large Databases},
+    year={1994},
+    isbn={1558601538},
+    publisher={Morgan Kaufmann Publishers Inc.},
+    address={San Francisco, CA, USA},
+    booktitle={Proceedings of the 20th International Conference on Very Large
+        Data Bases},
+    pages={487–499},
+    numpages={13},
+    series={VLDB '94}
+}
+
+@article{TimeSeriesModeling,
+    author={Michael Bender and Slobodan Simonovic},
+    title={Time‐Series Modeling for Long‐Range Stream‐Flow Forecasting},
+    journal={Journal of Water Resources Planning and Management},
+    volume={120},
+    number={6},
+    pages={857-870},
+    year={1994},
+    doi={10.1061/(ASCE)0733-9496(1994)120:6(857)},
+    abstract={Currently used methods for long‐range water‐supply forecasting
+        are compared with statistical time‐series tools, such as seasonal
+            auto‐regressive integrated moving‐average modeling. Evaluation of
+            several theoretical models under a range of flow conditions
+            provided insight into development of a technique using engineering
+            knowledge and experience to improve the quality of forecasts. Rules
+            governing model selection are developed from analysis of forecast
+            residuals within a sensitivity analysis. Context‐sensitive model
+            selection provided a means of improving forecast accuracy.
+            Increased confidence in the optimal forecasted operating and
+            planning policies are consequences of improved forecasts. The
+            modeling tools provide the means of evaluating the performance of
+            long‐range monthly probabilistic stream‐flow forecasts at Manitoba
+            Hydro. Manitoba Hydro is a large utility that operates a
+            multireservoir electric‐power generation system. The needs and
+            priorities of the system demand forecasts up to 1 year in advance
+            for planning budgets and release policies.}
+}
+
+@article{Flink,
+    title={Apache Flink{\texttrademark}: Stream and Batch Processing in a
+        Single Engine},
+    abstract={Apache Flink is an open-source system for processing streaming
+        and batch data. Flink is built on the philosophy that many classes of
+            data processing applications, including real-time analytics,
+        continuous data pipelines, historic data processing (batch), and
+            iterative algorithms (machine learning, graph analysis) can be
+            expressed and executed as pipelined fault-tolerant dataflows. In
+            this paper, we present Flink{\textquoteright}s architecture and
+            expand on how a (seemingly diverse) set of use cases can be unified
+            under asingle execution model.},
+    author={Paris Carbone and Asterios Katsifodimos and Stephan Ewen and Volker
+        Markl and Seif Haridi and Kostas Tzoumas},
+    year={2015},
+    language={English},
+    volume={36},
+    pages={28--38},
+    journal={Bulletin of the IEEE Computer Society Technical Committee on Data
+        Engineering},
+    publisher={IEEE},
+    number={4}
+}
+
+@INPROCEEDINGS{AdditiveErrorCounters,
+    author={Basat, Ran Ben and Einziger, Gil and Mitzenmacher, Michael and
+        Vargaftik, Shay},
+    booktitle={IEEE INFOCOM 2020 - IEEE Conference on Computer Communications}, 
+    title={Faster and More Accurate Measurement through Additive-Error Counters}, 
+    year={2020},
+    volume={},
+    number={},
+    pages={1251-1260},
+    keywords={Additives;Approximation algorithms;Estimation;Software
+        algorithms;Heuristic algorithms;Measurement uncertainty;Memory
+            management},
+    doi={10.1109/INFOCOM41043.2020.9155340}
+}
+
+@inproceedings{NetworkAnomalyDetection1,
+    author={Gu, Yu and McCallum, Andrew and Towsley, Don},
+    title={Detecting anomalies in network traffic using maximum entropy
+        estimation},
+    year={2005},
+    publisher={USENIX Association},
+    address={USA},
+    abstract={We develop a behavior-based anomaly detection method that detects
+        network anomalies by comparing the current network traffic against a
+            baseline distribution. The Maximum Entropy technique provides a
+            flexible and fast approach to estimate the baseline distribution,
+        which also gives the network administrator a multi-dimensional view of
+            the network traffic. By computing a measure related to the relative
+            entropy of the network traffic under observation with respect to
+            the baseline distribution, we are able to distinguish anomalies
+            that change the traffic either abruptly or slowly. In addition, our
+            method provides information revealing the type of the anomaly
+            detected. It requires a constant memory and a computation time
+            proportional to the traffic rate.},
+    booktitle={Proceedings of the 5th ACM SIGCOMM Conference on Internet
+        Measurement},
+    pages={32},
+    numpages={1},
+    location={Berkeley, CA},
+    series={IMC '05}
+}
+
+@INPROCEEDINGS{NetworkAnomalyDetection2,
+    author={Wagner, A. and Plattner, B.},
+    booktitle={14th IEEE International Workshops on Enabling Technologies:
+        Infrastructure for Collaborative Enterprise (WETICE'05)}, 
+    title={Entropy based worm and anomaly detection in fast IP networks}, 
+    year={2005},
+    pages={172-177},
+    keywords={Entropy;Intelligent networks;IP networks;Telecommunication
+        traffic;Event detection;Internet;Spine;Data compression;Communication
+            system traffic;Laboratories},
+    doi={10.1109/WETICE.2005.35}
+}
+
+@article{CoDDoS,
+    author={Xia, Jiqiang and Tian, Le and Hu, Yuxiang and Li, Ziyong and Sun,
+        Penghao and Peng, Jianhua},
+    title={CoDDoS: Detecting and mitigating diverse DDoS attacks with
+        programmable switches},
+    year={2025},
+    issue_date={Aug 2025},
+    publisher={Elsevier Science Publishers B. V.},
+    address={NLD},
+    volume={240},
+    number={C},
+    issn={0140-3664},
+    url={https://doi.org/10.1016/j.comcom.2025.108215},
+    doi={10.1016/j.comcom.2025.108215},
+    journal={Comput. Commun.},
+    month=aug,
+    numpages={13},
+    keywords={DDoS defense, Network monitoring, Sketch, Cardinality estimation,
+        P4}
+}
+
+@ARTICLE{Memento,
+    author={Ben Basat, Ran and Einziger, Gil and Keslassy, Isaac and Orda,
+        Ariel and Vargaftik, Shay and Waisbard, Erez},
+    journal={IEEE/ACM Transactions on Networking}, 
+    title={Memento: Making Sliding Windows Efficient for Heavy Hitters}, 
+    year={2022},
+    volume={30},
+    number={4},
+    pages={1440-1453},
+    keywords={Frequency estimation;Load management;Computer crime;Windows;Time
+        measurement;Partitioning algorithms;IEEE transactions;Communication
+            technology;communication systems;computer networks;internet},
+    doi={10.1109/TNET.2021.3132385}
+}
 

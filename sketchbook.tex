@@ -2,7 +2,7 @@
 % https://www.acm.org/publications/proceedings-template
 % The ACM Latex guide provides further information about the ACM template
 
-\documentclass[sigconf,nonacm]{acmart}
+\documentclass[sigconf,nonacm,anonymous]{acmart}
 
 %% The following content must be adapted for the final version
 % paper-specific
@@ -136,47 +136,118 @@ The source code, data, and/or other artifacts have been made available at
 %%% VLDB block end %%%
 
 \section{Introduction}~\label{sec:introduction}
-The streams we consider both insert and delete keys, which amount to
-incrementing and decrementing the key's count, respectively. While some
-applications such as tracking click-through rates in webpages only require
-insertions, deletions are needed for other applications such as maintaining
-count estimates for SQL tables for use in a query optimizer. 
+\textbf{Data Streams.}
+Modern data analytics systems ingest large streams of data at high speed.
+Example applications include network traffic
+monitoring~\cite{WhatsNew,SketchingStreamsNet,RandomizedAdmissionEstimation,Blink,LOFT},
+streaming SQL databases~\cite{Flink}, sensor data
+mining~\cite{SensorDataAnalytics,RobustAggregationSensorNetworks}, and
+time-series forecasting in financial
+markets~\cite{AssociationRules,TimeSeriesModeling}. Due to the high volume of
+the data, it is often impossible to store the entire stream (e.g., packets sent
+in a network). Even if it is possible, scanning the data (e.g., rows of a SQL
+table) to compute the required statistics is expensive. Therefore, applications
+track the relevant statistics on the fly as data is inserted or deleted.
 
-Rasmus: For deletions it is critical to note that they are not ``checked for
-validity'' by the sketches, so it is up to the user to ensure that deletions
-correspond to insertions
+%Although some streams, such as tracking click-through rates in
+%webpages~\cite{CountMeanMin}, only insert keys, others, such as streaming SQL
+%databases~\cite{Flink}, count estimates for SQL tables for use in a query
+%optimizer~\cite{Compass,QueryOptimizationSketches,ConvolutionSketch}, delete
+%keys as well.
 
-We define the following two goals: \textbf{(G1)~Space-Efficient Counters}, and
-\textbf{(G2)~Scaling Error with Stream Length}.
-
-\textbf{Applications.} 
-Due to its simplicity and high accuracy under skewed workloads, CMS is used in
-many applications, including $k$-mer counting in
-bioinformatics~\cite{CMSkmer,SetMinSketch}, network
+\textbf{Frequency Estimation.}
+A fundamental statistic is the number of times each key appears in the stream,
+known as its frequency or count. These counts are utilized in many
+applications, including join-size estimation for query
+optimization~\cite{Compass,QueryOptimizationSketches,ConvolutionSketch},
+network traffic
 monitoring~\cite{SketchBasedChangeDetection,WhatsNew,TrafficManagementSurvey},
-and hardware security systems~\cite{CoMeT}. Yet, its biased estimates make it
-less useful for applications such as join size estimation. As shown in
-\Cref{sec:cs}, the Count Sketch is the tool of choice for these settings.
+and genome analysis in bioinformatics~\cite{CMSkmer,SetMinSketch}. Yet,
+tracking the exact count of each key with a dedicated counter leads to a
+prohibitively high memory footprint due to the large number of unique keys. A
+\emph{Frequency Estimation Sketch} addresses this issue and achieves a low
+memory footprint by approximately counting the keys. At a high level, it maps
+each key to one or more counters among a small, fixed number of counters,
+incrementing them to track the count. A query for a key aggregates the
+corresponding counters to improve the estimation error. Query results are
+inexact, as multiple keys can map to the same counter, affecting each other's
+estimates. 
 
-Since CS provides unbiased estimates, it is used in applications where
-estimates are combined or multiplied to derive more complex statistics. In
-particular, unbiased estimation is crucial for query
+\textbf{Goals.}
+Frequency estimation sketches strive to achieve (1)~a low estimation error,
+(2)~a low memory footprint, and (3)~fast insertions, deletions, and queries.
+
+\textbf{Different Types of Error.}
+Frequency estimation sketches have estimates with different types of errors.
+The Count-Min Sketch (CMS)~\cite{CountMin} only overestimates a key's count.
+This property makes CMS an effective tool for detecting
+denial-of-service~\cite{CoDDoS} and hardware row hammer~\cite{CoMeT} attacks,
+where it is unacceptable to miss an attack. Count Sketch
+(CS)~\cite{CountSketch} can both overestimate and underestimate a key's count,
+yet these errors cancel out on average, yielding unbiased estimates. This
+allows CS to avoid compounding errors when its estimates are combined or
+multiplied, making it an ideal tool for applications such as query
 optimization~\cite{Compass,QueryOptimizationSketches,ConvolutionSketch} and
-covariance estimation~\cite{ASCS}, as count estimates are multiplied in these
-contexts, amplifying any bias. Other applications benefiting from CS include
-feature selection~\cite{MISSION} and similarity
-search~\cite{CSSetSimSearch,DensifyingLSHSketches,LasVegasSimSearch,DistanceSensitiveBloomFilters}.
-CS also provides \emph{Universality}~\cite{UniversalSketching}: the ability to
-estimate many statistics based on the key frequencies. This makes it a general
-measurement tool for networks since it allows administrators to collect
-diagnostics of any kind without needing to explicitly define the required
-statistics (such as the mean, variance, and moments) beforehand~\cite{UnivMon}.
+covariance estimation~\cite{ASCS}. Misra-Gries (MG)~\cite{MisraGries} only
+underestimates the count of a key. As such, and because it tracks the keys (or
+an approximation thereof), MG is used to find the keys with the highest counts,
+i.e., the heavy hitters, in anomaly
+detection~\cite{NetworkAnomalyDetection1,NetworkAnomalyDetection2}.
 
-As MG accurately tracks the frequencies of heavy hitters, many other sketch
-designs use it as a sub-component to reap its benefits. Moreover, because it
-also stores the keys themselves, unlike CMS and CS, it is used to report the
-heavy hitters, trending keys, and much
-more~\cite{BatchUpdateMisraGries,AugmentedSketch,BitMatcher,BubbleSketch,HeavyGuardian,HeavyKeeper,JigsawSketch,MVSketch,SketchVisor,WavingSketch,MicroscopeSketch,PSketch,TightSketch}.
+Many variants of these sketches exist, each providing different tradeoffs
+between accuracy, space, and
+speed~\cite{CountMeanMin,BitSense,PyramidSketch,StingySketch,AdaptiveCounterSplicing,TreeSensing,AugmentedSketch,HeavyGuardian,MVSketch,SpaceSaving,BatchUpdateMisraGries,BitMatcher,JigsawSketch,MicroscopeSketch,PSketch,TightSketch}.
+Yet, they all face two core challenges.
+
+\textbf{Challenge 1: Skew.}
+Many streams in practice are skewed, meaning that they contain a few heavy
+hitters~\cite{Memento,AdditiveErrorCounters,StingySketch}. This leads to some
+counter values within a sketch being large, and most being small. Existing
+sketches use uniformly-sized counters which must be long enough to accommodate
+to accommodate maximum counter value in a workload. As such, they waste a
+significant amount of memory storing the unused higher-order bits of the small
+counter values. Many prior works attempt to address this issue at the expense
+of
+accuracy~\cite{SALSA,BitSense,PyramidSketch,StingySketch,AdaptiveCounterSplicing,CounterTree,TreeSensing}.
+
+\textbf{Challenge 2: Unbounded Data Growth.}
+In most applications, the stream continues to grow over
+time~\cite{Compass,QueryOptimizationSketches,ConvolutionSketch,SketchBasedChangeDetection,WhatsNew,TrafficManagementSurvey}.
+Yet, all current sketches are fixed-sized, leading to their errors growing at
+least linearly with the stream's length. It is often impossible to store or
+rescan the stream, barring us from reconstructing the sketch to control the
+error. This leads to error-prone decision-making in a slew of applications,
+including query
+optimization~\cite{Compass,QueryOptimizationSketches,ConvolutionSketch,CoMeT,CoDDoS}.
+This is the first paper to identify and address this challenge.
+
+\textbf{Solution: \sketch.}
+We introduce \sketch, a framework for generalizing a frequency estimation
+sketch to address the above challenges. \sketch\ accommodates skew by
+introducing a reusable counter encoding scheme that allocates small counters
+upfront and extends them as they overflow. It colocates counters and their
+extensions within the same cache line and uses a specialized bit manipulation
+workflow to decode them in constant time. \sketch\ accommodates unbounded data
+growth by expanding the number of counters as the stream grows to
+simultaneously attain sub-linear errors and a sub-linear memory footprint.
+
+\textbf{Additional Contributions.}
+\begin{enumerate}
+    \item We analyze competing approaches for addressing the challenge of skew
+        and show that their error scales super-linearly with the stream size.
+    \item We show how to adaptively optimize space by controlling the number of
+        counters within a cache line and their length.
+    \item We map out the rich tradeoff space between and memory spanned by
+        \sketch\ as it expands.
+    \item We apply \sketch's techniques to CMS, CS, and MG.
+    \item We prove a lower bound on the minimum space required for an
+        expandable sketch to achieve a given error bound and show that \sketch\
+        matches this lower bound.
+    \item We evaluate \sketch\ against all state-of-the-art frequency
+        estimation sketches and demonstrate that it significantly improves the
+        memory footprint under skew and the scaling of error under unbounded
+        data growth while maintaining equal or better performance.
+\end{enumerate}
 
 \section{Background}~\label{sec:background}
 A stream is a sequence of key-value pairs~$\left\langle (x_1,\Delta_1),
@@ -1425,7 +1496,7 @@ and uses each as the hash value of an array.
             \end{pgfonlayer}
         }
     \end{tikzpicture}
-    \vspace*{-8.0pt}
+    %\vspace*{-8.0pt}
     \caption{\sketchcms expands by concatenating each array with a copy of
     itself. It maps a key to a counter in an array by taking the appropriate
     number of bits from its hash.}
@@ -1471,7 +1542,7 @@ Thus, it avoids wasting memory from the onset in case the stream grows slowly.
 
 \begin{figure}
     \centering
-    \vspace*{3.0pt}
+    %\vspace*{3.0pt}
     \pgfdeclarelayer{background layer}
     \pgfsetlayers{background layer,main}
     \begin{tikzpicture}
@@ -1575,7 +1646,7 @@ Thus, it avoids wasting memory from the onset in case the stream grows slowly.
         }
         \node[inner sep=0pt,align=center] (cms_last_new) at (\arrayw/2-0.2,\newlastsketchy-1.5*\arrayh) {\small 3) Current Sketch \\[-4pt] \small \hspace{14pt} After Contraction};
     \end{tikzpicture}
-    \vspace*{-7.0pt}
+    %\vspace*{-7.0pt}
     \caption{During contractions, \sketchcms extracts the recent updates by
     subtracting the previous sketch. It adds the results to the previous sketch
     to transfer the updates.}
