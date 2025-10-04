@@ -1965,12 +1965,12 @@ counter, this cost is:
 Applying \Cref{lemma:single_counter_space} to all counters yields:
 \begin{theorem}
     \label{thm:all_counters_space}
-    When an array of~$w$ counters has processed~$N$ increments and decrements,
-    it uses~$O(w \cdot (\log_2 (N/w) + 1))$ bits of memory. Applied to all~$d$
+    When an array of~$w$ counters has processed~$k$ increments and decrements,
+    it uses~$O(w \cdot (\log_2 (k/w) + 1))$ bits of memory. Applied to all~$d$
     arrays in \sketch, this corresponds to a memory of~$O(d \cdot W(N) \cdot
     (\log_2 (N/W(N)) + 1))$ bits when the size function~$W(N)$ is a sub-linear
-    power and~$O(d \cdot W(N) \cdot (\log_2(N \log N/W(N)) + 1))$ bits when it is a linear
-    function.
+    power and~$O(d \cdot W(N) \cdot (\log_2(N \log_2 N/W(N)) + 1))$ bits when
+    it is a linear function.
 \end{theorem}
 \begin{proof}
     Denoting the signed value of the~$i${\nobreakdash-}th counter by~$v_i$ and
@@ -1978,16 +1978,16 @@ Applying \Cref{lemma:single_counter_space} to all counters yields:
     O(1+\log_2 |v_i|) = O\left( w+\sum_i \log_2 |v_i| \right)$ bits. Due to the
     concavity of the logarithm, it must be that~$\sum_i \log_2 |v_i| \leq w
     \cdot \log_2(1/w \cdot \sum_i |v_i|)$. Because the logarithm is an
-    increasing function and~$\sum_i |v_i| \leq N$, it must be that~$w \cdot
-    \log_2(1/w \cdot \sum_i |v_i|) \leq w \cdot \log_2(N/w)$. Plugging this
+    increasing function and~$\sum_i |v_i| \; \leq k$, it must be that~$w \cdot
+    \log_2(1/w \cdot \sum_i |v_i|) \leq w \cdot \log_2(k/w)$. Plugging this
     into the first expression in the proof yields~$m \leq O(w \cdot (\log_2
-    (N/w) + 1))$. 
+    (k/w) + 1))$. 
 
-    Taking the copied counters into account, each array in \sketch\
-    processes~$O(N)$ increments and decrements when the size function is a
-    sub-linear power. When it is a linear function, the total increments and
-    decrements is~$O(N \log N)$. Plugging these values into the formula above
-    and multiplying by the number of arrays~$d$ proves the result.
+    By a similar analysis to that of Theorem~??, the number of increments and
+    decrements~$k$ to each array in \sketch\, when accounting for the copied
+    counters, is~$O(N)$. Similarly, one can show that~$k=O(N \log N)$ when the
+    size function is linear. Plugging these values into the formula above and
+    multiplying by the number of arrays~$d$ proves the result.
 \end{proof}
 
 \textbf{Memory Footprint Lower Bound.}
@@ -1996,8 +1996,8 @@ use them to implement filters and leverage their memory lower bounds. A filter
 is a compact data structure that answers whether a query key exists in a given
 set of keys. A filter never returns a false negative, but it may return a false
 positive with a probability called the \emph{False Positive Rate (FPR)}. The
-lower the FPR, the larger the filter's memory footprint must be. The following
-theorem states a memory footprint lower bound for filters supporting sets of
+lower the desired FPR is, the larger the filter's memory footprint must be. The
+following theorem states a memory lower bound for filters supporting sets of
 unknown size:
 \begin{theorem}[Theorem 3.1 of~\cite{PaghExpandability}, Simplified]
     \label{thm:filter_expandability}
@@ -2023,8 +2023,8 @@ As such, \Cref{thm:filter_expandability} must apply to this sketch:
 \begin{theorem}
     Any frequency estimation sketch with only overestimation errors that
     processes growing streams with an error bound of~$E(N)$ and a confidence
-    of~$1-\delta$ must have a memory footprint of at least~$\Omega(N/E(N) \cdot [\log 1/\delta +
-    \log\log (N/E(N)])$ bits.
+    of~$1-\delta$ must have a memory footprint of at least~$\Omega(N/E(N) \cdot
+    [\log 1/\delta + \log\log (N/E(N)])$ bits.
 \end{theorem}
 
 It is difficult to implement a filter with a sketch that has two-sided errors,
@@ -2034,22 +2034,23 @@ variance that yields an error bound of~$E(N)$ with a confidence of~$1-\delta$
 (similarly to CS), the same lower bound holds:
 \begin{restatable}{theorem}{thmsketchexpandabilitylabel}
     \label{thm:sketch_expandability}
-    A frequency estimation sketch providing an estimate with a variance
-    of~$\delta \cdot (E(N))^2$ for any key when processing a stream of
-    size~$N$, uses~$\Omega\left( N/E(N) \cdot [\log 1/\delta + \log\log
-    (N/E(N))] \right)$ bits of memory.
+    A frequency estimation sketch providing estimates with an expected error
+    of~$E(N)$ and a variance of~$\delta \cdot (E(N))^2$ for any key when
+    processing a stream of size~$N$, has a memory footprint of~$\Omega\left(
+    N/E(N) \cdot [\log 1/\delta + \log\log (N/E(N))] \right)$ bits.
 \end{restatable}
 \noindent Note that the variance assumption above captures the design of all
 existing frequency estimation sketches.
 
 One can verify from \Cref{thm:all_counters_space} that, when fixing the
 confidence using a constant number of arrays~$d$ while using a sub-linear power
-(resp. linear) size function~$W(N)$ to achieve an error of~$E(N)$, the memory
+(resp. linear) size function~$W(N)$ to achieve an error bound of~$E(N)$, the memory
 footprint becomes~$O\left( N/E(N) \cdot \log (N/E(N)) \right)$ (resp. $O(N/E(N)
-\cdot \log N \cdot \log\log N)$) bits. This almost matches the above memory
-lower bounds with a slight difference in the logarithmic terms. Compressing the
-counter arrays by coarsely quantizing their counters and applying run-length
-encoding allows \sketch\ to match these lower bounds.
+\cdot \log N \cdot \log\log N)$) bits. This almost matches the memory lower
+bound of \Cref{thm:sketch_expandability} with a slight difference in the
+logarithmic terms. Compressing the counter arrays by coarsely quantizing their
+counters and applying run-length encoding allows \sketch\ to match these lower
+bounds.
 
 \textbf{Performance.}
 Reading and modifying a counter in \counterencodingabbrv\ takes constant time.
@@ -2221,39 +2222,36 @@ unlike \sketchcms and \sketchcs that double the size of their arrays.
     At a high level, our proof follows a contradiction argument similar to the
     proof of Theorem~3.1 in~\cite{PaghExpandability}. That is, we consider a
     frequency estimation sketch~$\mathcal{S}$ that, given a key~$x$, computes
-    an estimate~$\hat{f}(x)$ with $\mathrm{Var}[\hat{f}(x)] \leq V(N) = \delta
-    \cdot (E(N))^2$. Note that, by Chebyshev's inequality, this sketch
-    guarantees an estimation error of~$E(N)$ with a confidence of~$1-\delta$.
-    We show that if such a sketch is ``too space-efficient,'' it can be used to
-    compress many sequences of~$n=N/(E(N)+1)$ keys~$\sigma=x_1,\dots,x_n$
-    coming from a large universe~$U$ of size~$u \gg n$ to a size smaller than
-    their entropy, which must be impossible. 
+    an estimate~$\hat{f}(x)$ such that $\mathbb{E}[|\hat{f}(x) - f(x)|] \leq
+    E(N)$ and $\mathrm{Var}[\hat{f}(x)] \leq V(N) = \delta \cdot (E(N))^2$.
+    Note that, by Chebyshev's inequality, this sketch guarantees an estimation
+    error of~$2E(N)$ with a confidence of~$1-\delta$. We show that if such a
+    sketch is ``too space-efficient,'' it can be used to compress many
+    sequences of~$n=N/(2E(N)+1)$ keys~$\sigma=x_1,\dots,x_n$ coming from a
+    large universe~$U$ of size~$u \gg n$ to a size smaller than their entropy,
+    which must be impossible. Our argument holds regardless of the time
+    complexity of~$\mathcal{S}$'s operations. 
 
-    Our argument holds regardless of the time complexity of~$\mathcal{S}$'s
-    operations. As such, we may assume w.l.o.g. that the sketch provides
-    unbiased estimates for any key in any window of the stream by iterating
-    over all possible sequences of insertions, computing the bias of the
-    original estimate, and subtracting it out.
-
-    Consider inserting the~$n$ keys in $\sigma$ each $E(N)$ times. We
-    partition~$\sigma$ into contiguous subsequences~$\sigma_1, \sigma_2, \dots,
-    \sigma_\ell$, with $\sigma_i$ having a length of~$2^i \cdot \sqrt{n}$ and
-    $\ell=\log_2 n/2$. We denote the state of~$\mathcal{S}$ after processing
-    the subsequences~$\sigma_1, \dots, \sigma_i$ by inserting each key~$E(N)$
-    times as $\mathcal{S}_i$. We denote $\mathcal{S}_i$'s its estimate for the
-    count of key~$x$ as $\hat{f}_i(x)$ while denoting the ground-truth count
-    as~$f_i(x)$. We also denote the difference in the estimate of~$x$ after
-    processing~$\sigma_i$ as $\hat{\Delta}_i(x) = \hat{f}_i(x) -
-    \hat{f}_{i-1}(x)$, while denoting the actual change in~$x$'s count by
-    $\Delta_i(x) = f_i(x) - f_{i-1}(x)$. By the law of total variance, we have
-    for any key~$x$ that
+    Consider the process iterating through~$\sigma$'s keys and inserting each
+    $(2E(N)+1)$ times into~$\mathcal{S}$. We partition~$\sigma$ into contiguous
+    subsequences~$\sigma_1, \sigma_2, \dots, \sigma_\ell$, with $\sigma_i$
+    having a length of~$2^i \cdot \sqrt{n}$ and $\ell=\log_2 n/2$. We denote
+    the state of~$\mathcal{S}$ after processing the subsequences~$\sigma_1,
+    \dots, \sigma_i$ as $\mathcal{S}_i$. We denote $\mathcal{S}_i$'s estimate
+    for the count of key~$x$ as $\hat{f}_i(x)$  while denoting the true number
+    of times~$x$ was inserted as~$f_i(x)$. We also denote the difference in
+    this estimate after processing~$\sigma_i$ as $\Delta_i(x) = \hat{f}_i(x) -
+    \hat{f}_{i-1}(x)$. By the law of total variance, we have for any key~$x$
+    that
     \begin{align}
-        \mathrm{Var} & \left[ \hat{f}_\ell(x) - f_\ell(x) \right] = \mathrm{Var}\left[ \hat{\Delta}_\ell(x) + \hat{f}_{\ell-1}(x) - \Delta_\ell(x) - f_{\ell-1}(x) \right] \notag \\
-        & = \mathbb{E}\left[ \mathrm{Var}\left[ \hat{\Delta}_\ell(x) + \hat{f}_{\ell-1}(x) \;\middle|\; \hat{f}_{\ell-1}(x) \right] \right] \notag \\ 
-        & + \mathrm{Var}\left[ \mathbb{E}\left[ \hat{\Delta}_{\ell}(x) - \Delta_{\ell}(x) + \hat{f}_{\ell-1}(x) \;\middle|\; \hat{f}_{\ell-1}(x) \right] - f_{\ell-1}(x) \right] \notag \\
-        & = \mathbb{E}\left[ \mathrm{Var}\left[ \hat{\Delta}_\ell(x) - \Delta_{\ell}(x) \;\middle|\; \hat{f}_{\ell-1}(x) \right] \right] \notag \\ 
-        & + \mathrm{Var}\left[ \left( \mathbb{E}\left[ \hat{\Delta}_{\ell}(x) \;\middle|\; \hat{f}_{\ell-1}(x) \right] - \Delta_{\ell}(x) \right) + \hat{f}_{\ell-1}(x) \right] \notag \\
-        & = \mathbb{E}\left[ \mathrm{Var}\left[ \hat{\Delta}_\ell(x) - \Delta_{\ell}(x) \;\middle|\; \hat{f}_{\ell-1}(x) \right] \right] + \mathrm{Var}\left[ \hat{f}_{\ell-1}(x) \right]. \label{eq:total_variance}
+        \mathrm{Var} \left[ \hat{f}_\ell(x) \right] & = \mathrm{Var}\left[ \Delta_\ell(x) + \hat{f}_{\ell-1}(x) \right] \notag \\
+        & = \mathbb{E}\left[ \mathrm{Var}\left[ \Delta_\ell(x) + \hat{f}_{\ell-1}(x) \;\middle|\; \hat{f}_{\ell-1}(x) \right] \right] \notag \\ 
+        & \;\;\; + \mathrm{Var}\left[ \mathbb{E}\left[ \Delta_{\ell}(x) + \hat{f}_{\ell-1}(x) \;\middle|\; \hat{f}_{\ell-1}(x) \right] \right] \notag \\
+        & = \mathbb{E}\left[ \mathrm{Var}\left[ \Delta_\ell(x) \;\middle|\; \hat{f}_{\ell-1}(x) \right] \right] \notag \\ 
+        & \;\;\; + \mathrm{Var}\left[ \mathbb{E}\left[ \Delta_\ell(x) \;\middle|\; \hat{f}_{\ell-1}(x) \right] + \hat{f}_{\ell-1}(x) \right] \notag \\
+        & = \mathbb{E}\left[ \mathrm{Var}\left[ \Delta_\ell(x) \;\middle|\; \hat{f}_{\ell-1}(x) \right] \right] \notag \\ 
+        & \;\;\; + \mathrm{Var}\left[ f_\ell(x) - f_{\ell-1}(x) + \hat{f}_{\ell-1}(x) \right] \notag \\
+        & = \mathbb{E}\left[ \mathrm{Var}\left[ \Delta_\ell(x) \;\middle|\; \hat{f}_{\ell-1}(x) \right] \right] + \mathrm{Var}\left[ \hat{f}_{\ell-1}(x) \right]. \label{eq:total_variance}
     \end{align}
     Here, we have removed the constant terms~$\Delta_\ell(x)$ and
     $f_{\ell-1}(x)$ from the first variance, as they do not affect the result. We have also
