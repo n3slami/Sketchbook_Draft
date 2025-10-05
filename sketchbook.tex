@@ -137,17 +137,18 @@ The source code, data, and/or other artifacts have been made available at
 
 \section{Introduction}~\label{sec:introduction}
 \textbf{Data Streams.}
-Modern data analytics systems ingest large streams of data at high speed.
-Example applications include network traffic
+Many modern applications analyze the contents of large data streams arriving at
+high speeds using statistics. Due to the high volume of the data, it is often
+impossible to store the entire stream (e.g., packets sent in a network). Even
+if it is possible, scanning the data (e.g., rows of a SQL table) to compute the
+required statistics is expensive. Therefore, applications track the relevant
+statistics on the fly as data is inserted or deleted. Example applications
+include network traffic
 monitoring~\cite{WhatsNew,SketchingStreamsNet,RandomizedAdmissionEstimation,Blink,LOFT},
 streaming SQL databases~\cite{Flink}, sensor data
 mining~\cite{SensorDataAnalytics,RobustAggregationSensorNetworks}, and
 time-series forecasting in financial
-markets~\cite{AssociationRules,TimeSeriesModeling}. Due to the high volume of
-the data, it is often impossible to store the entire stream (e.g., packets sent
-in a network). Even if it is possible, scanning the data (e.g., rows of a SQL
-table) to compute the required statistics is expensive. Therefore, applications
-track the relevant statistics on the fly as data is inserted or deleted.
+markets~\cite{AssociationRules,TimeSeriesModeling}.
 
 %Although some streams, such as tracking click-through rates in
 %webpages~\cite{CountMeanMin}, only insert keys, others, such as streaming SQL
@@ -156,26 +157,21 @@ track the relevant statistics on the fly as data is inserted or deleted.
 %keys as well.
 
 \textbf{Frequency Estimation.}
-A fundamental statistic is the number of times each key appears in the stream,
-known as its frequency or count. These counts are utilized in many
-applications, including join-size estimation for query
+A fundamental statistic that users often require is the number of times each
+key appears in the stream, known as its frequency or count. Yet, tracking the
+exact count of each key with a dedicated counter leads to a prohibitively high
+memory footprint if the stream contains many unique keys. A \emph{Frequency
+Estimation Sketch} addresses this issue by instead approximating the counts of
+the keys. At a high level, it employs a small, fixed number of counters and
+maps each key to one of these counters (e.g., via hashing). It handles a query
+for a key by reporting the value of its counter. Query results are inexact, as
+multiple keys can map to the same counter, affecting each other's estimates.
+Frequency estimation sketches are used in many applications, including
+join-size estimation for query
 optimization~\cite{Compass,QueryOptimizationSketches,ConvolutionSketch},
 network traffic
 monitoring~\cite{SketchBasedChangeDetection,WhatsNew,TrafficManagementSurvey},
-and genome analysis in bioinformatics~\cite{CMSkmer,SetMinSketch}. Yet,
-tracking the exact count of each key with a dedicated counter leads to a
-prohibitively high memory footprint due to the large number of unique keys. A
-\emph{Frequency Estimation Sketch} addresses this issue and achieves a low
-memory footprint by approximately counting the keys. At a high level, it maps
-each key to one or more counters among a small, fixed number of counters,
-incrementing them to track the count. A query for a key aggregates the
-corresponding counters to improve the estimation error. Query results are
-inexact, as multiple keys can map to the same counter, affecting each other's
-estimates. 
-
-\textbf{Goals.}
-Frequency estimation sketches strive to achieve (1)~a low estimation error,
-(2)~a low memory footprint, and (3)~fast insertions, deletions, and queries.
+and genome analysis in bioinformatics~\cite{CMSkmer,SetMinSketch}.
 
 \textbf{Different Types of Error.}
 Frequency estimation sketches have estimates with different types of errors.
@@ -196,57 +192,67 @@ detection~\cite{NetworkAnomalyDetection1,NetworkAnomalyDetection2}.
 
 Many variants of these sketches exist, each providing different tradeoffs
 between accuracy, space, and
-speed~\cite{CountMeanMin,BitSense,PyramidSketch,StingySketch,AdaptiveCounterSplicing,TreeSensing,AugmentedSketch,HeavyGuardian,MVSketch,SpaceSaving,BatchUpdateMisraGries,BitMatcher,JigsawSketch,MicroscopeSketch,PSketch,TightSketch}.
-Yet, they all face two core challenges.
+speed~\cite{CountMeanMin,SALSA,BitSense,PyramidSketch,StingySketch,AdaptiveCounterSplicing,CounterTree,TreeSensing,TailoredSketch,AugmentedSketch,HeavyGuardian,HeavyKeeper,WavingSketch,ElasticSketch,MVSketch,SpaceSaving,BatchUpdateMisraGries,BitMatcher,JigsawSketch,MicroscopeSketch,PSketch,TightSketch}.
 
-\textbf{Challenge 1: Skew.}
-Many streams in practice are skewed, meaning that they contain a few heavy
-hitters~\cite{Memento,AdditiveErrorCounters,StingySketch}. This leads to some
-counter values within a sketch being large, and most being small. Existing
-sketches use uniformly-sized counters which must be long enough to accommodate
-to accommodate maximum counter value in a workload. As such, they waste a
-significant amount of memory storing the unused higher-order bits of the small
-counter values. Many prior works attempt to address this issue at the expense
-of
-accuracy~\cite{SALSA,BitSense,PyramidSketch,StingySketch,AdaptiveCounterSplicing,CounterTree,TreeSensing}.
+\textbf{Goals.}
+Ideally, a frequency estimation sketch should provide a low estimation error
+and a modest memory footprint. At the same time, it should ensure high
+performance to accommodate fast-paced data streams. In this paper, we show that
+all existing sketches fall short of one or more of these goals due to two core
+problems.
 
-\textbf{Challenge 2: Unbounded Data Growth.}
+\textbf{Problem~1: Skew.}
+Many streams in practice are skewed, meaning that most keys have small counts
+while a few keys, called the heavy hitters, have very high
+counts~\cite{Memento,AdditiveErrorCounters,StingySketch}. This leads to most
+counter values within a sketch being small, and some being large. Existing
+sketches use uniformly-sized counters, which must be long enough to accommodate
+the maximum counter value in a workload. As such, they waste a significant
+amount of memory storing the unused higher-order bits of the small counter
+values. Though several prior works attempt to address this problem by merging
+or sharing overflowing
+counters~\cite{SALSA,BitSense,PyramidSketch,StingySketch,AdaptiveCounterSplicing,CounterTree,TreeSensing,TailoredSketch},
+they do so at the expense of accuracy or performance. The problem, therefore,
+remains open.
+
+\textbf{Problem~2: Unbounded Data Growth.}
 In most applications, the stream continues to grow over
 time~\cite{Compass,QueryOptimizationSketches,ConvolutionSketch,SketchBasedChangeDetection,WhatsNew,TrafficManagementSurvey}.
 Yet, all current sketches are fixed-sized, leading to their errors growing at
-least linearly with the stream's length. It is often impossible to store or
-rescan the stream, barring us from reconstructing the sketch to control the
-error. This leads to error-prone decision-making in a slew of applications,
-including query
-optimization~\cite{Compass,QueryOptimizationSketches,ConvolutionSketch,CoMeT,CoDDoS}.
-This is the first paper to identify and address this challenge.
+least linearly with the stream's length. One cannot control the error by
+reconstructing the sketch, as storing or rescanning the stream is most often
+impossible. This prevents applications from tightly bounding the error rate as
+the stream continues to grow. This is the first paper to identify and address
+this problem.
 
 \textbf{Solution: \sketch.}
 We introduce \sketch, a framework for generalizing a frequency estimation
-sketch to address the above challenges. \sketch\ accommodates skew by
-introducing a reusable counter encoding scheme that allocates small counters
-upfront and extends them as they overflow. It colocates counters and their
-extensions within the same cache line and uses a specialized bit manipulation
-workflow to decode them in constant time. \sketch\ accommodates unbounded data
-growth by expanding the number of counters as the stream grows to
-simultaneously attain sub-linear errors and a sub-linear memory footprint.
+sketch to address the above problems. \sketch\ addresses Problem~1 by
+introducing a counter encoding scheme, dubbed \counterencodingabbrv, that
+allocates small counters upfront and extends them as they overflow. It
+colocates counters and their extensions within the same cache line and uses a
+specialized bit manipulation workflow to decode them in constant time. \sketch\
+resolves Problem~2 by expanding the number of counters as the stream grows,
+simultaneously attaining sub-linear errors and a sub-linear memory footprint.
 
 \textbf{Additional Contributions.}
 \begin{enumerate}
-    \item We analyze competing approaches for addressing the challenge of skew
+    \item We analyze competing approaches for addressing the problem of skew
         and show that their error scales super-linearly with the stream size.
+    \item We show that \counterencodingabbrv\ is also usable for compactly
+        encoding and decoding general variable-length data in constant time.
     \item We show how to adaptively optimize space by controlling the number of
         counters within a cache line and their length.
-    \item We map out the rich tradeoff space between and memory spanned by
-        \sketch\ as it expands.
-    \item We apply \sketch's techniques to CMS, CS, and MG.
+    \item We map out the rich tradeoff space between accuracy and memory
+        spanned by \sketch\ as it expands.
     \item We prove a lower bound on the minimum space required for an
-        expandable sketch to achieve a given error bound and show that \sketch\
-        matches this lower bound.
+        expandable sketch to achieve a given error bound and show that
+        \sketch's memory footprint matches it.
+    \item We apply \sketch's techniques to CMS, CS, and MG.
     \item We evaluate \sketch\ against all state-of-the-art frequency
-        estimation sketches and demonstrate that it significantly improves the
-        memory footprint under skew and the scaling of error under unbounded
-        data growth while maintaining equal or better performance.
+        estimation sketches and demonstrate that it significantly improves
+        memory footprint under skew and error rate under unbounded data growth
+        while maintaining equal or better insertion/deletion/query performance.
 \end{enumerate}
 
 \section{Background}~\label{sec:background}
@@ -450,7 +456,7 @@ Yet, these methods impose heavy decompression overheads on queries.
 Counter sharing approaches store the counter values in a hierarchy of counters,
 with the lowest level storing the counter values in short counters and the
 upper levels handling overflows using shared
-counters~\cite{BitSense,PyramidSketch,StingySketch,AdaptiveCounterSplicing,CounterTree,TreeSensing}.
+counters~\cite{BitSense,PyramidSketch,StingySketch,AdaptiveCounterSplicing,CounterTree,TreeSensing,TailoredSketch}.
 The left side of \Cref{fig:counter_sharing_merging} encodes four adjacent
 counters within CMS using such a hierarchy with 6{\nobreakdash-}bit and
 2{\nobreakdash-}bit counters. Whenever a counter in this hierarchy overflows,
