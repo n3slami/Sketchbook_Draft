@@ -1795,65 +1795,68 @@ expected error under all these regimes, and is thus space-optimal.
 \end{figure}
 
 \textbf{Count Sketch (CS).}
-CMS, as described in \Cref{sec:background}, has two key shortcomings: (1)~its
-estimations are biased since it only overestimates and (2)~its errors compound
-when it is used in some tasks, particularly those that multiply frequencies. CS
-addresses these issues by providing unbiased estimates.\footnote{In CMS, one
+CS provides unbiased estimates for the count of each key.\footnote{In CMS, one
 can subtract the average of the counter values a query key does not hash to
 from the query's counter to derive an unbiased estimate~\cite{CountMeanMin}.
 Yet, the resulting estimate has a marginally higher variance than that of CS.}
-The first two rows of \Cref{tab:classic_sketch_stats} summarizes the properties
-of CS and compares it to CMS.
+As a result, its estimates do not have compounding errors when combined or
+multiplied, leading to more accurate results for join-size
+estimation~\cite{Compass,QueryOptimizationSketches,ConvolutionSketch} and
+covariance estimation~\cite{ASCS}. \Cref{tab:classic_sketch_stats} summarizes
+the properties of CS and compares it to CMS.
 
-The core component of CS is a counter array of size~$w$ coupled with a hash
-function~$h_i$ mapping a key to a counter. CS further associates with each key
-a random ``update direction'' from the set~$\{-1,+1\}$ by hashing it with
-another hash function~$\sigma_i$.\footnote{The~$\sigma_i$ form a 4-wise
-independent family of hash functions, yielding a bound on the probability of
-large errors~\cite{CountSketch}.} It inserts a new key~$x$ by incrementing or
-decrementing its counter according to~$\sigma_i$, as shown in
-\Cref{fig:cs_overview}. CS deletes~$x$ by subtracting~$\sigma_i(x)$ from its
-counter to undo its insertion. Since each key's update direction is random, the
-expected interference on~$x$'s counter from any other key is zero due to the
-positive and negative possibilities canceling out. Thus, the value of the
-counter along the update direction is an estimate of~$x$'s frequency, which CS
-returns during a query. Although this estimate may be smaller or larger than
-the ground-truth frequency, the zero expected interference allows it to match
-the ground-truth on average, removing bias. Increasing the array's size reduces
-the likelihood of hash collisions and the average deviation.
+Similarly to CMS, the core component of CS is a counter array of size~$w$
+coupled with a hash function~$h$ that maps each key to a counter. Unlike CMS,
+CS further associates each key with a random ``update direction'' from the
+set~$\{-1,+1\}$ by hashing it with another hash function~$\sigma$.\footnote{The
+hash function~$\sigma$ comes from a family a 4-wise independent hash functions,
+yielding a bound on the probability of large errors~\cite{CountSketch}.} It
+inserts a new key~$x$ by incrementing or decrementing its counter according
+to~$\sigma$, as shown in \Cref{fig:cs_overview}. CS deletes~$x$ by
+subtracting~$\sigma(x)$ from its counter to undo its insertion. Since each
+key's update direction is random, the expected interference on~$x$'s counter
+from any other key is zero due to the positive and negative possibilities
+canceling out. Thus, the value of the counter along the update direction is an
+estimate of~$x$'s frequency. The zero expected interference removes bias,
+though it introduces two-sided errors (both underestimations and
+overestimations). As in the case of CMS, increasing the array's size makes hash
+collisions less likely and thus reduces the average deviation. 
 
-As with CMS, a frequent key will adversely impact the estimates of keys sharing
-the same counter, degrading confidence. CS addresses this by employing~$d$
-independent arrays, each with its own hash functions~$h_i$ and $\sigma_i$.
-Unlike CMS, CS cannot answer a query by returning the minimum estimate, as it
-may greatly underestimate the result due to two-sided errors. Instead, it
-returns the median estimate, as shown in \Cref{fig:cs_overview}. This improves
-confidence since severe errors are unlikely to occur for enough experiments to
-affect the median. CS takes the median instead of the mean to improve
-robustness to outlier estimates. With~$d$ arrays with~$w$ counters each, CS
-guarantees an error bound of at most~$e \cdot \sqrt{\frac{\sum_{y}
-(f(y))^2}{w}}$ with a confidence of~$1-e^{-d}$, i.e., $\Pr\left(
-|\hat{f}(x)-f(x)| \leq e \cdot \sqrt{\frac{\sum_{y} (f(y))^2}{w}} \right) \geq
-1-e^{-d}$ for any key~$x$. The quantity~$\sqrt{\sum_y (f(y))^2}$ is known as
-the~$\ell_2$-norm of the key counts in the stream, which we denote by~$N_2$.
-The value of~$N_2$ varies based on the workload's distribution, with uniform
-workloads having~$N_2=O(\sqrt{N})$ due to the summands beings small, and skewed
-workloads having~$N_2 \approx N$. This leads to CS's error bound (i.e.,
-$\sqrt{N_2^2/w} = O(\sqrt{N/w})$) being smaller than that of CMS (i.e., $N/w$)
-under less skew.
+To bound the probability of large deviations, one can compute the variance of
+each counter value. Denoting the frequency of key~$y$ by $f(y)$, this variance
+can be expressed as~$\frac{\sum_{y} (f(y))^2}{w}$. The quantity~$\sqrt{\sum_y
+(f(y))^2}$ is known as the~$\ell_2$-norm of the key counts in the stream, which
+we denote by~$N_2$. A straight-forward application of Chebyshev's inequality
+shows that the absolute deviation does not exceed~$e \cdot N_2/\sqrt{w}$ with a
+confidence of at least~$1-e^{-1}$, i.e., $\Pr\left( |\hat{f}(x)-f(x)| \leq e
+\cdot \sqrt{\frac{\sum_{y} (f(y))^2}{w}} \right) \geq 1-e^{-1}$ for any key
+$x$. The value of~$N_2$ varies based on the workload's distribution, with
+uniform workloads having~$N_2=O(\sqrt{N})$ due to the summands beings small,
+and skewed workloads having~$N_2 \approx N$. This leads to CS's error bound
+(i.e., $\sqrt{N_2^2/w} = O(\sqrt{N/w})$) being smaller than that of CMS (i.e.,
+$N/w$) under less skew.
+
+Like CMS, a frequent key adversely impacts the estimates of keys mapping to the
+same counter, degrading confidence. CS addresses this by employing~$d$
+independent arrays, each with its own hash function~$h_i$ and $\sigma_i$. In
+contrast to CMS, CS answers a query by returning the median estimate to improve
+robustness to outliers, as shown in \Cref{fig:cs_overview}. The median is a
+better choice than the minimum since the minimum introduces error by returning
+underestimations. This allows CS to guarantee an error bound of at most~$e
+\cdot \sqrt{\frac{\sum_{y} (f(y))^2}{w}}$ with a confidence of~$1-e^{-d}$,
+i.e., $\Pr\left( |\hat{f}(x)-f(x)| \leq e \cdot \sqrt{\frac{\sum_{y}
+(f(y))^2}{w}} \right) \geq 1-e^{-d}$ for any key~$x$.
 
 \begin{table}
     \centering
-    \caption{The classical sketches strike different tradeoffs.}
     %\def\arraystretch{1.075}
-    \setlength{\tabcolsep}{2pt}
+    \setlength{\tabcolsep}{4pt}
     \begin{tabular}{cccccccc}
         \toprule
 
         \textbf{\footnotesize Sketch} 
         & \footnotesize \textbf{Bias}
-        & \makecell[c]{\footnotesize \textbf{Best} \\[-4pt] \footnotesize \textbf{Skew}}
-        & \footnotesize \textbf{Accuracy}
+        & \footnotesize \textbf{Error Bound}
         & \footnotesize \textbf{Confidence}
         & \footnotesize \textbf{Insert}
         & \footnotesize \textbf{Delete}
@@ -1862,8 +1865,7 @@ under less skew.
         \midrule
 
         \footnotesize CMS 
-        & \scriptsize Over 
-        & \scriptsize Medium
+        & \footnotesize Over 
         & \footnotesize $\frac{eN}{w}$ 
         & \footnotesize $1-e^{-d}$ 
         & \footnotesize $O(d)$ 
@@ -1871,25 +1873,16 @@ under less skew.
         & \footnotesize $O(d)$ \\
 
         \footnotesize CS 
-        & \scriptsize Unbiased 
-        & \scriptsize Low
+        & \footnotesize Unbiased 
         & \footnotesize $e \cdot \sqrt{\frac{\sum_y (f(y))^2}{w}}$ 
         & \footnotesize $1-e^{-d}$ 
         & \footnotesize $O(d)$ 
         & \footnotesize $O(d)$ 
         & \footnotesize $O(d)$ \\
 
-        \footnotesize MG 
-        & \scriptsize Under 
-        & \scriptsize High
-        & \footnotesize $\min_i \frac{N^{\text{res}(i)}}{w-i+1}$ 
-        & \footnotesize 1 
-        & \footnotesize $O(\log w)$ 
-        & - 
-        & \footnotesize $O(1)$ \\
-
         \bottomrule
     \end{tabular}
+    \caption{CMS and CS strike different tradeoffs.}
     \label{tab:classic_sketch_stats}
 \end{table}
 
@@ -1904,11 +1897,11 @@ before to encode the counter's absolute value.
 \textbf{Accommodating Unbounded Growth.}
 As with CMS, using CS to process a growing stream yields estimation errors that
 grow with the total key count~$N$. To resolve this problem, \sketchcs extends
-CS to expand and contract the number of its counters, similarly to \sketchcms.
-It uses the same hash functions~$h_1,\dots,h_d$ and $\sigma_1,\dots,\sigma_d$
-to map keys to consistent counters and employ consistent update directions
-across expansions. It handles insertions, deletions, and queries as in the case
-of a standard CS.
+CS to expand and contract its number of counters, similarly to \sketchcms. It
+uses the same hash functions~$h_1,\dots,h_d$ and $\sigma_1,\dots,\sigma_d$ to
+map keys to consistent counters and employ consistent update directions across
+expansions. It handles insertions, deletions, and queries as in the case of a
+standard CS.
 
 \sketchcs differs from \sketchcms in one key aspect: its estimation error
 scales with the stream's~$\ell_2$-norm, i.e., as $\sqrt{N_2^2/w}$ when it has
