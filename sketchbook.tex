@@ -432,6 +432,7 @@ confidence of~$1-e^{-d}$, i.e., $\Pr\left( |\hat{f}(x)-f(x)| \leq \frac{eN}{w}
 
         %\node[inner sep=0pt,anchor=west] at (-3.05*\counterw,3.0*\arrayh) {\textbf{A) CMS}};
     \end{tikzpicture}
+    \vspace{2.5pt}
     \caption{CMS maintains~$d$ counter arrays of size~$w$ and hashes keys into
     them to estimate their frequencies. Insertions are illustrated on the left
     and queries on the right.}
@@ -2193,35 +2194,35 @@ We run experiments on a Fedora 39 machine with an Intel Xeon w7-2495X processor
 
 \begin{figure}
     \centering
-    \includegraphics[width=0.72\columnwidth]{skew.pdf}
+    \includegraphics[width=0.70\columnwidth]{skew.pdf}
     \caption{Skew}
     \label{fig:skew_bench}
 \end{figure}
 
 \begin{figure}
     \centering
-    \includegraphics[width=0.49\columnwidth]{vale_tuning.pdf}
+    \includegraphics[width=0.60\columnwidth]{vale_tuning.pdf}
     \caption{Vale Tuning}
     \label{fig:vale_tuning_bench}
 \end{figure}
 
 \begin{figure}
     \centering
-    \includegraphics[width=1.25\columnwidth]{expansion.pdf}
+    \includegraphics[width=0.95\columnwidth]{expansion.pdf}
     \caption{Expansion}
     \label{fig:expansion_bench}
 \end{figure}
 
 \begin{figure}
     \centering
-    \includegraphics[width=0.53\columnwidth]{size_function.pdf}
+    \includegraphics[width=0.50\columnwidth]{size_function.pdf}
     \caption{Size Function}
     \label{fig:size_function_bench}
 \end{figure}
 
 \begin{figure}
     \centering
-    \includegraphics[width=1.19\columnwidth]{contraction.pdf}
+    \includegraphics[width=0.95\columnwidth]{contraction.pdf}
     \caption{Contraction}
     \label{fig:contraction_bench}
 \end{figure}
@@ -2229,9 +2230,9 @@ We run experiments on a Fedora 39 machine with an Intel Xeon w7-2495X processor
 \begin{figure*}
     \centering
     \begin{tabular}{cc}
-        \includegraphics[width=0.72\textwidth]{accuracy_unbiased.pdf}
+        \includegraphics[width=0.77\textwidth]{accuracy_unbiased.pdf}
         \hspace{4pt}
-        \def\arraystretch{1.04}%  1 is the default, change whatever you need
+        \def\arraystretch{1.11}%  1 is the default, change whatever you need
         \scriptsize
         \begin{tabular}[b]{ccc} 
             \toprule 
@@ -2244,7 +2245,7 @@ We run experiments on a Fedora 39 machine with an Intel Xeon w7-2495X processor
             2 & 64 & 5 \\ 
             4 & 75 & 4 \\ 
             \bottomrule 
-            \vspace{0.49cm}
+            \vspace{0.53cm}
         \end{tabular} 
     \end{tabular}
     \caption{Accuracy Unbiased}
