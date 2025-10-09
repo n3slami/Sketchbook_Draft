@@ -137,61 +137,55 @@ The source code, data, and/or other artifacts have been made available at
 
 \section{Introduction}~\label{sec:introduction}
 \textbf{Data Streams.}
-Many modern applications analyze the contents of large data streams arriving at
-high speeds using statistics. Due to the high volume of the data, it is often
-impossible to store the entire stream (e.g., packets sent in a network). Even
-if it is possible, scanning the data (e.g., rows of a SQL table) to compute the
-required statistics is expensive. Therefore, applications track the relevant
-statistics on the fly as data is inserted or deleted. Example applications
+Modern systems increasingly depend on the real-time statistical analysis of
+data in high-speed and massive data streams. Because these streams can grow
+without bound, storing them in full (for instance, all packets sent in a
+network) is often impractical. Even with enough storage, scanning the data to
+compute the statistics (for example, the rows of a SQL table) is prohibitively
+expensive. As a result, many applications compute and maintain the required
+statistics incrementally as new data arrives or old data is removed. Examples
 include network traffic
 monitoring~\cite{WhatsNew,SketchingStreamsNet,RandomizedAdmissionEstimation,Blink,LOFT},
-streaming SQL databases~\cite{Flink}, sensor data
+streaming SQL engines~\cite{Flink}, sensor data
 mining~\cite{SensorDataAnalytics,RobustAggregationSensorNetworks}, and
-time-series forecasting in financial
-markets~\cite{AssociationRules,TimeSeriesModeling}.
-
-%Although some streams, such as tracking click-through rates in
-%webpages~\cite{CountMeanMin}, only insert keys, others, such as streaming SQL
-%databases~\cite{Flink}, count estimates for SQL tables for use in a query
-%optimizer~\cite{Compass,QueryOptimizationSketches,ConvolutionSketch}, delete
-%keys as well.
+financial time-series forecasting~\cite{AssociationRules,TimeSeriesModeling}.
 
 \textbf{Frequency Estimation.}
-A fundamental statistic that users often require is the number of times each
-key appears in the stream, known as its frequency or count. Yet, tracking the
-exact count of each key with a dedicated counter leads to a prohibitively high
-memory footprint if the stream contains many unique keys. A \emph{Frequency
-Estimation Sketch} addresses this issue by instead approximating the counts of
-the keys. At a high level, it employs a small, fixed number of counters and
-maps each key to one of these counters (e.g., via hashing). It handles a query
-for a key by reporting the value of its counter. Query results are inexact, as
-multiple keys can map to the same counter, affecting each other's estimates.
-Frequency estimation sketches are used in many applications, including
-join-size estimation for query
-optimization~\cite{Compass,QueryOptimizationSketches,ConvolutionSketch},
-network traffic
-monitoring~\cite{SketchBasedChangeDetection,WhatsNew,TrafficManagementSurvey},
-and genome analysis in bioinformatics~\cite{CMSkmer,SetMinSketch}.
+One of the most fundamental statistics in data stream analysis is
+frequency{\textemdash}the number of times each key appears in the stream.
+Tracking these counts exactly requires maintaining a counter for every distinct
+key, which quickly leads to a prohibitive memory footprint if the stream
+contains many unique keys. To overcome this issue, \emph{Frequency Estimation
+Sketches} approximate the counts using a compact, fixed-size structure. At a
+high level, this structure maps each key to one counter among a small set of
+counters (e.g., via hashing). It answers a query for a key by returning the
+corresponding counter value as an estimate. This compact structure has a
+bounded memory footprint, though mapping collisions among keys introduce
+estimation errors. Such sketches are key components in a wide range of systems,
+including query
+optimizers~\cite{Compass,QueryOptimizationSketches,ConvolutionSketch}, network
+monitors~\cite{SketchBasedChangeDetection,WhatsNew,TrafficManagementSurvey},
+and genome analysis pipelines~\cite{CMSkmer,SetMinSketch}.
 
 \textbf{Different Types of Error.}
-Frequency estimation sketches have estimates with different types of errors.
-The Count-Min Sketch (CMS)~\cite{CountMin} only overestimates a key's count.
-This property makes CMS an effective tool for detecting
-denial-of-service~\cite{CoDDoS} and hardware row hammer~\cite{CoMeT} attacks,
-where it is unacceptable to miss an attack. Count Sketch
-(CS)~\cite{CountSketch} can both overestimate and underestimate a key's count,
-yet these errors cancel out on average, yielding unbiased estimates. This
-allows CS to avoid compounding errors when its estimates are combined or
-multiplied, making it an ideal tool for applications such as query
-optimization~\cite{Compass,QueryOptimizationSketches,ConvolutionSketch} and
-covariance estimation~\cite{ASCS}. Misra-Gries (MG)~\cite{MisraGries} only
-underestimates the count of a key. As such, and because it tracks the keys (or
-an approximation thereof), MG is used to find the keys with the highest counts,
-i.e., the heavy hitters, in anomaly
-detection~\cite{NetworkAnomalyDetection1,NetworkAnomalyDetection2}.
+Frequency estimation sketches differ in the nature of the errors they
+introduce. The Count-Min Sketch (CMS)~\cite{CountMin} always overestimates a
+key's count. This one-sided error makes CMS suitable for security-critical
+applications such as denial-of-service~\cite{CoDDoS} and hardware row
+hammer~\cite{CoMeT} attack detection, where false negatives are unacceptable.
+The Count Sketch (CS)~\cite{CountSketch}, in contrast, can both overestimate
+and underestimate a key's count. Yet, these errors cancel out on average,
+yielding unbiased estimates. This property prevents the error from compounding
+when combining or multiplying estimates, making CS useful for tasks such as
+query optimization~\cite{Compass,QueryOptimizationSketches,ConvolutionSketch}
+and covariance estimation~\cite{ASCS}. The Misra-Gries (MG)
+structure~\cite{MisraGries} always underestimates the key counts. Since MG also
+explicitly tracks (or approximates) the most frequent keys, i.e., the heavy
+hitters, it is particularly effective for identifying them, as
+required~in~anomaly~detection~\cite{NetworkAnomalyDetection1,NetworkAnomalyDetection2}.
 
-Many variants of these sketches exist, each providing different tradeoffs
-between accuracy, space, and
+Numerous variants of these sketches have been proposed, each offering distinct
+tradeoffs between accuracy, space, and processing
 speed~\cite{CountMeanMin,SALSA,BitSense,PyramidSketch,StingySketch,AdaptiveCounterSplicing,CounterTree,TreeSensing,TailoredSketch,AugmentedSketch,HeavyGuardian,HeavyKeeper,WavingSketch,ElasticSketch,MVSketch,SpaceSaving,BatchUpdateMisraGries,BitMatcher,JigsawSketch,MicroscopeSketch,PSketch,TightSketch}.
 
 \textbf{Goals.}
@@ -202,57 +196,62 @@ all existing sketches fall short of one or more of these goals due to two core
 problems.
 
 \textbf{Problem~1: Skew.}
-Many streams in practice are skewed, meaning that most keys have small counts
-while a few keys, called the heavy hitters, have very high
-counts~\cite{Memento,AdditiveErrorCounters,StingySketch}. This leads to most
-counter values within a sketch being small, and some being large. Existing
-sketches use uniformly-sized counters, which must be long enough to accommodate
-the maximum counter value in a workload. As such, they waste a significant
-amount of memory storing the unused higher-order bits of the small counter
-values. Though several prior works attempt to address this problem by merging
-or sharing overflowing
+In many real-world streams, the distribution of the key counts is skewed,
+meaning that most keys have small counts while a few heavy hitters have very
+high counts~\cite{Memento,AdditiveErrorCounters,StingySketch}. This leads to
+most counters within a sketch holding small values, with only a few holding
+large ones. Existing sketches use uniformly-sized counters, which must be long
+enough to represent the maximum counter value in a workload. Consequently, they
+waste a significant amount of memory storing the unused higher-order bits of
+small counter values. Though several prior works attempt to address this
+problem by merging or sharing overflowing
 counters~\cite{SALSA,BitSense,PyramidSketch,StingySketch,AdaptiveCounterSplicing,CounterTree,TreeSensing,TailoredSketch},
-they do so at the expense of accuracy or performance. The problem, therefore,
-remains open.
+their approaches compromise either accuracy or performance. The problem,
+therefore, remains open.
 
 \textbf{Problem~2: Unbounded Data Growth.}
-In most applications, the stream continues to grow over
+In most applications, data streams continuously grow over
 time~\cite{Compass,QueryOptimizationSketches,ConvolutionSketch,SketchBasedChangeDetection,WhatsNew,TrafficManagementSurvey}.
-Yet, all current sketches are fixed-sized, leading to their errors growing at
-least linearly with the stream's length. One cannot control the error by
-reconstructing the sketch, as storing or rescanning the stream is most often
-impossible. This prevents applications from tightly bounding the error rate as
-the stream continues to grow. This is the first paper to identify and address
-this problem.
+Yet, all current sketches have a fixed size, causing their estimation error to
+increase at least linearly with the stream's length. Because storing or
+rescanning the stream is usually infeasible, one cannot reduce the error by
+reconstructing the sketch. As a result, applications are unable to maintain
+tight error bounds as the stream grows without bound. This paper is the first
+to identify and address this fundamental limitation.
 
 \textbf{Solution: \sketch.}
-We introduce \sketch, a framework for generalizing a frequency estimation
-sketch to address the above problems. \sketch\ addresses Problem~1 by
-introducing a counter encoding scheme, dubbed \counterencodingabbrv, that
-allocates small counters upfront and extends them as they overflow. It
-colocates counters and their extensions within the same cache line and uses a
-specialized bit manipulation workflow to decode them in constant time. \sketch\
-resolves Problem~2 by expanding the number of counters as the stream grows,
-simultaneously attaining sub-linear errors and a sub-linear memory footprint.
+We introduce \sketch, a framework that generalizes frequency estimation
+sketches to address the two challenges described above. To address Problem~1
+(Skew), \sketch\ allocates small counters initially and dynamically extends
+them as they overflow. It colocates each counter and its extension within the
+same cache line and employs specialized bit manipulation routines to decode
+them in constant time. To resolve Problem~2 (Unbounded Data Growth), \sketch\
+expands the number of counters as the stream grows, simultaneously achieving
+sub-linear errors and a sub-linear memory footprint.
 
 \textbf{Additional Contributions.}
 \begin{enumerate}
-    \item We analyze competing approaches for addressing the problem of skew
-        and show that their error scales super-linearly with the stream size.
-    \item We show that \counterencodingabbrv\ is also usable for compactly
-        encoding and decoding general variable-length data in constant time.
-    \item We show how to adaptively optimize space by controlling the number of
-        counters within a cache line and their length.
-    \item We map out the rich tradeoff space between accuracy and memory
-        spanned by \sketch\ as it expands.
-    \item We prove a lower bound on the minimum space required for an
-        expandable sketch to achieve a given error bound and show that
-        \sketch's memory footprint matches it.
-    \item We apply \sketch's techniques to CMS, CS, and MG.
-    \item We evaluate \sketch\ against all state-of-the-art frequency
-        estimation sketches and demonstrate that it significantly improves
-        memory footprint under skew and error rate under unbounded data growth
-        while maintaining equal or better insertion/deletion/query performance.
+    \item We analyze existing techniques for addressing skew and show that
+        their estimation error grows super-linearly with the stream size.
+    \item We introduce \counterencodingabbrv, a method for compactly encoding
+        and accessing variable-length data in constant time, applicable beyond
+        sketches. In this work, we use \counterencodingabbrv\ to encode
+        variable-length counters.
+    \item We design a mechanism to adaptively control both the number and the
+        length of the initial counters within a cache line to optimize
+        \counterencodingabbrv's memory usage.
+    \item We characterize the accuracy-memory tradeoff space spanned by
+        \sketch\ as it dynamically expands.
+    \item We prove a lower bound on the minimum space required for any
+        expandable sketch to achieve a target error and show that \sketch's
+        memory footprint meets this bound.
+    \item We apply \sketch's techniques to three representative
+        sketches{\textemdash}CMS, CS, and MG{\textemdash}demonstrating its
+        generality.
+    \item We evaluate \sketch\ against state-of-the-art frequency estimation
+        sketches and show that it significantly reduces memory consumption
+        under skew and error under unbounded streams, while maintaining equal
+        or better performance for insertions, deletions, and queries.
 \end{enumerate}
 
 \section{Background}~\label{sec:background}
@@ -2141,6 +2140,56 @@ counters every time~$N$ more than doubles or halves.
 We run experiments on a Fedora 39 machine with an Intel Xeon w7-2495X processor
 (4.8 GHz) with 24 cores and 48 hyper-threads. Our machine has a 1920 KB L1, a
 48 MB L2, and a 45 MB L3 cache, along with 64 GBs of main memory. 
+
+\begin{figure*}
+    \centering
+    \includegraphics[width=0.65\textwidth]{accuracy.pdf}
+    \caption{Accuracy}
+    \label{fig:accuracy_bench}
+\end{figure*}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.72\columnwidth]{skew.pdf}
+    \caption{Skew}
+    \label{fig:skew_bench}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.49\columnwidth]{vale_tuning.pdf}
+    \caption{Vale Tuning}
+    \label{fig:vale_tuning_bench}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=1.25\columnwidth]{expansion.pdf}
+    \caption{Expansion}
+    \label{fig:expansion_bench}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.53\columnwidth]{size_function.pdf}
+    \caption{Size Function}
+    \label{fig:size_function_bench}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=1.19\columnwidth]{contraction.pdf}
+    \caption{Contraction}
+    \label{fig:contraction_bench}
+\end{figure}
+
+\begin{figure*}
+    \centering
+    \includegraphics[width=0.72\textwidth]{accuracy_unbiased.pdf}
+    \caption{Accuracy Unbiased}
+    \label{fig:accuracy_unbiased_bench}
+\end{figure*}
+
 
 \section{Related Work}
 Additionally, both counter merging and counter sharing non-trivially alter the
