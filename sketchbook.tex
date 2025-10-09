@@ -22,7 +22,7 @@
 
 \usepackage{array}
 \usepackage{breqn}
-\usepackage{booktabs,makecell}
+\usepackage{booktabs,makecell,multirow}
 \usepackage[makeroom]{cancel}
 \usepackage{enumitem}
 \usepackage{tikz,pgfplots}
@@ -59,7 +59,8 @@
 \graphicspath{{./figures/}}
 
 \begin{document}
-\title{\sketch: Space-Efficient and Workload-Independent Frequency Estimation}
+\title{\sketch: Adaptively Bounding Error and Space for Unbounded Skewed
+Streams}
 
 %%
 %% The "author" command and its associated commands are used to define the authors and their affiliations.
@@ -82,7 +83,7 @@
 \author{Rasmus Pagh}
 \email{pagh@di.ku.dk}
 \affiliation{%
-  \institution{University of Copenhagen}
+  \institution{BARC, University of Copenhagen}
   \city{Copenhagen}
   \country{Denmark}
 }
@@ -99,6 +100,28 @@
 %% The abstract is a short summary of the work to be presented in the
 %% article.
 \begin{abstract}
+    Modern stream processing systems count the occurrences of each key in a
+    data stream, i.e., its frequency, in real time. Since tracking the exact
+    counts entails a prohibitive memory footprint, applications rely on
+    compact, probabilistic data structures called frequency estimation sketches
+    to approximate them. However, these sketches fall short in two critical
+    aspects: (1)~They are memory-inefficient under data skew, as they use
+    uniformly-sized counters to track the key counts and thus dedicate memory
+    to storing the leading zeros of many small counter values. Current efforts
+    to mitigate this wastage compromise accuracy or performance. (2)~Their
+    estimation error deteriorates at least linearly with the length of the
+    stream{\textemdash}which may grow indefinitely{\textemdash}due to employing
+    a fixed~number~of~counters. 
+
+    We present \sketch, a framework that generalizes frequency estimation
+    sketches to address these problems by dynamically adapting to the stream's
+    skew and length. To save memory under skew, \sketch\ employs a
+    variable-length counter encoding scheme that leverages specialized bit
+    manipulation routines. It also achieves sub-linear errors by expanding its
+    number of counters sub-linearly with the stream's length. We show, through
+    rigorous theoretical analysis and empirical evaluation, that \sketch\
+    significantly improves the accuracy and memory of existing sketches while
+    maintaining competitive or superior performance.
 \end{abstract}
 
 \maketitle
@@ -1926,7 +1949,7 @@ value of the counter yields an estimate of~$N_2^2$. The following theorem
 characterizes the estimation error:
 \begin{theorem}[Theorem 2.2 of~\cite{AMS}, specialized]
     One can approximate~$N_2^2$ within a factor of two with a probability
-    of~$1-p$ using~$4 \cdot \log 1/p$ AMS sketches. Estimation proceeds by
+    of~$1-p$ using~$4 \cdot \log_2 1/p$ AMS sketches. Estimation proceeds by
     squaring the sketches, averaging them in groups of~4, and taking the
     median.
 \end{theorem}
@@ -2143,7 +2166,27 @@ We run experiments on a Fedora 39 machine with an Intel Xeon w7-2495X processor
 
 \begin{figure*}
     \centering
-    \includegraphics[width=0.65\textwidth]{accuracy.pdf}
+    \begin{tabular}{cc}
+        \includegraphics[width=0.65\textwidth]{accuracy.pdf}
+        \hspace{4pt}
+        \scriptsize
+        \begin{tabular}[b]{ccccccc} 
+            \toprule 
+            \multirow{2}{*}[0.4em]{Memory [MB]} & \multicolumn{2}{c}{$\textsc{Kosarak}$} & \multicolumn{2}{c}{$\textsc{Webdocs}$} & \multicolumn{2}{c}{$\textsc{CAIDA}$} \\ 
+            & $c$ & $s$ & $c$ & $s$ & $c$ & $s$ \\ 
+            \midrule 
+            1/32 & 39 & 10 & - & - & - & - \\ 
+            1/16 & 42 & 9 & - & - & - & - \\ 
+            1/8 & 43 & 7 & 33 & 12 & 39 & 10 \\ 
+            1/4 & 68 & 5 & 34 & 12 & 42 & 9 \\ 
+            1/2 & 75 & 5 & 39 & 10 & 45 & 8 \\ 
+            1 & 81 & 4 & 38 & 10 & 51 & 7 \\ 
+            2 & - & - & 50 & 7 & 64 & 5 \\ 
+            4 & - & - & 70 & 5 & 75 & 4 \\ 
+            \bottomrule 
+            \vspace{2.65cm}
+        \end{tabular} 
+    \end{tabular}
     \caption{Accuracy}
     \label{fig:accuracy_bench}
 \end{figure*}
@@ -2185,7 +2228,25 @@ We run experiments on a Fedora 39 machine with an Intel Xeon w7-2495X processor
 
 \begin{figure*}
     \centering
-    \includegraphics[width=0.72\textwidth]{accuracy_unbiased.pdf}
+    \begin{tabular}{cc}
+        \includegraphics[width=0.72\textwidth]{accuracy_unbiased.pdf}
+        \hspace{4pt}
+        \def\arraystretch{1.04}%  1 is the default, change whatever you need
+        \scriptsize
+        \begin{tabular}[b]{ccc} 
+            \toprule 
+            Memory [MB] & $c$ & $s$ \\ 
+            \midrule 
+            1/8 & 39 & 10 \\ 
+            1/4 & 42 & 9 \\ 
+            1/2 & 45 & 8 \\ 
+            1 & 51 & 7 \\ 
+            2 & 64 & 5 \\ 
+            4 & 75 & 4 \\ 
+            \bottomrule 
+            \vspace{0.49cm}
+        \end{tabular} 
+    \end{tabular}
     \caption{Accuracy Unbiased}
     \label{fig:accuracy_unbiased_bench}
 \end{figure*}
