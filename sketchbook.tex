@@ -100,28 +100,29 @@ Streams}
 %% The abstract is a short summary of the work to be presented in the
 %% article.
 \begin{abstract}
-    Modern stream processing systems count the occurrences of each key in a
-    data stream, i.e., its frequency, in real time. Since tracking the exact
-    counts entails a prohibitive memory footprint, applications rely on
-    compact, probabilistic data structures called frequency estimation sketches
-    to approximate them. However, these sketches fall short in two critical
-    aspects: (1)~They are memory-inefficient under data skew, as they use
-    uniformly-sized counters to track the key counts and thus dedicate memory
-    to storing the leading zeros of many small counter values. Current efforts
-    to mitigate this wastage compromise accuracy or performance. (2)~Their
-    estimation error deteriorates at least linearly with the length of the
-    stream{\textemdash}which may grow indefinitely{\textemdash}due to employing
-    a fixed~number~of~counters. 
+    Modern stream processing systems must track the frequency of each key in a
+    data stream in real-time. Since monitoring the exact counts entails a
+    prohibitive memory footprint, many applications rely on compact,
+    probabilistic data structures called frequency estimation sketches to
+    approximate them. However, traditional sketches fall short in two critical
+    aspects: (1)~They are memory-inefficient under data skew. This is because
+    they use uniformly-sized counters to track the key counts, and thus
+    dedicate memory to storing the leading zeros of many small counter values.
+    (2)~Their estimation error deteriorates at least linearly with the length
+    of the stream, which may grow longer over time. This is because they count
+    the keys using a fixed number of counters. 
 
     We present \sketch, a framework that generalizes frequency estimation
     sketches to address these problems by dynamically adapting to the stream's
-    skew and length. To save memory under skew, \sketch\ employs a
-    variable-length counter encoding scheme that leverages specialized bit
-    manipulation routines. It also achieves sub-linear errors by expanding its
-    number of counters sub-linearly with the stream's length. We show, through
-    rigorous theoretical analysis and empirical evaluation, that \sketch\
-    significantly improves the accuracy and memory of existing sketches while
-    maintaining competitive or superior performance.
+    skew and length. To save memory under skew, \sketch\ uses short counters
+    upfront and elongates them as they overflow with extensions stored within
+    the same cache line. It leverages specialized bit manipulation routines to
+    quickly access a counter's extension. It also adaptively maintains accurate
+    estimates by expanding its number of counters sub-linearly with respect to
+    the incurred error. We apply \sketch\ to Count-Min Sketch, Count Sketch,
+    and Misra-Gries, and show, both theoretically and empirically, that
+    \sketch\ significantly improves their accuracy and memory over the state of
+    the art while maintaining competitive or superior performance.
 \end{abstract}
 
 \maketitle
@@ -2159,11 +2160,19 @@ expansions and contractions is constant, as they modify~$d \cdot W(N) \leq N$
 counters every time~$N$ more than doubles or halves.
 
 \section{Evaluation}\label{sec:evaluation}
+We demonstrate the effectiveness of \sketch\ by evaluating \sketchcms and
+\sketchcs against existing frequency estimation sketches. We also demonstrate
+the effects of tuning \counterencodingabbrv\ and the size function.
 
 \textbf{Platform.}
-We run experiments on a Fedora 39 machine with an Intel Xeon w7-2495X processor
-(4.8 GHz) with 24 cores and 48 hyper-threads. Our machine has a 1920 KB L1, a
-48 MB L2, and a 45 MB L3 cache, along with 64 GBs of main memory. 
+We run experiments on a Fedora 41 machine with an Intel Xeon w7-2495X processor
+(4.8 GHz) with 24 cores and 2 hyper-thread per core. Our machine has a 1920 KB
+L1, a 48 MB L2, and a 45 MB L3 cache, along with 64 GBs of RAM. 
+
+\textbf{Baselines.}
+We compare \sketchcms to a traditional CMS, as well as counter merging (SALSA~\cite{SALSA}) and counter sharing methods (Stingy sketch~\cite{StingySketch}, Coding sketch~\cite{CodingSketch}) . We also compare against Waving
+sketch~\cite{WavingSketch}, which is a hybrid method. We compile all sketches
+using \texttt{gcc-13}.
 
 \begin{figure*}
     \centering
@@ -2173,7 +2182,7 @@ We run experiments on a Fedora 39 machine with an Intel Xeon w7-2495X processor
         \scriptsize
         \begin{tabular}[b]{ccccccc} 
             \toprule 
-            \multirow{2}{*}[0.4em]{Memory [MB]} & \multicolumn{2}{c}{$\textsc{Kosarak}$} & \multicolumn{2}{c}{$\textsc{Webdocs}$} & \multicolumn{2}{c}{$\textsc{CAIDA}$} \\ 
+            \multirow{2}{*}[0.0em]{Memory [MB]} & \multicolumn{2}{c}{$\textsc{Kosarak}$} & \multicolumn{2}{c}{$\textsc{Webdocs}$} & \multicolumn{2}{c}{$\textsc{CAIDA}$} \\ 
             & $c$ & $s$ & $c$ & $s$ & $c$ & $s$ \\ 
             \midrule 
             1/32 & 39 & 10 & - & - & - & - \\ 
