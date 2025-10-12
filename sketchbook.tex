@@ -2258,6 +2258,7 @@ Coding sketch are shifted to the right, as it allocates additional memory to
 decompress the hierarchy. Its decompression procedure is also costly,
 significantly slowing down queries compared to the other baselines.
 
+\iffalse
 \begin{figure}
     \centering
     \includegraphics[width=0.70\columnwidth]{skew.pdf}
@@ -2273,33 +2274,48 @@ significantly slowing down queries compared to the other baselines.
     significantly improves the memory footprint.}
     \label{fig:vale_tuning_bench}
 \end{figure}
+\fi
 
-\hypertarget{experiment:skew}{\textbf{Experiment 2: Accuracy under Varying Levels of Skew.}}
-\Cref{fig:skew_bench} compares the estimation errors of all baselines as the
-amount of skew in the data varies. Here, we generate streams of 100M keys from
-a \textsc{Zipfian} distribution over 100K distinct keys. We vary the
-characteristic exponent, i.e., the skewness, on the~$x${\nobreakdash-}axis
-from~0.0 to 1.0, which correspond to the uniform distribution and the
-\textsc{WebDocs} dataset, respectively. To reflect the setting where the
-workload's distribution is unknown, we tune each baseline to a skewness of~1.0
-and allow it to adapt to the workload.
-
-\Cref{fig:skew_bench} shows that, when given the same memory budget, \sketchcms
-provides the lowest error for all levels of skew, outperforming the closest
-baseline by as much as~$5.3\times$. This is because it automatically tunes
-\counterencodingabbrv\ to the workload's skew, while the other sketches cannot
-do so. Coding sketch's error increases with skew since it fails to decompress
-the counters and returns the lower-order bits of the counters only,
-underestimating the counts.
+\begin{figure}
+    \centering
+    \includegraphics[width=1.00\columnwidth]{skew_vale_tuning.pdf}
+    \begin{tikzpicture}
+        \node[inner sep=1pt,align=center] (A) at (0,0) {\textbf{A)}};
+        \node[inner sep=1pt,right=2.65 of A,align=center] (B) {\textbf{B)}};
+        \node[inner sep=1pt,left=0.075 of A,align=center] (dummy) {};
+    \end{tikzpicture}
+    \caption{By automatically tuning \counterencodingabbrv, \sketchcms adapts
+    to all levels of skew and attains the highest accuracy and the lower memory
+    footprint.}
+    \label{fig:skew_vale_tuning_bench}
+\end{figure}
 
 \begin{figure}
     \centering
     \includegraphics[width=0.95\columnwidth]{expansion.pdf}
     \hspace*{0.1mm}
-    \caption{\sketchcms simultaneously achieves orders of magnitude lower
-    errors and a small memory footprint when processing growing streams.}
+    \caption{\sketchcms simultaneously achieves a low error rate and a small
+    memory footprint when processing growing streams.}
     \label{fig:expansion_bench}
 \end{figure}
+
+\hypertarget{experiment:skew}{\textbf{Experiment 2: Accuracy under Varying Levels of Skew.}}
+\Cref{fig:skew_vale_tuning_bench} compares the estimation errors of all
+baselines as the amount of skew in the data varies. Here, we generate streams
+of 100M keys from a \textsc{Zipfian} distribution over 100K distinct keys. We
+vary the characteristic exponent, i.e., the skewness, on
+the~$x${\nobreakdash-}axis from~0.0 to 1.0, which correspond to the uniform
+distribution and the \textsc{WebDocs} dataset, respectively. To reflect the
+setting where the workload's distribution is unknown, we tune each baseline to
+a skewness of~1.0 and allow it to adapt to the workload.
+
+\Cref{fig:skew_vale_tuning_bench} shows that, when given the same memory
+budget, \sketchcms provides the lowest error for all levels of skew,
+outperforming the closest baseline by as much as~$5.3\times$. This is because
+it automatically tunes \counterencodingabbrv\ to the workload's skew, while the
+other sketches cannot do so. Coding sketch's error increases with skew since it
+fails to decompress the counters and returns the lower-order bits of the
+counters only, underestimating the counts.
 
 \begin{figure}
     \centering
@@ -2318,6 +2334,20 @@ underestimating the counts.
     many keys are deleted.}
     \label{fig:contraction_bench}
 \end{figure}
+
+\hypertarget{experiment:vale_tuning}{\textbf{Experiment 3: Memory Savings of Adaptively Tuning \counterencodingabbrv.}}
+\Cref{fig:skew_vale_tuning_bench}-B) compares \sketchcms's memory footprint
+when using a fixed tuning for \counterencodingabbrv{\textemdash}with~$c=64$
+counters per chunk and stubs of length~$s=6${\textemdash}to when it adapts the
+tuning as the stream grows. Here, we employ the \textsc{CAIDA} dataset and vary
+the initial number of counters in both versions of \sketchcms. Adaptively
+tuning \counterencodingabbrv\ bounds the number of allocated tails arrays and
+improves the memory footprint over using a fixed configuration by as much
+as~$5\times$, as shown in \Cref{fig:skew_vale_tuning_bench}-B). While still
+high, the memory footprint of the fixed tuning version of \sketchcms decreases
+when given many counters. This is because the counter values shrink just enough
+so that many of them fit in their stubs, removing many extensions and tails
+arrays.
 
 \begin{figure*}
     \centering
@@ -2346,19 +2376,6 @@ underestimating the counts.
     chunk~$c$ and the stub length~$s$.}
     \label{fig:accuracy_unbiased_bench}
 \end{figure*}
-
-\hypertarget{experiment:vale_tuning}{\textbf{Experiment 3: Memory Savings of Adaptively Tuning \counterencodingabbrv.}}
-\Cref{fig:vale_tuning_bench} compares \sketchcms's memory footprint when using
-a fixed tuning for \counterencodingabbrv{\textemdash}with~$c=64$ counters per
-chunk and stubs of length~$s=6${\textemdash}to when it adapts the tuning as the
-stream grows. Here, we employ the \textsc{CAIDA} dataset and vary the initial
-number of counters in both versions of \sketchcms. Adaptively tuning
-\counterencodingabbrv\ bounds the number of allocated tails arrays and improves
-the memory footprint over using a fixed configuration by as much as~$5\times$,
-as shown in \Cref{fig:vale_tuning_bench}. While still high, the memory
-footprint of the fixed tuning version of \sketchcms decreases when given many
-counters. This is because the counter values shrink just enough so that many of
-them fit in their stubs, removing many extensions and tails arrays.
 
 \hypertarget{experiment:expansion}{\textbf{Experiment 4: Accuracy and Memory under Data Growth.}}
 Until now, we have only considered settings where the stream's length was known
@@ -2413,14 +2430,19 @@ dataset and optimally tune each baseline for a fair comparison.
 As shown in \Cref{fig:accuracy_unbiased_bench}, \sketchcs has lower errors than
 the next best baseline by as much as an order of magnitude. It also has the
 fastest insertions, beating the most performant baseline, i.e., CS, by~$\approx
-17\%$. This improvement is due to \sketchcs utilizing an optimized hashing
+17\%$. This improvement is due to \sketchcs's utilizing an optimized hashing
 procedure and prefetching many chunks in parallel during updates, whereas CS
-uses a simple hashing scheme and updates the counters sequentially. Moreover,
+uses a simple hashing scheme and sequentially fetches each counter. Moreover,
 \sketchcs's query speed matches that of the most performant sketches, i.e., CS
 and Waving sketch, lagging by only~$\approx 30\%$ while attaining orders of
 magnitude lower error.
 
 \section{Conclusion}
+We introduced \sketch, the first framework for generalizing a frequency
+estimation sketch to automatically adapt to the skew and length of the stream.
+We showed, both theoretically and empirically, that \sketch\ improves the
+accuracy and memory footprint of frequency estimation sketches far beyond the
+state of the art while maintaining high performance.
 
 %\begin{acks}
 %\end{acks}
