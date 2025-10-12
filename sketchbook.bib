@@ -198,44 +198,64 @@
 %Entries
 
 @article{FiltersNetworking,
-    author = {Broder, Andrei and Mitzenmacher, Michael},
-    year = {2003},
-    month = {11},
-    pages = {},
-    title = {Survey: Network Applications of Bloom Filters: A Survey.},
-    volume = {1},
-    journal = {Internet Mathematics},
-    doi = {10.1080/15427951.2004.10129096}
+    author={Broder, Andrei and Mitzenmacher, Michael},
+    year={2003},
+    month={11},
+    pages={},
+    title={Survey: Network Applications of Bloom Filters: A Survey.},
+    volume={1},
+    journal={Internet Mathematics},
+    doi={10.1080/15427951.2004.10129096}
 }
 
 @article{RocksDB,
-    author = {Dong, Siying and Kryczka, Andrew and Jin, Yanqin and Stumm, Michael},
-    title = {RocksDB: Evolution of Development Priorities in a Key-value Store Serving Large-scale Applications},
-    year = {2021},
-    issue_date = {November 2021},
-    publisher = {Association for Computing Machinery},
-    address = {New York, NY, USA},
-    volume = {17},
-    number = {4},
-    issn = {1553-3077},
-    url = {https://doi.org/10.1145/3483840},
-    doi = {10.1145/3483840},
-    abstract = {This article is an eight-year retrospective on development priorities for RocksDB, a key-value store developed at Facebook that targets large-scale distributed systems and that is optimized for Solid State Drives (SSDs). We describe how the priorities evolved over time as a result of hardware trends and extensive experiences running RocksDB at scale in production at a number of organizations: from optimizing write amplification, to space amplification, to CPU utilization. We describe lessons from running large-scale applications, including that resource allocation needs to be managed across different RocksDB instances, that data formats need to remain backward- and forward-compatible to allow incremental software rollouts, and that appropriate support for database replication and backups are needed. Lessons from failure handling taught us that data corruption errors needed to be detected earlier and that data integrity protection mechanisms are needed at every layer of the system. We describe improvements to the key-value interface. We describe a number of efforts that in retrospect proved to be misguided. Finally, we describe a number of open problems that could benefit from future research.},
-    journal = {ACM Trans. Storage},
-    month = {oct},
-    articleno = {26},
-    numpages = {32},
-    keywords = {databases, compaction, SSD, RocksDB, large-scale applications, Key-value stores}
+    author={Dong, Siying and Kryczka, Andrew and Jin, Yanqin and Stumm,
+        Michael},
+    title={RocksDB: Evolution of Development Priorities in a Key-value Store
+        Serving Large-scale Applications},
+    year={2021},
+    issue_date={November 2021},
+    publisher={Association for Computing Machinery},
+    address={New York, NY, USA},
+    volume={17},
+    number={4},
+    issn={1553-3077},
+    url={https://doi.org/10.1145/3483840},
+    doi={10.1145/3483840},
+    abstract={This article is an eight-year retrospective on development
+        priorities for RocksDB, a key-value store developed at Facebook that
+            targets large-scale distributed systems and that is optimized for
+            Solid State Drives (SSDs). We describe how the priorities evolved
+            over time as a result of hardware trends and extensive experiences
+            running RocksDB at scale in production at a number of
+            organizations: from optimizing write amplification, to space
+            amplification, to CPU utilization. We describe lessons from running
+            large-scale applications, including that resource allocation needs
+            to be managed across different RocksDB instances, that data formats
+            need to remain backward- and forward-compatible to allow
+            incremental software rollouts, and that appropriate support for
+            database replication and backups are needed. Lessons from failure
+            handling taught us that data corruption errors needed to be
+            detected earlier and that data integrity protection mechanisms are
+            needed at every layer of the system. We describe improvements to
+            the key-value interface. We describe a number of efforts that in
+            retrospect proved to be misguided. Finally, we describe a number of
+            open problems that could benefit from future research.},
+    journal={ACM Trans. Storage},
+    month={oct},
+    articleno={26},
+    numpages={32},
+    keywords={databases, compaction, SSD, RocksDB, large-scale applications, Key-value stores}
 }
 
 @book{HTAPBook,
-    author = {Bog, Anja},
-    title = {Benchmarking Transaction and Analytical Processing Systems: The
+    author={Bog, Anja},
+    title={Benchmarking Transaction and Analytical Processing Systems: The
         Creation of a Mixed Workload Benchmark and its Application},
-    year = {2013},
-    isbn = {3642380697},
-    publisher = {Springer Publishing Company, Incorporated},
-    abstract = {Systems for Online Transaction Processing (OLTP) and Online
+    year={2013},
+    isbn={3642380697},
+    publisher={Springer Publishing Company, Incorporated},
+    abstract={Systems for Online Transaction Processing (OLTP) and Online
         Analytical Processing (OLAP) are currently separate. The potential of
             the latest technologies and changes in operational and analytical
             applications over the last decade have given rise to the
@@ -266,16 +286,16 @@
 }
 
 @inproceedings{YCSB,
-    author = {Cooper, Brian F. and Silberstein, Adam and Tam, Erwin and
+    author={Cooper, Brian F. and Silberstein, Adam and Tam, Erwin and
         Ramakrishnan, Raghu and Sears, Russell},
-    title = {Benchmarking cloud serving systems with YCSB},
-    year = {2010},
-    isbn = {9781450300360},
-    publisher = {Association for Computing Machinery},
-    address = {New York, NY, USA},
-    url = {https://doi.org/10.1145/1807128.1807152},
-    doi = {10.1145/1807128.1807152},
-    abstract = {While the use of MapReduce systems (such as Hadoop) for large
+    title={Benchmarking cloud serving systems with YCSB},
+    year={2010},
+    isbn={9781450300360},
+    publisher={Association for Computing Machinery},
+    address={New York, NY, USA},
+    url={https://doi.org/10.1145/1807128.1807152},
+    doi={10.1145/1807128.1807152},
+    abstract={While the use of MapReduce systems (such as Hadoop) for large
         scale data analysis has been widely recognized and studied, we have
             recently seen an explosion in the number of systems developed for
             cloud data serving. These newer systems address "cloud OLTP"
@@ -300,26 +320,26 @@
             the YCSB framework/tool is that it is extensible--it supports easy
             definition of new workloads, in addition to making it easy to
             benchmark new systems.},
-    booktitle = {Proceedings of the 1st ACM Symposium on Cloud Computing},
-    pages = {143–154},
-    numpages = {12},
-    keywords = {cloud serving database, benchmarking},
-    location = {Indianapolis, Indiana, USA},
-    series = {SoCC '10}
+    booktitle={Proceedings of the 1st ACM Symposium on Cloud Computing},
+    pages={143–154},
+    numpages={12},
+    keywords={cloud serving database, benchmarking},
+    location={Indianapolis, Indiana, USA},
+    series={SoCC '10}
 }
 
 @article{Rose,
-    author = {Sears, Russell and Callaghan, Mark and Brewer, Eric},
-    title = {Rose: compressed, log-structured replication},
-    year = {2008},
-    issue_date = {August 2008},
-    publisher = {VLDB Endowment},
-    volume = {1},
-    number = {1},
-    issn = {2150-8097},
-    url = {https://doi.org/10.14778/1453856.1453914},
-    doi = {10.14778/1453856.1453914},
-    abstract = {Rose is a database storage engine for high-throughput
+    author={Sears, Russell and Callaghan, Mark and Brewer, Eric},
+    title={Rose: compressed, log-structured replication},
+    year={2008},
+    issue_date={August 2008},
+    publisher={VLDB Endowment},
+    volume={1},
+    number={1},
+    issn={2150-8097},
+    url={https://doi.org/10.14778/1453856.1453914},
+    doi={10.14778/1453856.1453914},
+    abstract={Rose is a database storage engine for high-throughput
         replication. It targets seek-limited, write-intensive transaction
             processing workloads that perform near real-time decision support
             and analytical processing queries. Rose uses log structured merge
@@ -350,229 +370,10 @@
             seek-bound workloads. Analytical models and experiments show that
             Rose provides orders of magnitude greater replication bandwidth
             over larger databases than conventional techniques.},
-    journal = {Proc. VLDB Endow.},
-    month = {aug},
-    pages = {526–537},
-    numpages = {12}
-}
-
-@article{Bloom,
-    author = {Bloom, Burton H.},
-    title = {Space/time trade-offs in hash coding with allowable errors},
-    year = {1970},
-    issue_date = {July 1970},
-    publisher = {Association for Computing Machinery},
-    address = {New York, NY, USA},
-    volume = {13},
-    number = {7},
-    issn = {0001-0782},
-    url = {https://doi.org/10.1145/362686.362692},
-    doi = {10.1145/362686.362692},
-    abstract = {In this paper trade-offs among certain computational factors in
-        hash coding are analyzed. The paradigm problem considered is that of
-            testing a series of messages one-by-one for membership in a given
-            set of messages. Two new hash-coding methods are examined and
-            compared with a particular conventional hash-coding method. The
-            computational factors considered are the size of the hash area
-            (space), the time required to identify a message as a nonmember of
-            the given set (reject time), and an allowable error frequency.The
-            new methods are intended to reduce the amount of space required to
-            contain the hash-coded information from that associated with
-            conventional methods. The reduction in space is accomplished by
-            exploiting the possibility that a small fraction of errors of
-            commission may be tolerable in some applications, in particular,
-        applications in which a large amount of data is involved and a core
-            resident hash area is consequently not feasible using conventional
-            methods.In such applications, it is envisaged that overall
-            performance could be improved by using a smaller core resident hash
-            area in conjunction with the new methods and, when necessary, by
-            using some secondary and perhaps time-consuming test to “catch” the
-            small fraction of errors associated with the new methods. An
-            example is discussed which illustrates possible areas of
-            application for the new methods.Analysis of the paradigm problem
-            demonstrates that allowing a small number of test messages to be
-            falsely identified as members of the given set will permit a much
-            smaller hash area to be used without increasing reject time.},
-    journal = {Commun. ACM},
-    month = {jul},
-    pages = {422–426},
-    numpages = {5},
-    keywords = {hash addressing, hash coding, retrieval efficiency, retrieval
-        trade-offs, scatter storage, searching, storage efficiency, storage
-            layout}
-}
-
-@inproceedings{BeyondBloomTutorial,
-    author = {Pandey, Prashant and Farach-Colton, Mart\'{\i}n and Dayan, Niv
-        and Zhang, Huanchen},
-    title = {Beyond Bloom: A Tutorial on Future Feature-Rich Filters},
-    year = {2024},
-    isbn = {9798400704222},
-    publisher = {Association for Computing Machinery},
-    address = {New York, NY, USA},
-    url = {https://doi.org/10.1145/3626246.3654681},
-    doi = {10.1145/3626246.3654681},
-    abstract = {Filters, such as Bloom, quotient, and cuckoo, save space by
-        maintaining an approximate representation of a set and occasionally
-            returning false positives. Filters play a critical role in building
-            modern dataintensive applications and are used across various
-            domains such as databases, storage engines, computational biology,
-        cyber- security, and networks. There has been extensive research on
-            filters in the past few decades resulting in filters with much
-            improved performance and features. Yet modern data-intensive
-            applications are still designed around the limitations of
-            traditional filters resulting in complex designs and sub-optimal
-            performance.This tutorial aims to bring together researchers at the
-            forefront of filter data structure research to help the database
-            community learn about the recent advancements in the theory and
-            practice of filters. The tutorial will cover real-world case
-            studies of redesigning applications using the modern filter APIs to
-            achieve simplicity and improved application performance. The
-            tutorial will further help uncover the open research problems, both
-            in theory and systems, and increase interaction among researchers
-            to tackle those problems.},
-    booktitle = {Companion of the 2024 International Conference on Management
-        of Data},
-    pages = {636–644},
-    numpages = {9},
-    keywords = {dictionary data structure, filters, membership query},
-    location = {Santiago AA, Chile},
-    series = {SIGMOD/PODS '24}
-}
-
-@Online{SQLTableAccesses,
-    author={Cockroach Labs},
-    year = {2015},
-    url={https://github.com/cockroachdb/cockroach},
-    urldate={2024-04-02},
-    journal={CockroachDB}
-}
-
-@article{SlimDB,
-    author = {Ren, Kai and Zheng, Qing and Arulraj, Joy and Gibson, Garth},
-    title = {SlimDB: a space-efficient key-value storage engine for semi-sorted
-        data},
-    year = {2017},
-    issue_date = {September 2017},
-    publisher = {VLDB Endowment},
-    volume = {10},
-    number = {13},
-    issn = {2150-8097},
-    url = {https://doi.org/10.14778/3151106.3151108},
-    doi = {10.14778/3151106.3151108},
-    abstract = {Modern key-value stores often use write-optimized indexes and
-        compact in-memory indexes to speed up read and write performance. One
-            popular write-optimized index is the Log-structured merge-tree
-            (LSM-tree) which provides indexed access to write-intensive data.
-            It has been increasingly used as a storage backbone for many
-            services, including file system metadata management, graph
-            processing engines, and machine learning feature storage engines.
-            Existing LSM-tree implementations often exhibit high write
-            amplifications caused by compaction, and lack optimizations to
-            maximize read performance on solid-state disks. The goal of this
-            paper is to explore techniques that leverage common workload
-            characteristics shared by many systems using key-value stores to
-            reduce the read/write amplification overhead typically associated
-            with general-purpose LSM-tree implementations. Our experiments show
-            that by applying these design techniques, our new implementation of
-            a key-value store, SlimDB, can be two to three times faster, use
-            less memory to cache metadata indices, and show lower tail latency
-            in read operations compared to popular LSM-tree implementations
-            such as LevelDB and RocksDB.},
-    journal = {Proc. VLDB Endow.},
-    month = {sep},
-    pages = {2037–2048},
-    numpages = {12}
-}
-
-@inproceedings{SplinterDB,
-    author = {Conway, Alex and Gupta, Abhishek and Chidambaran, Vijay and
-        Farach-Colton, Martin and Spillane, Rick and Tai, Amy and Johnson,
-        Rob},
-    title = {SplinterDB: closing the bandwidth gap for NVMe key-value stores},
-    year = {2020},
-    isbn = {978-1-939133-14-4},
-    publisher = {USENIX Association},
-    address = {USA},
-    abstract = {Modern NVMe solid state drives offer significantly higher
-        bandwidth and lower latency than prior storage devices. Current
-            key-value stores struggle to fully utilize the bandwidth of such
-            devices. This paper presents SplinterDB, a new key-value store
-            explicitly designed for NVMe solid-state-drives.SplinterDB is
-            designed around a novel data structure (the STBε-tree) that exposes
-            I/O and CPU concurrency and reduces write amplification without
-            sacrificing query performance. STBε-tree combines ideas from
-            log-structured merge trees and Bε-trees to reduce write
-            amplification and CPU costs of compaction. The SplinterDB memtable
-            and cache are designed to be highly concurrent and to reduce cache
-            misses.We evaluate SplinterDB on a number of micro- and
-            macro-benchmarks, and show that SplinterDB outperforms RocksDB, a
-            state-of-the-art key-value store, by a factor of 6-10\texttimes{}
-        on insertions and 2-2.6\texttimes{} on point queries, while matching
-            RocksDB on small range queries. Furthermore, SplinterDB reduces
-            write amplification by 2\texttimes{} compared to RocksDB.},
-    booktitle = {Proceedings of the 2020 USENIX Conference on Usenix Annual
-        Technical Conference},
-    articleno = {4},
-    numpages = {15},
-    series = {USENIX ATC'20}
-}
-
-@article{InfiniFilter,
-    author = {Dayan, Niv and Bercea, Ioana and Reviriego, Pedro and Pagh, Rasmus},
-    title = {InfiniFilter: Expanding Filters to Infinity and Beyond},
-    year = {2023},
-    issue_date = {June 2023},
-    publisher = {Association for Computing Machinery},
-    address = {New York, NY, USA},
-    volume = {1},
-    number = {2},
-    url = {https://doi.org/10.1145/3589285},
-    doi = {10.1145/3589285},
-    abstract = {Filter data structures have been used ubiquitously since the
-        1970s to answer approximate set-membership queries in various areas of
-            computer science including architecture, networks, operating
-            systems, and databases. Such filters need to be allocated with a
-            given capacity in advance to provide a guarantee over the false
-            positive rate. In many applications, however, the data size is not
-            known in advance, requiring filters to dynamically expand. This
-            paper shows that existing methods for expanding filters exhibit at
-            least one of the following flaws: (1) they entail an expensive scan
-            over the whole data set, (2) they require a lavish memory
-            footprint, (3) their query, delete and/or insertion performance
-            plummets, (4) their false positive rate skyrockets, and/or (5)~they
-            cannot expand indefinitely.We introduce InfiniFilter, a new method
-            for expanding filters that addresses these shortcomings.
-                InfiniFilter is a hash table that stores a fingerprint for each
-                    entry. It doubles in size when it reaches capacity, and it
-                    sacrifices one bit from each fingerprint to map it to the
-                    expanded hash table. The core novelty is a new and flexible
-                    hash slot format that sets longer fingerprints to newer
-                    entries. This keeps the average fingerprint length long and
-                    thus the false positive rate stable. At the same time,
-                         InfiniFilter provides stable insertion/query/delete
-                             performance as it is comprised of a unified hash
-                             table. We implement InfiniFilter on top of
-                             Quotient Filter, and we demonstrate theoretically
-                             and empirically that it offers superior cost
-                             properties compared to existing methods: it better
-                             scales performance, the false positive rate, and
-                             the memory footprint, all at the same time.},
-    journal = {Proc. ACM Manag. Data},
-    month = {jun},
-    articleno = {140},
-    numpages = {27},
-    keywords = {approximate set membership, scalability, expandability, data growth, quotient filter, probabalistic data structures, bloom filter}
-}
-
-@misc{AlephFilter,
-    title={Aleph Filter: To Infinity in Constant Time}, 
-    author={Niv Dayan and Ioana Bercea and Rasmus Pagh},
-    year={2024},
-    eprint={2404.04703},
-    archivePrefix={arXiv},
-    primaryClass={cs.DB},
-    url={https://arxiv.org/abs/2404.04703}, 
+    journal={Proc. VLDB Endow.},
+    month={aug},
+    pages={526–537},
+    numpages={12}
 }
 
 @article{PaghExpandability,
@@ -583,87 +384,6 @@
     year={2013},
     pages={80-89},
     url={https://api.semanticscholar.org/CorpusID:10365891}
-}
-
-@article{EliasFanoElias,
-    author = {Elias, Peter},
-    title = {Efficient Storage and Retrieval by Content and Address of Static
-        Files},
-    year = {1974},
-    issue_date = {April 1974},
-    publisher = {Association for Computing Machinery},
-    address = {New York, NY, USA},
-    volume = {21},
-    number = {2},
-    issn = {0004-5411},
-    url = {https://doi.org/10.1145/321812.321820},
-    doi = {10.1145/321812.321820},
-    abstract = {We consider a set of static files or inventories, each
-        consisting of the same number of entries, each entry a binary word of
-            the same fixed length selected (with replacement) from the set of
-            all binary sequences of that length, and the entries in each file
-            sorted into lexical order. We also consider several retrieval
-            questions of interest for each such file. One is to find the value
-            of the jth entry, another to find the number of entries of value
-            less than k.When a binary representation of such a file is stored
-            in computer memory and an algorithm or machine which knows only the
-            file parameters (i.e. number of entries, number of possible values
-                    per entry) accesses some of the stored bits to answer a
-            retrieval question, the number of bits stored and the number of
-            bits accessed per retrieval question are two cost measures for the
-            storage and retrieval task which have been used by Minsky and
-            Papert. Bits stored depends on the representation chosen: bits
-            accessed also depends on the retrieval question asked and on the
-            algorithm used.We give firm lower bounds to minimax measures of
-            bits stored and bits accessed for each of four retrieval questions,
-        and construct representations and algorithms for a bit-addressable
-            machine which come within factors of two or three of attaining all
-            four bounds at once for files of any size. All four factors
-            approach one for large enough files.},
-    journal = {J. ACM},
-    month = {apr},
-    pages = {246–260},
-    numpages = {15}
-}
-
-@book{EliasFanoFano,
-    title={On the Number of Bits Required to Implement an Associative Memory},
-    author={Fano, R.M.},
-    series={Computation Structures Group Memo},
-    url={https://books.google.ca/books?id=07DeGwAACAAJ},
-    year={1971},
-    publisher={MIT Project MAC Computer Structures Group}
-}
-
-@article{Golomb,
-    author = {Gallager, R. and van Voorhis, D.},
-    title = {Optimal source codes for geometrically distributed integer
-        alphabets (Corresp.)},
-    year = {1975},
-    issue_date = {March 1975},
-    publisher = {IEEE Press},
-    volume = {21},
-    number = {2},
-    issn = {0018-9448},
-    url = {https://doi.org/10.1109/TIT.1975.1055357},
-    doi = {10.1109/TIT.1975.1055357},
-    abstract = {Let P(i)= (1 - theta)theta^i be a probability assignment on the
-        set of nonnegative integers where theta is an arbitrary real number, 0
-            < theta < 1 . We show that an optimal binary source code for this
-            probability assignment is constructed as follows. Let l be the
-            integer satisfying theta^l + theta^{l+1} leq 1 < theta^l +
-            theta^{l-1} and represent each nonnegative integer i as i = lj + r
-            when j = lfloor i/l rfloor , the integer part of i/l , and r = [i]
-            mod l . Encode j by a unary code (i.e., j zeros followed by a
-                    single one), and encode r by a Huffman code, using
-            codewords of length lfloor log_2 l rfloor , for r < 2^{lfloor log
-                l+1 rfloor} - l , and length lfloor log_2 l rfloor + 1
-                otherwise. An optimal code for the nonnegative integers is the
-                concatenation of those two codes.},
-    journal = {IEEE Trans. Inf. Theor.},
-    month = {sep},
-    pages = {228–230},
-    numpages = {3}
 }
 
 @InProceedings{Poppy,
@@ -810,71 +530,6 @@
     keywords={bloom filters and hashing, sketching and sampling, computational biology, network monitoring},
     location={Chicago, Illinois, USA},
     series={SIGMOD '17}
-}
-
-@inproceedings{PartitionedEliasFano,
-    author = {Ottaviano, Giuseppe and Venturini, Rossano},
-    title = {Partitioned Elias-Fano indexes},
-    year = {2014},
-    isbn = {9781450322577},
-    publisher = {Association for Computing Machinery},
-    address = {New York, NY, USA},
-    url = {https://doi.org/10.1145/2600428.2609615},
-    doi = {10.1145/2600428.2609615},
-    abstract = {The Elias-Fano representation of monotone sequences has been
-        recently applied to the compression of inverted indexes, showing
-            excellent query performance thanks to its efficient random access
-            and search operations. While its space occupancy is competitive
-            with some state-of-the-art methods such as gamma-delta-Golomb codes
-            and PForDelta, it fails to exploit the local clustering that
-            inverted lists usually exhibit, namely the presence of long
-            subsequences of close identifiers. In this paper we describe a new
-            representation based on partitioning the list into chunks and
-            encoding both the chunks and their endpoints with Elias-Fano, hence
-            forming a two-level data structure. This partitioning enables the
-            encoding to better adapt to the local statistics of the chunk, thus
-            exploiting clustering and improving compression. We present two
-            partition strategies, respectively with fixed and variable-length
-            chunks. For the latter case we introduce a linear-time optimization
-            algorithm which identifies the minimum-space partition up to an
-            arbitrarily small approximation factor.We show that our partitioned
-            Elias-Fano indexes offer significantly better compression than
-            plain Elias-Fano, while preserving their query time efficiency.
-            Furthermore, compared with other state-of-the-art compressed
-            encodings, our indexes exhibit the best compression ratio/query
-            time trade-off.},
-    booktitle = {Proceedings of the 37th International ACM SIGIR Conference on
-        Research \& Development in Information Retrieval},
-    pages = {273–282},
-    numpages = {10},
-    keywords = {compression, dynamic programming, inverted indexes},
-    location = {Gold Coast, Queensland, Australia},
-    series = {SIGIR '14}
-}
-
-@article{SOSD-vldb,
-  author    = {Ryan Marcus and
-               Andreas Kipf and
-               Alexander van Renen and
-               Mihail Stoian and
-               Sanchit Misra and
-               Alfons Kemper and
-               Thomas Neumann and
-               Tim Kraska},
-  title     = {Benchmarking Learned Indexes},
-  journal   = {Proc. {VLDB} Endow.},
-  volume    = {14},
-  number    = {1},
-  pages     = {1--13},
-  year      = {2020}
-}
-
-@article{SOSD-neurips,
-  title={SOSD: A Benchmark for Learned Indexes},
-  author={Kipf, Andreas and Marcus, Ryan and van Renen, Alexander and Stoian,
-      Mihail and Kemper, Alfons and Kraska, Tim and Neumann, Thomas},
-  journal={NeurIPS Workshop on Machine Learning for Systems},
-  year={2019}
 }
 
 @article{CountMin,
@@ -3094,7 +2749,7 @@
 }
 
 @Online{SimonsYahoo,
-    author={Lee Rhodes},
+    author={Rhodes, Lee},
     title={Insights from Engineering Sketches for Production and Using Sketches
         at Scale},
     year={2023},
@@ -3102,3 +2757,28 @@
     urldate={2025-10-10}
 }
 
+@misc{Kosarak,
+    author={Bodon, Ferenc},
+    title={Frequent Itemset Mining Dataset Repository, Kosarak},
+    year={2012},
+    url={http://fimi.uantwerpen.be/data/},
+    urldate={2025-10-11}
+}
+
+@misc{WebDocs,
+    author={Lucchese, Claudio, Orlando, Salvatore, Perego, Raffaele, and
+        Silvestri, Fabrizio},
+    title={Frequent Itemset Mining Dataset Repository, Webdocs},
+    year={2012},
+    url={http://fimi.uantwerpen.be/data/},
+    urldate={2025-10-11}
+}
+
+@misc{CAIDA2018,
+  title={Anonymized Internet Traces 2018},
+  howpublished={\url{https://catalog.caida.org/dataset/passive_2018_pcap}},
+  note={Dates used: 2025-10-11. Accessed: 2025-10-11.},
+  doi={https://catalog.caida.org/dataset/passive_2018_pcap},
+  keywords= {traffic, Anonymized Internet Traces, traces, passive,
+      passive-2018, used CAIDA data}
+}
