@@ -2517,17 +2517,20 @@ applying \counterencodingabbrv.
 
 \textbf{Accommodating Unbounded Data Growth.}
 \sketchmg bounds the error for growing streams by expanding as the estimation
-error grows, similarly to \sketchcms and \sketchcs. Since MG's estimation error
+error grows, similarly to \sketchcms and \sketchcs. As MG's estimation error
 is~$N/w$ (or $\min_{1 \leq i \leq w} N^{\text{res}(i)}/(w-i+1)$ in the tail
 case), mirroring that of CMS, \sketchmg expands based on the growth of the
-total number of keys~$N$. As keys are not hashed and can be placed in any slot
-within the array, \sketchmg expands on a slot-by-slot basis, unlike \sketchcms
-and \sketchcs, which must double the size of their arrays to enable consistent
-hashing. As such, \sketchmg smoothly increases its number of slots while
-ensuring that it doubles every time~$N$ more than doubles. This ensures that
-the number of counters in the array matches the size function~$W(N)$ encoding
-the expansion policy at all times. Moreover, it allows for a lower price of
-expandability. 
+total number of keys~$N$. Since MG does not hash keys can place them in any
+slot within the array, \sketchmg expands on a slot-by-slot basis. This is in
+contrast to \sketchcms and \sketchcs, which must double the size of their
+arrays to enable consistent hashing. As such, \sketchmg smoothly increases its
+number of slots while ensuring that it doubles every time~$N$ more than
+doubles. This ensures that the number of counters in the array matches the size
+function~$W(N)$ encoding the expansion policy at all times. Moreover, it allows
+for a lower price of expandability. 
+
+Because MG does not support deletions, \sketchmg does not need to support
+contractions and can forgo storing a record of the sketch's state.
 
 \section{Omitted Proofs}\label{sec:ommitted_proofs}
 \thmsketchexpandabilitylabel*
