@@ -332,7 +332,7 @@ Misra-Gries~\cite{MisraGries} (\Cref{sec:mg}) and apply our techniques to them.
         \cmidrule{1-2}
         $c$ & Number of counters in each chunk. \\
         $s$ & Length of each stub in bits. \\
-        $W(N)$ & Size function. \\
+        $W(\cdot)$ & Size function. \\
         %\cmidrule{1-2}
         %AAE & Average Absolute Error, i.e., $\text{avg}_x|\hat{f}(x) - f(x)|$. \\
         %ARE & Average Relative Error, i.e., $\text{avg}_x\frac{|\hat{f}(x) - f(x)|}{f(x)}$. \\
@@ -2538,130 +2538,220 @@ contractions and can forgo storing a record of the sketch's state.
     Our proof follows a contradiction argument similar to the proof of
     Theorem~3.1 in~\cite{PaghExpandability}. That is, we consider a frequency
     estimation sketch~$\mathcal{S}$ that, given a key~$x$, computes an
-    estimate~$\hat{f}(x)$ such that $\mathbb{E}[|\hat{f}(x) - f(x)|] \leq E(N)$
-    and $\mathrm{Var}[\hat{f}(x)] \leq V(N) = \delta \cdot (E(N))^2$. Note
+    estimate~$\hat{f}(x)$ such that $|\mathbb{E}[\hat{f}(x)] - f(x)| \leq E(N)$
+    and $\mathrm{Var}(\hat{f}(x)) \leq V(N) = \delta \cdot (E(N))^2$. Note
     that, by Chebyshev's inequality, this sketch guarantees an estimation error
     of~$2E(N)$ with a confidence of~$1-\delta$. We show that if such a sketch
     is ``too space-efficient,'' it can be used to compress many sequences
-    of~$n=N/(2E(N)+1)$ keys~$\sigma=x_1,\dots,x_n$ coming from a large
+    of~$n=N/(2E(N)+1)$ keys~$\mathbf{x}=x_1,\dots,x_n$ coming from a large
     universe~$U$ of size~$u \gg n$ to a size smaller than their entropy, which
     must be impossible. Our argument holds regardless of the time complexity
-    of~$\mathcal{S}$'s operations. 
+    of~$\mathcal{S}$'s operations. For simplicity, we prove this theorem
+    assuming that~$\mathbb{E}[\hat{f}(x)]=f(x)$, which corresponds
+    to~$\mathcal{S}$ having an estimation error of~$E(N)$ with a confidence
+    of~$1-\delta$. Here, we compress sequences of~$n=N/(E(N)+1)$ keys. This
+    proof is generalizable to the full statement of the theorem.
 
-    Consider the process iterating through~$\sigma$'s keys and inserting each
-    $(2E(N)+1)$ times into~$\mathcal{S}$. We partition~$\sigma$ into contiguous
-    subsequences~$\sigma_1, \sigma_2, \dots, \sigma_\ell$, with $\sigma_i$
-    having a length of~$2^i \cdot \sqrt{n}$ and $\ell=\log_2 n/2$. We denote
-    the state of~$\mathcal{S}$ after processing the subsequences~$\sigma_1,
-    \dots, \sigma_i$ as $\mathcal{S}_i$. We denote $\mathcal{S}_i$'s estimate
-    for the count of key~$x$ as $\hat{f}_i(x)$  while denoting the true number
-    of times~$x$ was inserted as~$f_i(x)$. We also denote the difference in
-    this estimate after processing~$\sigma_i$ as $\Delta_i(x) = \hat{f}_i(x) -
-    \hat{f}_{i-1}(x)$. By the law of total variance, we have for any key~$x$
-    that
-    \begin{align}
-        \mathrm{Var} \left[ \hat{f}_\ell(x) \right] & = \mathrm{Var}\left[ \Delta_\ell(x) + \hat{f}_{\ell-1}(x) \right] \notag \\
-        & = \mathbb{E}\left[ \mathrm{Var}\left[ \Delta_\ell(x) + \hat{f}_{\ell-1}(x) \;\middle|\; \hat{f}_{\ell-1}(x) \right] \right] \notag \\ 
-        & \;\;\; + \mathrm{Var}\left[ \mathbb{E}\left[ \Delta_{\ell}(x) + \hat{f}_{\ell-1}(x) \;\middle|\; \hat{f}_{\ell-1}(x) \right] \right] \notag \\
-        & = \mathbb{E}\left[ \mathrm{Var}\left[ \Delta_\ell(x) \;\middle|\; \hat{f}_{\ell-1}(x) \right] \right] \notag \\ 
-        & \;\;\; + \mathrm{Var}\left[ \mathbb{E}\left[ \Delta_\ell(x) \;\middle|\; \hat{f}_{\ell-1}(x) \right] + \hat{f}_{\ell-1}(x) \right] \notag \\
-        & = \mathbb{E}\left[ \mathrm{Var}\left[ \Delta_\ell(x) \;\middle|\; \hat{f}_{\ell-1}(x) \right] \right] \notag \\ 
-        & \;\;\; + \mathrm{Var}\left[ f_\ell(x) - f_{\ell-1}(x) + \hat{f}_{\ell-1}(x) \right] \notag \\
-        & = \mathbb{E}\left[ \mathrm{Var}\left[ \Delta_\ell(x) \;\middle|\; \hat{f}_{\ell-1}(x) \right] \right] + \mathrm{Var}\left[ \hat{f}_{\ell-1}(x) \right]. \label{eq:total_variance}
-    \end{align}
-    Here, we have removed the constant terms~$\Delta_\ell(x)$ and
-    $f_{\ell-1}(x)$ from the first variance, as they do not affect the result. We have also
-    simplified the second variance term by using the unbiasedness of
-    $\mathcal{S}$'s estimates in each window of the stream. In particular,
-    in~$\sigma_\ell$, this implies that~$\mathbb{E}\left[\Delta_\ell(y) \;\middle|\;
-    \hat{f}_{\ell-1}(y)\right] = 0$, since $y$ does not appear in~$\sigma$. This
-    property also implies that
+    Consider the process of iterating through~$\mathbf{x}$'s keys and inserting
+    each $(E(N)+1)$ times into~$\mathcal{S}$. We partition~$\mathbf{x}$ into
+    contiguous subsequences~$\mathbf{x}_1, \mathbf{x}_2, \dots,
+    \mathbf{x}_\ell$, with $\mathbf{x}_i$ having a length of~$2^i \cdot
+    \sqrt{n}$ and $\ell=\log_2 n/2$. We denote the state of~$\mathcal{S}$ after
+    processing the subsequences~$\mathbf{x}_1, \dots, \mathbf{x}_i$ as
+    $\mathcal{S}_i$. We denote $\mathcal{S}_i$'s estimate for the count of
+    key~$x$ as $\hat{f}_i(x)$ while denoting the true number of times~$x$ was
+    inserted in $\mathbf{x}_1, \dots, \mathbf{x}_i$ as~$f_i(x)$. 
+
+    We first show that, the estimates of one of the~$\mathcal{S}_i$s can be
+    extended to an estimator that has a second moment of at most~$V/\ell = V/(2
+    \cdot \log_2 n)$. We will use these estimates to compress the
+    sequence~$\mathbf{x}$. To this end, we apply the law of total variance to
+    get, for any key~$x$, that
     \begin{align*}
-        \mathrm{Var}\left[ \Delta_\ell(y) \;\middle|\; \hat{f}_{\ell-1}(y) \right] & = \mathbb{E}\left[ \mathbb{E}\left[ (\Delta_\ell(y))^2 \;\middle|\; \hat{f}_{\ell-1}(y) \right] - \mathbb{E}\left[ \Delta_\ell(y) \;\middle|\; \hat{f}_{\ell-1}(y) \right]^2 \right] \\
-        & = \mathbb{E}\left[ (\Delta_\ell(y))^2 \right] - \mathbb{E}\left[ \cancelto{0}{\mathbb{E}\left[ \Delta_\ell(y) \;\middle|\; \hat{f}_{\ell-1}(y) \right]^2} \right] \\
-        & = \mathbb{E}\left[ (\Delta_\ell(y))^2 \right] = \mathrm{Var}\left[ \Delta_\ell(y) \right].
+        \mathrm{Var} \left( \hat{f}_\ell(x) \right) & = \mathbb{E}\left[ \mathrm{Var}\left( \hat{f}_{\ell}(x) \;\middle|\; \hat{f}_{\ell - 1}(x) \right) \right]
+                                                      + \mathrm{Var}\left( \mathbb{E}\left[ \hat{f}_{\ell}(x) \;\middle|\; \hat{f}_{\ell - 1}(x) \right] \right).
     \end{align*}
-    Here we have used the law of total expectation to simplify the expression
-    in the first line. Plugging this result into \Cref{eq:total_variance}
-    yields
-    $$ \mathrm{Var}\left[ \hat{f}_\ell(y) \right] = \mathrm{Var}\left[ \Delta_\ell(y) \right] + \mathrm{Var}\left[ \hat{f}_{\ell-1}(y) \right]. $$
-    Recursively applying this argument to~$\hat{f}_{\ell-1}$,
-    $\hat{f}_{\ell-2}$, etc., implies
-    \begin{equation}
-        \label{eq:variance_sum}
-        \mathrm{Var}\left[ \hat{f}(y) \right] = \mathrm{Var}\left[ \hat{f}_\ell(y) \right] = \sum_{i=1}^\ell \mathrm{Var}\left[ \Delta_i(y) \right].
-    \end{equation}
-    Since we know that~$\mathrm{Var}\left[ \hat{f}(y) \right] \leq V(N)$,
-    \Cref{eq:variance_sum} implies that, for some~$i$, $\mathrm{Var}\left[ 
-    \Delta_i(y) \right] \leq V(N)/\ell$. By a similar averaging argument, the
-    following lemma holds:
-    \begin{lemma}
-        \label{lemma:lower_window_variance}
-        For at least~$\ell/2$ many values of~$i$, it must be that
-        $\mathrm{Var}\left[ \Delta_i(y) \right] \leq 2 \cdot V(N)/\ell = 4
-        \cdot V(N)/\log_2 n$. In words, the estimates of~$\mathcal{S}$ for a
-        non-existent key in many of the subsequences~$\sigma_i$ must have a
-        significantly lower variance than~$V(N)$.
-    \end{lemma}
-    \Cref{lemma:lower_window_variance} implies that there is some~$i^*$ such
-    that the estimation variance in subsequence~$\sigma_{i^*}$ is small for at
-    least half of the elements~$y \in U-\sigma$, i.e., $\mathrm{Var}\left[ 
-    \Delta_{i^*}(y) \right] \leq 4 \cdot V(N)/\log_2 n$.
+    Applying the law of total variance once more to the right summand
+    simplifies it to
+    \begin{align*}
+        \mathrm{Var}\left( \mathbb{E}\left[ \hat{f}_\ell(x) \;\middle|\; \hat{f}_{\ell - 1}(x) \right] \right) & = \mathbb{E}\left[ \mathrm{Var}\left( \mathbb{E}\left[ \hat{f}_{\ell}(x) \;\middle|\; \hat{f}_{\ell - 1}(x) \right] \;\middle|\; \hat{f}_{\ell - 2}(x) \right) \right] \\
+                                                      & \; \; + \mathrm{Var}\left( \mathbb{E}\left[ \mathbb{E}\left[ \hat{f}_{\ell}(x) \;\middle|\; \hat{f}_{\ell - 1}(x) \right] \;\middle|\; \hat{f}_{\ell - 2}(x) \right] \right) \\
+                                                      & = \mathbb{E}\left[ \mathrm{Var}\left( \mathbb{E}\left[ \hat{f}_{\ell}(x) \;\middle|\; \hat{f}_{\ell - 1}(x) \right] \;\middle|\; \hat{f}_{\ell - 2}(x) \right) \right] \\
+                                                      & \; \; + \mathrm{Var}\left( \mathbb{E}\left[ \hat{f}_\ell(x) \;\middle|\; \hat{f}_{\ell - 2}(x) \right] \right).
+    \end{align*}
+    Here, we have simplified the inner expectation in the second summand using
+    the law of total expectation. Recursively applying the law of total
+    variance this term yields, for any~$i$, that
+    \begin{align*}
+        \mathrm{Var}\left( \mathbb{E}\left[ \hat{f}_\ell(x) \;\middle|\; \hat{f}_i(x) \right] \right) & = \mathbb{E}\left[ \mathrm{Var}\left( \mathbb{E}\left[ \hat{f}_{\ell}(x) \;\middle|\; \hat{f}_i(x) \right] \;\middle|\; \hat{f}_{i - 1}(x) \right) \right] \\
+                                                      & \; + \mathrm{Var}\left( \mathbb{E}\left[ \hat{f}_\ell(x) \;\middle|\; \hat{f}_{i - 1}(x) \right] \right),
+    \end{align*}
+    with~$\mathrm{Var}\left( \mathbb{E}\left[ \hat{f}_\ell(x) \;\middle|\; \hat{f}_0(x) \right] \right)=0$ 
+    due to~$\hat{f}_0(x)$ and 
+    thus~$\mathbb{E}\left[ \hat{f}_\ell(x) \;\middle|\; \hat{f}_0(x) \right]$
+    being constants. Now, we utilize the definition of the variance to simplify
+    the expectations of the variances as
+    \begin{align*}
+        & \mathbb{E}\left[ \mathrm{Var}\left( \mathbb{E}\left[ \hat{f}_\ell(x) \;\middle|\; \hat{f}_i(x) \right] \;\middle|\; \hat{f}_{i - 1}(x) \right) \right] \\
+        & = \mathbb{E}\left[ \mathbb{E}\left[ \left( \mathbb{E}\left[ \hat{f}_\ell(x) \;\middle|\; \hat{f}_i(x) \right] - \mathbb{E}\left[ \mathbb{E}\left[ \hat{f}_\ell(x) \;\middle|\; \hat{f}_i(x) \right] \right] \right)^2 \;\middle|\; \hat{f}_{i - 1}(x) \right] \right] \\
+        & = \mathbb{E}\left[ \left( \mathbb{E}\left[ \hat{f}_\ell(x) \;\middle|\; \hat{f}_i(x) \right] - \mathbb{E}\left[ \mathbb{E}\left[ \hat{f}_\ell(x) \;\middle|\; \hat{f}_i(x) \right] \right] \right)^2 \right] \\
+        & = \mathbb{E}\left[ \left( \mathbb{E}\left[ \hat{f}_\ell(x) \;\middle|\; \hat{f}_i(x) \right] - \mathbb{E}\left[ \hat{f}_\ell(x) \right] \right)^2 \right] \\
+        & = \mathbb{E}\left[ \left( \mathbb{E}\left[ \hat{f}_\ell(x) \;\middle|\; \hat{f}_i(x) \right] - f_\ell(x) \right)^2 \right] = \hat{e}_i(x).
+    \end{align*}
+    The third and fourth lines apply the law of total expectation to simplify
+    the double expectations, and the fifth line utilizes the assumption
+    of~$\mathbb{E}[\hat{f}_\ell(x)] = f_\ell(x)$. Intuitively, $\hat{e}_i(x)$
+    is a measure of how much the conditional frequency
+    estimate~$\mathbb{E}\left[ \hat{f}_\ell(x) \;\middle|\; \hat{f}_i(x) \right]$ 
+    can deviate from~$f_\ell(x)$. Summing these terms yields
+    \begin{align}
+        V(N) \geq \mathrm{Var}\left( \hat{f}_\ell(x) \right) & = \mathrm{Var}\left( \mathbb{E}\left[ \hat{f}_\ell(x) \;\middle|\; \hat{f}_{\ell - 1}(x) \right] \right) + \sum_{i=1}^{\ell - 1} \hat{e}_i(x) \notag \\ 
+        & = \sum_{i=1}^\ell \hat{e}_i(x). \label{eq:total_variance}
+    \end{align}
+    Here we have simplified the term~$\mathrm{Var}\left( \mathbb{E}\left[ \hat{f}_\ell(x) \;\middle|\; \hat{f}_{\ell - 1}(x) \right] \right)$ 
+    to $\hat{e}_\ell$ by expressing~$\hat{f}_\ell(x)$ as 
+    $\mathbb{E}\left[ \hat{f}_\ell(x) \;\middle|\; \hat{f}_\ell(x) \right]$ and
+    simplifying similarly to the other terms. 
 
-    We now fix the internal randomness of~$\mathcal{S}$ to convert it to a
-    deterministic sketch that, for many sequences~$\sigma$, only has estimation
-    errors larger than~$E(N)$ on a $8\delta/\log_2 n$ fraction of the elements
-    in~$U-\sigma$ when processing the subsequence~$\sigma_{i^*}$. When
-    compressing a sequence~$\sigma$, this allows to reliably rule out a large,
-    $(1-8\delta/\log_2 n)$-fraction of the non-existing elements
-    in~$\sigma_{i^*}$, leaving just a~$(8\delta/\log_2 n)$-fraction for us to
-    disambiguate. We denote the fraction of such keys for a given
-    sequence~$\sigma$ as~$\mu(\sigma)$ and follow a similar argument to that of
+    \Cref{eq:total_variance} implies that, for at least half of the~$i$s, it
+    holds that $\hat{e}_{i^*}(x) \leq 2 \cdot V(N)/\ell$. By an averaging
+    argument, this further implies that there is some~$i^*$ such that
+    $\hat{e}_{i^*}(x) \leq 2 \cdot V(N)/\ell$ holds for at least half of the
+    elements~$x$ from the universe~$U$, which we denote by~$U'$ with $|U'| = u'
+    \geq u/2$. 
+
+    We now focus on sequences~$\mathbf{x}$ consisting of the elements of~$U'$.
+    We leverage the property of low~$\hat{e}_{i^*}(x)$ to compress the
+    subsequence~$\mathbf{x}_i$. Our encoding proceeds as follows:
+    \begin{enumerate}[label=(\roman*)]
+        \item We write the explicit representations of the keys in all
+            subsequences~$\mathbf{x}_i$, where $i \neq i^*$. The total cost for
+            writing these representations is~$(n-|\mathbf{x}_{i^*}|) \cdot
+            \log_2 u'$ bits.
+        \item We write the state of the sketch~$\mathcal{S}_{i^*}$. This
+            takes~$|\mathcal{S}_{i^*}|$ bits, which is the quantity we want to
+            bound. \\
+            Since we know the sequences~$\mathbf{x}_{i^*+1}, \dots,
+            \mathbf{x}_\ell$ and the state of the sketch~$\mathcal{S}_{i^*}$,
+            and because we do not limit the running time, we can
+            compute~$g(x)=\mathbb{E}\left[ \hat{f}_\ell(x) \;\middle|\;
+            \hat{f}_{i^*}(x) \right]$ by setting the remaining randomness
+            of~$\mathcal{S}_{i^*}$ to all possible combinations, processing
+            $\mathbf{x}_{i^*+1}, \dots, \mathbf{x}_\ell$, and averaging the
+            estimates~$\hat{f}_\ell(x)$. Recall that 
+            $$ \;\;\;\;\;\;\;\;\;\;\; 2 \cdot V(N)/\ell \geq \hat{e}_{i^*}(x) = \mathbb{E}\left[ \left( \mathbb{E}\left[ \hat{f}_\ell(x) \;\middle|\; \hat{f}_{i^*}(x) \right] - f_\ell(x) \right)^2 \right]. $$
+            This implies that the estimate~$g(x)$ is unlikely to deviate more
+            than~$E(N)$ from $f_\ell(x)$. That is, when~$g(x)/E(N)$ is smaller
+            than the number of times~$x$ appears in~$\mathbf{x}$ outside
+            of~$\mathbf{x}_{i^*}$ by more than~$1/2$, $x$ most probably does
+            not appear in~$\mathbf{x}_{i^*}$. This allows for reducing the
+            number of bits required to encode each element
+            in~$\mathbf{x}_{i^*}$ in our compression scheme.
+        \item Yet, since~$g(x)$ can suffer from severe underestimations, one
+            cannot rely purely on its value to compress and
+            decompress~$\mathbf{x}_{i^*}$. To address this issue, we store a
+            bit for each key in~$\mathbf{x}_{i^*}$ indicating whether~$g(x)$
+            underestimates its count by more than~$E(N)$. Each bit is~1 if the
+            corresponding key has a large underestimation error, and~0
+            otherwise. This takes a total of~$|\mathbf{x}_{i^*}|=2^{i^*} \cdot
+            \sqrt{n}$ bits.
+        \item For each bit set to 1 in the previous step, we store the exact
+            representation of the corresponding key using~$\log_2 u'$ bits. All
+            keys in~$\mathbf{x}_{i^*}$ associated with a~0 bit either have
+            overestimation errors or an absolute error smaller than~$E(N)$. As
+            such, they only need to be disambiguated from the set of keys~$x$
+            where $g(x) \geq E(N)/2$.
+        \item For each bit set to 0 in the third step, we store the index of
+            the corresponding key in~$\mathbf{x}_{i^*}$ from the set of all
+            keys~$y$ where $g(y)/E(N)$ is larger than the number of times~$y$
+            appears in the rest of the sequence by at least one. The cost per
+            each key is the logarithm of the size of this set.
+    \end{enumerate}
+
+    We now fix the internal randomness of~$\mathcal{S}_{i^*}$ to convert it to
+    a deterministic sketch giving rise to a~$g(\cdot)$ that, for many
+    sequences~$\mathbf{x}$, only has estimation errors larger than~$E(N)$ on a
+    $16\delta/\log_2 n$ fraction of the elements in~$U'$. We denote the
+    fraction of such keys for a given sequence~$\mathbf{x}$
+    as~$\mu(\mathbf{x})$. Notice how~$\mu(\mathbf{x})$ is relative size of the
+    set we use to encode each key in the fifth step of the encoding. We also
+    show that one can pick the internal randomness such that, in addition the
+    aforementioned condition, $g(\cdot)$ errs more than~$E(N)$ on a fraction of
+    at most~$16\delta/\log_2 n$ of the keys in the special
+    subsequence~$\mathbf{x}_{i^*}$. We denote this fraction
+    by~$\eta(\mathbf{x})$. Notice also how~$\eta(\mathbf{x})$ is fraction of
+    the bits set to 1 in the third step of the encoding, which dictates the
+    number of keys we represent explicitly in the fourth step. 
+
+    We prove the above statement following a similar argument to that of
     Section~3.1 in~\cite{PaghExpandability}:
     \begin{lemma}
         \label{lemma:derandomization}
-        We can fix the internal randomness of the sketch~$\mathcal{S}$ such
-        that, for at least half of the possible sequences~$\sigma$, i.e.,
-        $u^n/2$ many of them, $\mu(\sigma) \leq 8\delta/\log_2 n$.
+        We can fix the internal randomness of the sketch~$\mathcal{S}_{i^*}$
+        such that, for at least half of the possible sequences~$\mathbf{x}$,
+        i.e., ${u'}^n/2$ many of them, $\mu(\mathbf{x}) \leq 16\delta/\log_2 n$
+        and $\eta(\mathbf{x}) \leq 16\delta/\log_2 n$.
     \end{lemma}
     \begin{proof}
-        By Chebyshev's inequality, the randomized version of~$\mathcal{S}$ has
-        errors bounded by~$E(N)$ with a confidence of~$1-4\delta/\log_2 n$ for
-        any $y \in U-\sigma$ when processing the subsequence~$\sigma_{i^*}$.
-        Thus, denoting the internal random bits of~$\mathcal{S}$ by $r$, for
-        any sequence~$\sigma \in U^n$, we have that~$\mathbb{E}_r\left[ 
-        \mu(\sigma) \right] \leq 4\delta/\log_2 n$. Therefore, by Markov's
-        inequality, it holds that 
-        $$ \Pr_r\left[ \mu(\sigma) \geq 8\delta/\log_2 n \right] \leq \frac{1}{2}. $$
-        Considering the complement even yields 
-        $$ \Pr_r\left[ \mu(\sigma) < 8\delta/\log_2 n \right] \geq \frac{1}{2}. $$
-        That is, each sequence~$\sigma$ satisfies~$\mu(\sigma) < 8\delta/\log_2
-        n$ with a probability of~$1/2$. An averaging argument implies that
-        there is some choice for the internal randomness of~$\mathcal{S}$,
-        i.e., $r$, that satisfies~$\mu(\sigma) < 8\delta/\log_2 n$ for at
-        least half of all~$u^n$ sequences.
+        By Markov's inequality, the~$g(x)$ resulting from the randomized
+        version of~$\mathcal{S}_{i^*}$ has errors bounded by~$E(N)$ with a
+        confidence of at least~$1-2\delta/\ell=1-4\delta/\log_2 n$ for any $x
+        \in U'$ when processing the subsequence~$\mathbf{x}_{i^*}$. Thus,
+        denoting the internal random bits of~$\mathcal{S}_{i^*}$ by $r$, for
+        any~$\mathbf{x} \in {U'}^n$, we have that~$\mathbb{E}_r\left[ 
+        \mu(\mathbf{x}) \right] \leq 4\delta/\log_2 n$ and $\mathbb{E}_r\left[ 
+        \eta(\mathbf{x}) \right] \leq 4\delta/\log_2 n$. Therefore, once again
+        by Markov's inequality, we have
+        $$ \Pr_r\left[ \mu(\mathbf{x}) \geq 16\delta/\log_2 n \right] \leq \frac{1}{4}, \;\;\;\; \Pr_r\left[ \eta(\mathbf{x}) \geq 16\delta/\log_2 n \right] \leq \frac{1}{4}. $$
+        Thus, by a union bound, we have that 
+        $$ \Pr_r\left[ \mu(\mathbf{x}) \geq 16\delta/\log_2 n \;\vee\; \eta(\mathbf{x}) \geq 16\delta/\log_2 n \right] \leq \frac{1}{2}. $$
+        Takin the complement of the above yields 
+        $$ \Pr_r\left[ \mu(\mathbf{x}) < 16\delta/\log_2 n \;\wedge\; \eta(\mathbf{x}) < 16\delta/\log_2 n \right] \geq \frac{1}{2}. $$
+        That is, each~$\mathbf{x}$ satisfies~$\mu(\mathbf{x}) < 16\delta/\log_2
+        n$ and $\eta(\mathbf{x}) < 16\delta/\log_2 n$ with a probability of at
+        least~$1/2$. An averaging argument implies that there is some choice
+        for the internal randomness of~$\mathcal{S}_{i^*}$, i.e., $r$, that
+        satisfies~$\mu(\mathbf{x}) < 16\delta/\log_2 n$ and $\eta(\mathbf{x}) <
+        16\delta/\log_2 n$ at the same time for at least half of all~${u'}^n$
+        sequences.
     \end{proof}
 
-    We now use the deterministic version of~$\mathcal{S}$ resulting from fixing
-    its randomness according to~\Cref{lemma:derandomization} to compress of
-    the~$u^n/2$ many sequences $\sigma$ with $\mu(\sigma) \leq 8\delta/\log_2
-    n$. Our encoding scheme is as follows:
-    \begin{enumerate}[label=(\roman*)]
-        \item We write the explicit representations of the keys in all
-            subsequences~$\sigma_i$, where $i \neq i^*$. The total cost for
-            writing these representations is of~$(n-|\sigma_{i^*}|) \cdot
-            \log_2 u$ bits.
-        \item For each key in~$\sigma_{i^*}$, we store a bit indicating
-            whether~$\mathcal{S}_{i^*}$ underestimates its count by more
-            than~$E(N)$. Each bit is~1 if the corresponding key has a large
-            underestimation error, and it is~0 otherwise. This takes a total
-            of~$|\sigma_{i^*}|=2^{i^*} \cdot \sqrt{n}$ bits.
-        \item For each bit set to 1 in the previous step, we store the exact
-            representation of the corresponding key using~$\log_2 u$ bits.
-        \item We write the state of the sketch $\mathcal{S}_{i^*}$. This
-            takes~$|\mathcal{S}_{i^*}|$ bits, which is the quantity we want to
-            bound.
-    \end{enumerate}
+    We thus fix the internal randomness of~$\mathcal{S}_{i^*}$ to the string
+    indicated by \Cref{lemma:derandomization} and use the estimation
+    function~$g(\cdot)$ that arises from it to encode the an arbitrary sequence
+    from the ${u'}^n/2$ sequences in \Cref{lemma:derandomization}. The first,
+    second, and third steps of the encoding take up~$(n-2^{i^*}\cdot\sqrt{n})
+    \cdot \log_2 u'$, $|\mathcal{S}_{i^*}|$, and $2^{i^*}\cdot\sqrt{n}$,
+    respectively. Since we have $\eta(\mathbf{x}) \leq 16\delta/\log_2 n$ for
+    all sequencees $\mathbf{x}$ that we consider, the number of 1s we store in
+    the bitmap in the third step is at most~$\frac{16\delta}{\log_2 n} \cdot
+    2^{i^*}\cdot\sqrt{n}$ bits. We explicitly store the keys that correspond to
+    these bits in the fourth step, taking~$\frac{16\delta}{\log_2 n} \cdot
+    2^{i^*}\cdot\sqrt{n} \cdot \log_2 u'$ bits. Finally, for the keys
+    corresponding to the~0 bits in the bitmap from the third step,
+    since~$\mu(\mathbf{x})$ determines the size of the set we index in the last
+    step, it takes~$\left( 1 - \frac{16\delta}{\log_2 n} \right) \cdot
+    2^{i^*}\cdot\sqrt{n} \cdot \log_2 \left( \mu(\mathbf{x}) \cdot u' \right) =
+    \left( 1 - \frac{16\delta}{\log_2 n} \right) \cdot 2^{i^*}\cdot\sqrt{n}
+    \cdot \left[ \log_2 u' - \log_2\log_2 n - \log_2 (1/\delta) + 4 \right]$
+    bits to encode them. The sum of these costs cannot be smaller than the
+    entropy of encoding a random sequence from these~${u'}^n/2$ sequences,
+    i.e., $n \cdot \log_2 u' - 1$ bits. That is, summing up the costs of the
+    encoding, the following inequality holds:
+    \begin{align*}
+        |\mathcal{S}_{i^*}| & + n \cdot \log_2 u' \\ 
+        & + 2^{i^*} \cdot \sqrt{n} \cdot \left( 1 - \left( 1-\frac{16\delta}{\log_2 n} \right) \cdot \left[ \log_2\log_2 n + \log_2 \frac{1}{\delta} - 4 \right] \right) \\
+        & \geq n \cdot \log_2 u' - 1.
+    \end{align*}
+    Simplifying the above inequality, we get
+    \begin{align*}
+        |\mathcal{S}_{i^*}| \geq 2^{i^*} \cdot \sqrt{n} \cdot \left( \left( 1-\frac{16\delta}{\log_2 n} \right) \cdot \left[ \log_2\log_2 n + \log_2 \frac{1}{\delta} - 4 \right] - 1 \right) - 1,
+    \end{align*}
+    which is equivalent to
+    \begin{align*}
+        |\mathcal{S}_{i^*}| \geq |\mathbf{x}_{i^*}| \cdot \left( \log_2\log_2 n + \log_2 \frac{1}{\delta} - \Theta(1) \right),
+    \end{align*}
+    proving the desired result.
 \end{proof}
 
 \end{document}
