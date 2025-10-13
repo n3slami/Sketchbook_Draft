@@ -2400,13 +2400,15 @@ of the art while maintaining high performance.
 \appendix
 
 \section{Applying \sketch\ to Misra-Gries}\label{sec:mg}
+We now apply \sketch\ to Misra-Gries to derive \sketchmg.
+
 \textbf{Misra-Gries (MG).}
-Although CMS and CS benefit from more skew due to distinct keys colliding less
-frequently, using dedicated counters to track the most frequent keys yields
-higher accuracy for the same memory compared to hashing them into a counter
-array. MG applies this insight to provide more accurate estimates under skewed
-workloads. The third row of \Cref{tab:classic_sketch_stats} summarizes the
-properties of MG and compares it to CMS and CS.
+By using dedicated counters to track the most frequent keys, MG achieves high
+accuracy under skewed workloads. Moreover, by only incrementing a key's
+dedicated counter when it is inserted, MG ensures that it never overestimates
+the key counts. This property is ideal for finding the most frequent keys, as
+described in \Cref{sec:introduction}, since it guarantees that the frequency of
+those keys is at least as large as the estimates.
 
 \begin{figure}
     \centering
@@ -2464,12 +2466,12 @@ properties of MG and compares it to CMS and CS.
 \Cref{fig:mg_overview} presents an overview of MG. MG maintains an array of
 slots, each storing a key (shown in gray) and a dedicated frequency counter
 (shown in white). MG estimates the frequency of each key in the array as the
-value of its counter. It returns an estimate of zero for the untracked keys.
-When inserting a key~$x$, MG first checks if it has a dedicated counter in some
+value of its counter. It returns an estimate of zero for untracked keys. When
+inserting a key~$x$, MG first checks if it has a dedicated counter in some
 slot. If it does, MG increments~$x$'s counter. If not, and the array has an
 empty slot, MG stores~$x$ in it with a count of~$1$. If~$x$ is not in the array
 and the array is full, MG decrements all counters and discards any keys whose
-counters become zero. Such keys are unlikely to be among the most frequent and
+counters become zero. Such keys are unlikely to be among the most frequent, and
 their slots are better used for tracking more frequent keys. Note that~$x$ is
 not stored in the newly emptied slots and is only stored if it is inserted when
 some slot is already empty. MG does not support deletions without deteriorating
@@ -2481,44 +2483,51 @@ array.
 Having more slots in the array allows MG to track more keys without discarding
 them, leading to more accurate estimates. Since MG is a deterministic data
 structure that does not use hashing, unlike CMS and CS, it does not suffer from
-hash collisions, and its estimations have full confidence. Using an array
-of~$w$ slots, MG estimates the frequency of any key with an error of at
-most~$\frac{N}{w}$, i.e., $|\hat{f}(x)-f(x)| \leq \frac{N}{w}$ for any key~$x$.
-Since it uses dedicated counters for the heavy hitters, it also provides a
-strong ``\emph{Tail Guarantee},'' stating that the error for any key is at
-most~$\min_{1 \leq i \leq w} \frac{N^{\text{res}(i)}}{w-i+1}$, where
-$N^{\text{res}(i)}$ is the total frequency of all keys not among the top~$i$.
-Note that~$N^{\text{res}(i)}$ is much smaller than~$N$ when the data is skewed.
+hash collisions, and its estimations are within the error bounds with full
+confidence. Using an array of~$w$ slots, MG estimates the frequency of any key
+with an error of at most~$\frac{N}{w}$, i.e., $|\hat{f}(x)-f(x)| \leq
+\frac{N}{w}$ for any key~$x$. Since it uses dedicated counters for the heavy
+hitters, it also provides a strong ``\emph{Tail Guarantee},'' stating that the
+error for any key is at most~$\min_{1 \leq i \leq w}
+\frac{N^{\text{res}(i)}}{w-i+1}$, where $N^{\text{res}(i)}$ is the total
+frequency of all keys not among the top~$i$. Note that~$N^{\text{res}(i)}$ is
+much smaller than~$N$ when the data is skewed.
 
-Since MG only increments a key's counter if it is in the array and decrements
-counters otherwise, it only underestimates frequencies. Thus, its estimates are
-biased. For similar reasons to CMS, this bias cannot be removed by enlarging
-estimates. Yet, probabilistically replacing the array's least frequent keys can
-yield unbiased estimates~\cite{UnbiasedSpaceSaving}. Other variations of MG
-achieve higher accuracy in practice, but suffer from two-sided errors in
-exchange~\cite{SpaceSaving}.
+It is possible to modify MG to support unbiased estimation by probabilistically
+replacing the array's least frequent key newly inserted
+keys~\cite{UnbiasedSpaceSaving}. Other variations of MG achieve higher accuracy
+in practice, but suffer from two-sided errors in exchange~\cite{SpaceSaving}.
 
 Typical implementations of MG use a hash table to implement the array of keys,
 yielding constant-time queries. They also optimize insertions by lazily
 decrementing the counters and employing an auxiliary heap to locate and discard
-keys with zero counts. The query time can be further improved to~$O(1)$ using a
-specialized data structures similar to a linked list in exchange for a higher
-memory footprint~\cite{SpaceSaving}.
+keys with zero counts in~$O(\log w)$ time. Insertions can be sped up to
+constant time using a specialized data structure similar to a linked list in
+exchange for a higher memory footprint~\cite{SpaceSaving}.
 
 \textbf{Accommodating Skew.}
-The counts stored in MG may still exhibit skew within themselves. This causes
-memory wastage if uniformly-sized counters are used. \sketchmg addresses this
-issue by storing the counter values in a separate array that mirrors the
-ordering of the keys within the array of slots. It applies
-\counterencodingabbrv\ to space efficiently encode these counter values. No
-modification is required to \counterencodingabbrv, as the counter values are
-all positive.
+The counts of the heavy hitters stored in MG may still exhibit skew among
+themselves. This leads to memory wastage if the counter values are stored in
+uniformly-sized counters, as in the case of CMS and CS. \sketchmg addresses
+this issue by applying \counterencodingabbrv\ to the counters. Since
+\counterencodingabbrv\ requires the counters to be tightly packed in memory
+without any keys in-between them, \sketchmg stores the counter values in a
+separate array that mirrors the ordering of the keys within the slots before
+applying \counterencodingabbrv.
 
 \textbf{Accommodating Skew.}
-To bound the error for growing streams, \sketchmg generalizes MG to expand its
-array of slots. Since keys are not hashed into the array of slots and can be
-placed in any slot, \sketchmg expands this array on a slot-by-slot basis,
-unlike \sketchcms and \sketchcs that double the size of their arrays.
+\sketchmg bounds the error for growing streams by expanding as the estimation
+error grows, similarly to \sketchcms and \sketchcs. Since MG's estimation error
+is~$N/w$ (or $\min_{1 \leq i \leq w} N^{\text{res}(i)}/(w-i+1)$ in the tail
+case), mirroring that of CMS, \sketchmg expands based on the growth of the
+total number of keys~$N$. As keys are not hashed and can be placed in any slot
+within the array, \sketchmg expands on a slot-by-slot basis, unlike \sketchcms
+and \sketchcs, which must double the size of their arrays to enable consistent
+hashing. As such, \sketchmg smoothly increases its number of slots while
+ensuring that it doubles every time~$N$ more than doubles. This ensures that
+the number of counters in the array matches the size function~$W(N)$ encoding
+the expansion policy at all times. Moreover, it allows for a lower price of
+expandability. 
 
 \section{Omitted Proofs}\label{sec:ommitted_proofs}
 \thmsketchexpandabilitylabel*
