@@ -251,8 +251,9 @@ sketches to address the two challenges described above. To address Problem~1
 them as they overflow. It colocates each counter and its extension within the
 same cache line and employs specialized bit manipulation routines to decode
 them in constant time. To resolve Problem~2 (Unbounded Data Growth), \sketch\
-expands its number of counters as error is incurred with the stream's growth,
-simultaneously maintaining high accuracy and a sub-linear memory footprint.
+expands its number of counters as the incurred error increases with the
+stream's growth. In doing so, it controls the growth of the error and
+simultaneously maintains high accuracy and a sub-linear memory footprint.
 
 \textbf{Additional Contributions.}
 \begin{enumerate}
@@ -327,7 +328,7 @@ Misra-Gries~\cite{MisraGries} (\Cref{sec:mg}) and apply our techniques to them.
         $d$ & Number of independent arrays. \\
         $h_i(x)$ & Hash function mapping key~$x$ to a counter. \\
         $\sigma_i(x)$ & Hash function defining key~$x$'s update direction ($\pm 1$). \\
-        $N^{\text{res}(i)}$ & Total count of all but the~$i$ most frequent keys. \\
+        %$N^{\text{res}(i)}$ & Total count of all but the~$i$ most frequent keys. \\
         \cmidrule{1-2}
         $c$ & Number of counters in each chunk. \\
         $s$ & Length of each stub in bits. \\
@@ -1773,7 +1774,7 @@ optimal expected error of~$O(\log N)$. As such, it provides the best possible
 expected error under all these regimes, and is thus space-optimal.
 
 \subsection{Applying \sketch\ to Count Sketch}\label{sec:cs}
-%For example, in join size estimation, multiplying overestimated counts from the input tables leads to an overly large join size.
+We now apply \sketch\ to Count Sketch to derive \sketchcs.
 
 \begin{figure}
     \centering
@@ -1832,15 +1833,17 @@ expected error under all these regimes, and is thus space-optimal.
 \end{figure}
 
 \textbf{Count Sketch (CS).}
-CS provides unbiased estimates for the count of each key.\footnote{In CMS, one
-can subtract the average of the counter values a query key does not hash to
-from the query's counter to derive an unbiased estimate~\cite{CountMeanMin}.
-Yet, the resulting estimate has a marginally higher variance than that of CS.}
-As a result, its estimates do not have compounding errors when combined or
-multiplied, leading to more accurate results for join-size
-estimation~\cite{Compass,QueryOptimizationSketches,ConvolutionSketch} and
-covariance estimation~\cite{ASCS}. \Cref{tab:classic_sketch_stats} summarizes
-the properties of CS and compares it to CMS.
+Recall from \Cref{sec:introduction} that unbiased estimates equal the
+ground-truth frequency on average. This allows for multiplying estimates, as
+required in join
+size~\cite{Compass,QueryOptimizationSketches,ConvolutionSketch} and covariance
+estimation~\cite{ASCS}, without the risk of compounding errors. CS provides
+such unbiased estimates and reaps its benefits.\footnote{One can also achieve
+unbiased estimation using CMS by subtracting the average of the counter values
+a query key does not hash to from the query's counter~\cite{CountMeanMin}. Yet,
+the resulting estimate has a marginally higher variance than that of CS.}
+\Cref{tab:classic_sketch_stats} summarizes the properties of CS and compares it
+to CMS.
 
 Similarly to CMS, the core component of CS is a counter array of size~$w$
 coupled with a hash function~$h$ that maps each key to a counter. Unlike CMS,
@@ -1855,37 +1858,35 @@ key's update direction is random, the expected interference on~$x$'s counter
 from any other key is zero due to the positive and negative possibilities
 canceling out. Thus, the value of the counter along the update direction is an
 estimate of~$x$'s frequency. The zero expected interference removes bias,
-though it introduces two-sided errors (both under and overestimations). As in
-the case of CMS, increasing the array's size makes hash collisions less likely
-and thus reduces the average deviation. 
+though it introduces two-sided errors (both under and overestimations). 
 
-To bound the probability of large deviations, one can compute the variance of
-each counter value. Denoting the frequency of key~$y$ by $f(y)$, this variance
-can be expressed as~$\frac{\sum_{y} (f(y))^2}{w}$. The quantity~$\sqrt{\sum_y
-(f(y))^2}$ is known as the~$\ell_2$-norm of the key counts in the stream, which
-we denote by~$N_2$. A straight-forward application of Chebyshev's inequality
-shows that the absolute deviation does not exceed~$e \cdot N_2/\sqrt{w}$ with a
-confidence of at least~$1-e^{-1}$, i.e., $\Pr\left( |\hat{f}(x)-f(x)| \leq e
-\cdot \sqrt{\frac{\sum_{y} (f(y))^2}{w}} \right) \geq 1-e^{-1}$ for any key
-$x$. The value of~$N_2$ varies based on the workload's distribution, with
-uniform workloads having~$N_2=O(\sqrt{N})$ due to the summands beings small,
-and skewed workloads having~$N_2 \approx N$. This leads to CS's error bound
-(i.e., $\sqrt{N_2^2/w} = O(\sqrt{N/w})$) being smaller than that of CMS (i.e.,
-$N/w$) under less skew.
+Although the estimates are unbiased and accurate in expectation for any
+workload, they may suffer from large deviations. This is because many keys
+hashing to the same counter may have the same update direction, despite the
+zero expected interference. Skew exacerbates this phenomenon since a heavy
+hitter drastically changes the estimates of the keys hashing to the same
+counter, no matter its update direction. Therefore, to bound the probability of
+severe errors, we compute the estimation variance. Denoting the frequency of
+key~$y$ by $f(y)$, this variance can be expressed as~$V=\frac{\sum_{y}
+(f(y))^2}{w}$. This lines up with the intuition that larger arrays make hash
+collisions less likely, reducing the variance. A straight-forward application
+of Chebyshev's inequality shows that the error does not exceed~$e \cdot
+\sqrt{V}$ with a confidence of at least~$1-e^{-2}$.\footnote{Comparing to CMS,
+CS's error bound is~$\sqrt{V} = O(\sqrt{N/w})$ when the workload is more
+uniform, which is smaller than CMS's error bound of~$N/w$.}
 
-Like CMS, a frequent key adversely impacts the estimates of keys mapping to the
-same counter, degrading confidence. CS addresses this by employing~$d$
-independent arrays, each with its own hash function~$h_i$ and $\sigma_i$. In
-contrast to CMS, CS answers a query by returning the median estimate to improve
-robustness to outliers, as shown in \Cref{fig:cs_overview}. The median is a
-better choice than the minimum since the minimum introduces error by returning
-underestimations. This allows CS to guarantee an error bound of at most~$e
-\cdot \sqrt{\frac{\sum_{y} (f(y))^2}{w}}$ with a confidence of~$1-e^{-d}$.
+Similarly to CMS, CS boosts confidence by employing~$d$ independent arrays,
+each with its own hash functions~$h_i$ and $\sigma_i$. It answers a query by
+returning the median estimate, as shown in \Cref{fig:cs_overview}. The median
+is returned, as it only has large errors when most estimates err significantly,
+which becomes exponentially less likely given more arrays. Formally, by a
+Chernoff bound, CS guarantees an error bound of at most~$e \cdot \sqrt{V}$ with
+a confidence of at least~$1-e^{-d}$.
 
 \begin{table}
     \centering
     %\def\arraystretch{1.075}
-    \setlength{\tabcolsep}{4pt}
+    \setlength{\tabcolsep}{3pt}
     \begin{tabular}{cccccccc}
         \toprule
 
@@ -1910,7 +1911,7 @@ underestimations. This allows CS to guarantee an error bound of at most~$e
         \footnotesize CS 
         & \footnotesize Unbiased 
         & \footnotesize $e \cdot \sqrt{\frac{\sum_y (f(y))^2}{w}}$ 
-        & \footnotesize $1-e^{-d}$ 
+        & \footnotesize $\geq 1-e^{-d}$ 
         & \footnotesize $O(d)$ 
         & \footnotesize $O(d)$ 
         & \footnotesize $O(d)$ \\
@@ -1922,111 +1923,53 @@ underestimations. This allows CS to guarantee an error bound of at most~$e
 \end{table}
 
 \textbf{Accommodating Skew.}
-Similarly to CMS, CS wastes memory under skewed workloads due to using
-uniformly-sized counters. \sketchcs addresses this problem by generalizing CS
-to use a tailored version of \counterencodingabbrv. To this end, it appends a
-sign bit to each stub. This allows it to store negative counter values by
-setting the corresponding sign bit to~1 and using \counterencodingabbrv\ as
-before to encode the counter's absolute value.
+To avoid the space wastage of uniformly-sized counters, \sketchcs applies
+\counterencodingabbrv\ to CS. It stores the absolute value of each counter
+using \counterencodingabbrv\ as before, while representing the sign of each
+counter by appending a sign bit to its stub. 
 
 \textbf{Accommodating Unbounded Growth.}
-As with CMS, using CS to process a growing stream yields estimation errors that
-grow with the total key count~$N$. To resolve this problem, \sketchcs extends
-CS to expand and contract its number of counters, similarly to \sketchcms. It
-uses the same hash functions~$h_1,\dots,h_d$ and $\sigma_1,\dots,\sigma_d$ to
-map keys to consistent counters and employ consistent update directions across
-expansions. It handles insertions, deletions, and queries as in the case of a
-standard CS.
+Since the estimation variance~$V$ determines CS's error bound, \sketchcs
+controls the error by expanding based on the growth of the variance. That is,
+it expands its number of counters, i.e., the denominator~$w$ of the variance,
+to balance out the numerator~$F=\sum_{y} (f(y))^2$. This translates to
+expanding when the numerator~$F$ more than doubles, which is in contrast with
+how \sketchcms expands when~$N$ (the numerator of CMS's error bound) more than
+doubles. We encode different expansion policies by defining the size function
+based on the numerator~$F$, i.e., as~$W(F)$. The quantity~$F$ is also known as
+the squared~$\ell_2$-norm of the stream.
 
-\sketchcs differs from \sketchcms in one key aspect: its estimation error
-scales with the stream's~$\ell_2$-norm, i.e., as $\sqrt{N_2^2/w}$ when it has
-arrays of size~$w$, as opposed to~$N/w$. Thus, it has lower errors when the
-workload is uniform, and thus benefits from expanding at a slower rate.
-\sketchcs implements this behavior defining its size function based on $N_2^2$,
-i.e., as~$W(N_2^2)$. Thus, whenver~$N_2^2$ grows by the factor defined
-by~$W(N_2^2)$, the sketch expands. Analogously, the sketch contracts
-when~$N_2^2$ drops enough.
+Similarly to \sketchcms, where we have to track the total number of keys~$N$ to
+determine when to expand, \sketchcs must track the squared~$\ell_2$-norm~$F$.
+Yet, one cannot simply increment a value with each insertion to track~$F$. This
+is because, due to the squared summands, inserting a frequent key grows~$F$
+more than inserting an infrequent key. While it is possible to use the counter
+arrays within \sketchcs itself to estimate~$F$, the resulting estimate has a
+confidence that is determined by the number of arrays~$d$. For very long
+streams, this estimate eventually errs significantly, leading to mistimed
+expansions and contractions that adversely affect accuracy and memory
+footprint. We would like to have an estimate of the squared~$\ell_2$-norm~$F$
+with very high confidence to support the entire stream. 
 
-To implement this policy, \sketchcs must track~$N_2^2$. It does so by employing
-an array of AMS sketches, which are sketches tailored to
-approximating~$N_2^2$~\cite{AMS}. An AMS sketch is a specialized CS with a
-single array consisting of a single counter. Each insertion increments the
-counter along its update direction and a deletion decrements it. Squaring the
-value of the counter yields an estimate of~$N_2^2$. The following theorem
-characterizes the estimation error:
-\begin{theorem}[Theorem 2.2 of~\cite{AMS}, specialized]
-    One can approximate~$N_2^2$ within a factor of two with a probability
-    of~$1-p$ using~$4 \cdot \log_2 1/p$ AMS sketches. Estimation proceeds by
-    squaring the sketches, averaging them in groups of~4, and taking the
-    median.
-\end{theorem}
-\noindent Thus, it suffices to keep~$O(\log N)$ AMS sketches in memory to
-approximate~$N_2$ with high probability at times. Since~$N$ is bounded by the
-maximum value representable in a 64-bit machine word in practice, \sketchcs
-employs~64 AMS sketches. It uses SIMD to quickly update\footnote{More
-generally, it is possible to maintain~$k$ AMS sketches, where~$k$ is the
-machine word size, in constant time with high probability to
-approximate~$N_2^2$.} and query these sketches.
+To this end, we employ an array of AMS sketches, which are sketches tailored to
+approximating the $\ell_2$-norm of the stream~\cite{AMS}. Each AMS sketch is a
+single counter that is updated with random update directions derived by hashing
+the keys, similarly to CS. Squaring the value of the counter yields an estimate
+of~$F$. It is known that by employing~$4 \cdot \log_2 N$ AMS sketches, one can
+estimate~$F$ within a factor of 2 with a high confidence of at
+least~$1-1/N$~\cite{AMS}, which allows for supporting the entire stream.
+Since~$N$ is at most the maximum value representable in a 64-bit machine word
+in practice, \sketchcs employs~64 AMS sketches to track~$F$. It uses SIMD to
+quickly update\footnote{More generally, it is possible to maintain~$k$ AMS
+sketches, where~$k$ is the machine word size, in constant time with high
+probability to approximate~$F$. We omit the corresponding algorithm and its
+proof of correctness due to space constraints.} and query these sketches after
+each insertion and deletion.
 
-We prove in \Cref{sec:theoretical_analysis} that using a sub-linear power size
-function of the form~$W(N_2^2)=N_2^{2\alpha}/\epsilon^2$ in \sketchcs yields an
-error bound of~$O(\epsilon \cdot N_2^{1-\alpha})$, while
-setting~$W(N_2^2)=N_2^2/\epsilon^2$ yields an error bound of~$O(\epsilon \cdot
-\log N_2)$. The former error bound matches that of a preallocated CS of the
-same size up to a constant factor, and is thus optimal~\cite{CountSketch}. We
-prove that the latter is also the best error bound achievable with the memory
-footprint of \sketchcs. Therefore, \sketchcs is space-optimal in all regimes.
-
-\iffalse
-\textbf{Comparison.}
-\Cref{tab:classic_sketch_stats} summarizes the discussion of CMS, CS, and MG
-thus far by comparing their attributes. While \Cref{tab:classic_sketch_stats}
-compares the error bounds of the sketches, we further illustrate their
-differences by evaluating the sketches under varying levels of data skew and
-memory budgets. Here, we insert 100M keys drawn from the \textsc{Zipfian}
-distribution into each sketch. We vary the characteristic exponent of the
-distribution to control the skew of the data. We evaluate the \emph{Average
-Absolute Error (AAE)} for each sketch by querying each key in the stream,
-computing the abosulte difference of estimate from the ground-truth, and
-averaging the results.
-%We also measure \emph{Top-$w$ AAE} by computing the AAE over the~$w$ most frequent keys.
-
-\Cref{fig:classic_comparison} plots these results. As shown in the left
-subfigure, CS beats the others under less skew, as the updates of keys with
-similar frequencies cancel out when their hashes collide. In contrast, such
-collisions in CMS accumulate the error, and MG has insufficient slots to track
-keys accurately. Under moderate skew, CMS performs the best. This is because
-taking the minimum estimate increases confidence and bounds the error more
-reliably than the median method of CS. MG closely follows the performance of
-CMS as it benefits more from the increasing skew. Eventually, MG surpasses both
-CMS and CS by fully leveraging its dedicated counters and even achieves zero
-error under high enough skew.
-
-\begin{figure}
-    \centering
-    \includegraphics[width=\columnwidth]{classic_comparison.pdf}
-    \caption{CMS, CS, and MG provide different tradeoffs under different levels
-    of skew and memory budgets. A higher characteristic exponent creates more
-    skew.}
-    \label{fig:classic_comparison}
-\end{figure}
-
-The right plot in \Cref{fig:classic_comparison} illustrates that, under extreme
-memory constraints, MG outperforms CMS and CS. This is because CMS and CS do
-not have enough counters, leading to too many hash collisions and overly large
-estimates, whereas MG makes the most of its limited counters by leveraging its
-tail bound. Here, CS bests CMS due to its zero-interference property, making it
-more robust to hash collisions. Given more memory, CMS and CS outperform MG,
-with CMS beating CS by benefiting more from the minimum estimate than CS does
-from the median. With more memory, MG tracks all keys and provides the most
-accurate estimations, whereas CMS and CS's estimates still suffer from
-collision errors.
-
-CMS and CS are faster than MG since they read and write a single counter in
-each array, while MG has to pay the logarithmic cost of maintaining the heap
-and the added cost of the hash table.
-\fi
-
+\sketchcs employs the same hash functions~$h_1,\dots,h_d$ and
+$\sigma_1,\dots,\sigma_d$ to map keys to consistent counters and update
+directions across expansions. It handles insertions, deletions, and queries as
+in the case of a standard CS.
 
 \section{Theoretical Analysis}\label{sec:theoretical_analysis}
 We prove {\sketch}'s accuracy, confidence, and performance guarantees for
@@ -2439,10 +2382,10 @@ magnitude lower error.
 
 \section{Conclusion}
 We introduced \sketch, the first framework for generalizing a frequency
-estimation sketch to automatically adapt to the skew and length of the stream.
+estimation sketch to adapt to the skew and length of the stream automatically.
 We showed, both theoretically and empirically, that \sketch\ improves the
-accuracy and memory footprint of frequency estimation sketches far beyond the
-state of the art while maintaining high performance.
+accuracy and memory footprint of frequency estimation sketches beyond the state
+of the art while maintaining high performance.
 
 %\begin{acks}
 %\end{acks}
