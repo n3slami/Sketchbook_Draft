@@ -2515,7 +2515,7 @@ without any keys in-between them, \sketchmg stores the counter values in a
 separate array that mirrors the ordering of the keys within the slots before
 applying \counterencodingabbrv.
 
-\textbf{Accommodating Skew.}
+\textbf{Accommodating Unbounded Data Growth.}
 \sketchmg bounds the error for growing streams by expanding as the estimation
 error grows, similarly to \sketchcms and \sketchcs. Since MG's estimation error
 is~$N/w$ (or $\min_{1 \leq i \leq w} N^{\text{res}(i)}/(w-i+1)$ in the tail
@@ -2532,18 +2532,18 @@ expandability.
 \section{Omitted Proofs}\label{sec:ommitted_proofs}
 \thmsketchexpandabilitylabel*
 \begin{proof}
-    At a high level, our proof follows a contradiction argument similar to the
-    proof of Theorem~3.1 in~\cite{PaghExpandability}. That is, we consider a
-    frequency estimation sketch~$\mathcal{S}$ that, given a key~$x$, computes
-    an estimate~$\hat{f}(x)$ such that $\mathbb{E}[|\hat{f}(x) - f(x)|] \leq
-    E(N)$ and $\mathrm{Var}[\hat{f}(x)] \leq V(N) = \delta \cdot (E(N))^2$.
-    Note that, by Chebyshev's inequality, this sketch guarantees an estimation
-    error of~$2E(N)$ with a confidence of~$1-\delta$. We show that if such a
-    sketch is ``too space-efficient,'' it can be used to compress many
-    sequences of~$n=N/(2E(N)+1)$ keys~$\sigma=x_1,\dots,x_n$ coming from a
-    large universe~$U$ of size~$u \gg n$ to a size smaller than their entropy,
-    which must be impossible. Our argument holds regardless of the time
-    complexity of~$\mathcal{S}$'s operations. 
+    Our proof follows a contradiction argument similar to the proof of
+    Theorem~3.1 in~\cite{PaghExpandability}. That is, we consider a frequency
+    estimation sketch~$\mathcal{S}$ that, given a key~$x$, computes an
+    estimate~$\hat{f}(x)$ such that $\mathbb{E}[|\hat{f}(x) - f(x)|] \leq E(N)$
+    and $\mathrm{Var}[\hat{f}(x)] \leq V(N) = \delta \cdot (E(N))^2$. Note
+    that, by Chebyshev's inequality, this sketch guarantees an estimation error
+    of~$2E(N)$ with a confidence of~$1-\delta$. We show that if such a sketch
+    is ``too space-efficient,'' it can be used to compress many sequences
+    of~$n=N/(2E(N)+1)$ keys~$\sigma=x_1,\dots,x_n$ coming from a large
+    universe~$U$ of size~$u \gg n$ to a size smaller than their entropy, which
+    must be impossible. Our argument holds regardless of the time complexity
+    of~$\mathcal{S}$'s operations. 
 
     Consider the process iterating through~$\sigma$'s keys and inserting each
     $(2E(N)+1)$ times into~$\mathcal{S}$. We partition~$\sigma$ into contiguous
