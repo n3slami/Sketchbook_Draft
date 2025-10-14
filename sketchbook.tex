@@ -240,9 +240,10 @@ increase at least linearly with the stream's length. Because storing or
 rescanning the stream is either infeasible or expensive, one cannot reduce the
 error by reconstructing the sketch. Therefore, applications are unable to
 maintain tight error bounds as the stream grows without bound. This poses a
-critical roadblock to deploying sketches at scale, as reported by companies
-such as Yahoo~\cite{SimonsYahoo,DataSketches}. This paper is the first to
-address this fundamental limitation.
+critical roadblock to deploying sketches at scale, as reported by the creator
+of the widely used Apache Data Sketches
+library~\cite{SimonsYahoo,DataSketches}. This paper is the first to address
+this fundamental limitation.
 
 \textbf{Solution: \sketch.}
 We introduce \sketch, a framework that generalizes frequency estimation
@@ -2062,8 +2063,8 @@ As such, the following theorem holds:
 \begin{theorem}
     Any frequency estimation sketch with only overestimation errors that
     processes growing streams with an error bound of~$E(N)$ and a confidence
-    of~$1-\delta$ must have a memory footprint of at least~$\Omega(N/E(N) \cdot
-    [\log 1/\delta + \log\log (N/E(N)])$ bits.
+    of~$1-\delta$ must have a memory footprint of at least~$N/E(N) \cdot
+    [\log 1/\delta + \log\log (N/E(N) - \Theta(1)]$ bits.
 \end{theorem}
 
 \begin{figure*}
@@ -2106,8 +2107,8 @@ variance that yields an error bound of~$E(N)$ with a confidence of~$1-\delta$
     \label{thm:sketch_expandability}
     A frequency estimation sketch providing estimates with an expected error
     of~$E(N)$ and a variance of~$\delta \cdot (E(N))^2$ for any key when
-    processing a stream of size~$N$, has a memory footprint of~$\Omega\left(
-    N/E(N) \cdot [\log 1/\delta + \log\log (N/E(N))] \right)$ bits.
+    processing a stream of size~$N$, has a memory footprint of~$N/E(N) \cdot
+    [\log 1/\delta + \log\log (N/E(N)) - \Theta(1)]$ bits.
 \end{restatable}
 %\noindent Note that the variance assumption above captures the design of all
 %existing frequency estimation sketches.
@@ -2552,21 +2553,24 @@ contractions and can forgo storing a record of the sketch's state.
     of~$1-\delta$. Here, we compress sequences of~$n=N/(E(N)+1)$ keys. This
     proof is generalizable to the full statement of the theorem.
 
-    Consider the process of iterating through~$\mathbf{x}$'s keys and inserting
-    each $(E(N)+1)$ times into~$\mathcal{S}$. We partition~$\mathbf{x}$ into
-    contiguous subsequences~$\mathbf{x}_1, \mathbf{x}_2, \dots,
-    \mathbf{x}_\ell$, with $\mathbf{x}_i$ having a length of~$2^i \cdot
-    \sqrt{n}$ and $\ell=\log_2 n/2$. We denote the state of~$\mathcal{S}$ after
-    processing the subsequences~$\mathbf{x}_1, \dots, \mathbf{x}_i$ as
-    $\mathcal{S}_i$. We denote $\mathcal{S}_i$'s estimate for the count of
-    key~$x$ as $\hat{f}_i(x)$ while denoting the true number of times~$x$ was
-    inserted in $\mathbf{x}_1, \dots, \mathbf{x}_i$ as~$f_i(x)$. 
+    Consider the process of iterating through~$\mathbf{x}$'s keys. We
+    partition~$\mathbf{x}$ into contiguous subsequences~$\mathbf{x}_1,
+    \mathbf{x}_2, \dots, \mathbf{x}_\ell$, with $\mathbf{x}_i$ having a length
+    of~$2^i \cdot \sqrt{n}$ and $\ell=\log_2 n/2$. While iterating through
+    these subsequences, we reinsert each key enough times into~$\mathcal{S}$
+    such that by the time we are done with~$\mathbf{x}_1,\dots,\mathbf{x}_i$
+    for any $i$, we have inserted each key a total~$E(N_i)+1$ times, where
+    $N_i=(E(N_i)+1) \cdot \sum_{j=1}^i |\mathbf{x}_j|$. We denote the state
+    of~$\mathcal{S}$ after processing the subsequences~$\mathbf{x}_1, \dots,
+    \mathbf{x}_i$ as $\mathcal{S}_i$. We denote $\mathcal{S}_i$'s estimate for
+    the count of key~$x$ as $\hat{f}_i(x)$ while denoting the actual count
+    of~$x$ in $\mathbf{x}_1, \dots, \mathbf{x}_i$ as~$f_i(x)$. 
 
     We first show that, the estimates of one of the~$\mathcal{S}_i$s can be
-    extended to an estimator that has a second moment of at most~$V/\ell = V/(2
-    \cdot \log_2 n)$. We will use these estimates to compress the
-    sequence~$\mathbf{x}$. To this end, we apply the law of total variance to
-    get, for any key~$x$, that
+    extended to an estimator that has a ``small'' second moment of at
+    most~$V/\ell = 2 \cdot V/\log_2 n$. We will use these estimates to
+    compress the sequence~$\mathbf{x}$. To this end, we apply the law of total
+    variance to get, for any key~$x$,
     \begin{align*}
         \mathrm{Var} \left( \hat{f}_\ell(x) \right) & = \mathbb{E}\left[ \mathrm{Var}\left( \hat{f}_{\ell}(x) \;\middle|\; \hat{f}_{\ell - 1}(x) \right) \right]
                                                       + \mathrm{Var}\left( \mathbb{E}\left[ \hat{f}_{\ell}(x) \;\middle|\; \hat{f}_{\ell - 1}(x) \right] \right).
@@ -2618,16 +2622,16 @@ contractions and can forgo storing a record of the sketch's state.
     argument, this further implies that there is some~$i^*$ such that
     $\hat{e}_{i^*}(x) \leq 2 \cdot V(N)/\ell$ holds for at least half of the
     elements~$x$ from the universe~$U$, which we denote by~$U'$ with $|U'| = u'
-    \geq u/2$. 
+    \geq u/2 \gg n$. 
 
     We now focus on sequences~$\mathbf{x}$ consisting of the elements of~$U'$.
     We leverage the property of low~$\hat{e}_{i^*}(x)$ to compress the
     subsequence~$\mathbf{x}_i$. Our encoding proceeds as follows:
     \begin{enumerate}[label=(\roman*)]
         \item We write the explicit representations of the keys in all
-            subsequences~$\mathbf{x}_i$, where $i \neq i^*$. The total cost for
-            writing these representations is~$(n-|\mathbf{x}_{i^*}|) \cdot
-            \log_2 u'$ bits.
+            subsequences~$\mathbf{x}_i$, where $i > i^*$. The total cost for
+            writing these representations is~$(n-\sum_{j=1}^{i^*}
+            |\mathbf{x}_j|) \cdot \log_2 u'$ bits.
         \item We write the state of the sketch~$\mathcal{S}_{i^*}$. This
             takes~$|\mathcal{S}_{i^*}|$ bits, which is the quantity we want to
             bound. \\
@@ -2648,40 +2652,42 @@ contractions and can forgo storing a record of the sketch's state.
             number of bits required to encode each element
             in~$\mathbf{x}_{i^*}$ in our compression scheme.
         \item Yet, since~$g(x)$ can suffer from severe underestimations, one
-            cannot rely purely on its value to compress and
-            decompress~$\mathbf{x}_{i^*}$. To address this issue, we store a
-            bit for each key in~$\mathbf{x}_{i^*}$ indicating whether~$g(x)$
-            underestimates its count by more than~$E(N)$. Each bit is~1 if the
-            corresponding key has a large underestimation error, and~0
-            otherwise. This takes a total of~$|\mathbf{x}_{i^*}|=2^{i^*} \cdot
-            \sqrt{n}$ bits.
+            cannot rely purely on its value to compress and decompress the
+            subsequences~$\mathbf{x}_1,\dots,\mathbf{x}_{i^*}$. To address this
+            issue, we store a bit for each key
+            in~$\mathbf{x}_1,\dots,\mathbf{x}_{i^*}$ indicating whether~$g(x)$
+            underestimates its count by in the entire stream by more
+            than~$E(N)/2$. Each bit is~1 if the corresponding key has a large
+            underestimation error, and~0 otherwise. This takes a total
+            of~$\sum_{j=1}^{i^*} |\mathbf{x}_j|=(2^{i^*+1}-1) \cdot \sqrt{n}$
+            bits.
         \item For each bit set to 1 in the previous step, we store the exact
             representation of the corresponding key using~$\log_2 u'$ bits. All
-            keys in~$\mathbf{x}_{i^*}$ associated with a~0 bit either have
-            overestimation errors or an absolute error smaller than~$E(N)$. As
-            such, they only need to be disambiguated from the set of keys~$x$
-            where $g(x) \geq E(N)/2$.
+            keys in~$\mathbf{x}_1,\dots,\mathbf{x}_{i^*}$ associated with a~0
+            bit either have overestimation errors or an absolute error smaller
+            than~$E(N)/2$. As such, they only need to be disambiguated from the
+            set of keys~$x$ where $g(x) \geq E(N)/2$.
         \item For each bit set to 0 in the third step, we store the index of
             the corresponding key in~$\mathbf{x}_{i^*}$ from the set of all
             keys~$y$ where $g(y)/E(N)$ is larger than the number of times~$y$
-            appears in the rest of the sequence by at least one. The cost per
+            appears in the rest of the sequence by at least~$1/2$. The cost per
             each key is the logarithm of the size of this set.
     \end{enumerate}
 
     We now fix the internal randomness of~$\mathcal{S}_{i^*}$ to convert it to
     a deterministic sketch giving rise to a~$g(\cdot)$ that, for many
-    sequences~$\mathbf{x}$, only has estimation errors larger than~$E(N)$ on a
-    $16\delta/\log_2 n$ fraction of the elements in~$U'$. We denote the
+    sequences~$\mathbf{x}$, only has estimation errors larger than~$E(N)/2$ on
+    a $64\delta/\log_2 n$ fraction of the elements in~$U'$. We denote the
     fraction of such keys for a given sequence~$\mathbf{x}$
     as~$\mu(\mathbf{x})$. Notice how~$\mu(\mathbf{x})$ is relative size of the
     set we use to encode each key in the fifth step of the encoding. We also
     show that one can pick the internal randomness such that, in addition the
     aforementioned condition, $g(\cdot)$ errs more than~$E(N)$ on a fraction of
-    at most~$16\delta/\log_2 n$ of the keys in the special
+    at most~$64\delta/\log_2 n$ of the keys in the special
     subsequence~$\mathbf{x}_{i^*}$. We denote this fraction
     by~$\eta(\mathbf{x})$. Notice also how~$\eta(\mathbf{x})$ is fraction of
     the bits set to 1 in the third step of the encoding, which dictates the
-    number of keys we represent explicitly in the fourth step. 
+    number of keys we store explicitly in the fourth step. 
 
     We prove the above statement following a similar argument to that of
     Section~3.1 in~\cite{PaghExpandability}:
@@ -2689,30 +2695,30 @@ contractions and can forgo storing a record of the sketch's state.
         \label{lemma:derandomization}
         We can fix the internal randomness of the sketch~$\mathcal{S}_{i^*}$
         such that, for at least half of the possible sequences~$\mathbf{x}$,
-        i.e., ${u'}^n/2$ many of them, $\mu(\mathbf{x}) \leq 16\delta/\log_2 n$
-        and $\eta(\mathbf{x}) \leq 16\delta/\log_2 n$.
+        i.e., ${u'}^n/2$ many of them, $\mu(\mathbf{x}) \leq 64\delta/\log_2 n$
+        and $\eta(\mathbf{x}) \leq 64\delta/\log_2 n$.
     \end{lemma}
     \begin{proof}
         By Markov's inequality, the~$g(x)$ resulting from the randomized
-        version of~$\mathcal{S}_{i^*}$ has errors bounded by~$E(N)$ with a
-        confidence of at least~$1-2\delta/\ell=1-4\delta/\log_2 n$ for any $x
+        version of~$\mathcal{S}_{i^*}$ has errors bounded by~$E(N)/2$ with a
+        confidence of at least~$1-8\delta/\ell=1-16\delta/\log_2 n$ for any $x
         \in U'$ when processing the subsequence~$\mathbf{x}_{i^*}$. Thus,
         denoting the internal random bits of~$\mathcal{S}_{i^*}$ by $r$, for
         any~$\mathbf{x} \in {U'}^n$, we have that~$\mathbb{E}_r\left[ 
-        \mu(\mathbf{x}) \right] \leq 4\delta/\log_2 n$ and $\mathbb{E}_r\left[ 
-        \eta(\mathbf{x}) \right] \leq 4\delta/\log_2 n$. Therefore, once again
-        by Markov's inequality, we have
-        $$ \Pr_r\left[ \mu(\mathbf{x}) \geq 16\delta/\log_2 n \right] \leq \frac{1}{4}, \;\;\;\; \Pr_r\left[ \eta(\mathbf{x}) \geq 16\delta/\log_2 n \right] \leq \frac{1}{4}. $$
+        \mu(\mathbf{x}) \right] \leq 16\delta/\log_2 n$ and 
+        $\mathbb{E}_r\left[ \eta(\mathbf{x}) \right] \leq 16\delta/\log_2 n$.
+        Therefore, once again by Markov's inequality, we have
+        $$ \Pr_r\left[ \mu(\mathbf{x}) \geq 64\delta/\log_2 n \right] \leq \frac{1}{4}, \;\;\;\; \Pr_r\left[ \eta(\mathbf{x}) \geq 64\delta/\log_2 n \right] \leq \frac{1}{4}. $$
         Thus, by a union bound, we have that 
-        $$ \Pr_r\left[ \mu(\mathbf{x}) \geq 16\delta/\log_2 n \;\vee\; \eta(\mathbf{x}) \geq 16\delta/\log_2 n \right] \leq \frac{1}{2}. $$
+        $$ \Pr_r\left[ \mu(\mathbf{x}) \geq 64\delta/\log_2 n \;\vee\; \eta(\mathbf{x}) \geq 64\delta/\log_2 n \right] \leq \frac{1}{2}. $$
         Takin the complement of the above yields 
-        $$ \Pr_r\left[ \mu(\mathbf{x}) < 16\delta/\log_2 n \;\wedge\; \eta(\mathbf{x}) < 16\delta/\log_2 n \right] \geq \frac{1}{2}. $$
-        That is, each~$\mathbf{x}$ satisfies~$\mu(\mathbf{x}) < 16\delta/\log_2
-        n$ and $\eta(\mathbf{x}) < 16\delta/\log_2 n$ with a probability of at
+        $$ \Pr_r\left[ \mu(\mathbf{x}) < 64\delta/\log_2 n \;\wedge\; \eta(\mathbf{x}) < 64\delta/\log_2 n \right] \geq \frac{1}{2}. $$
+        That is, each~$\mathbf{x}$ satisfies~$\mu(\mathbf{x}) < 64\delta/\log_2
+        n$ and $\eta(\mathbf{x}) < 64\delta/\log_2 n$ with a probability of at
         least~$1/2$. An averaging argument implies that there is some choice
         for the internal randomness of~$\mathcal{S}_{i^*}$, i.e., $r$, that
-        satisfies~$\mu(\mathbf{x}) < 16\delta/\log_2 n$ and $\eta(\mathbf{x}) <
-        16\delta/\log_2 n$ at the same time for at least half of all~${u'}^n$
+        satisfies~$\mu(\mathbf{x}) < 64\delta/\log_2 n$ and $\eta(\mathbf{x}) <
+        64\delta/\log_2 n$ at the same time for at least half of all~${u'}^n$
         sequences.
     \end{proof}
 
@@ -2720,38 +2726,54 @@ contractions and can forgo storing a record of the sketch's state.
     indicated by \Cref{lemma:derandomization} and use the estimation
     function~$g(\cdot)$ that arises from it to encode the an arbitrary sequence
     from the ${u'}^n/2$ sequences in \Cref{lemma:derandomization}. The first,
-    second, and third steps of the encoding take up~$(n-2^{i^*}\cdot\sqrt{n})
-    \cdot \log_2 u'$, $|\mathcal{S}_{i^*}|$, and $2^{i^*}\cdot\sqrt{n}$,
-    respectively. Since we have $\eta(\mathbf{x}) \leq 16\delta/\log_2 n$ for
-    all sequencees $\mathbf{x}$ that we consider, the number of 1s we store in
-    the bitmap in the third step is at most~$\frac{16\delta}{\log_2 n} \cdot
-    2^{i^*}\cdot\sqrt{n}$ bits. We explicitly store the keys that correspond to
-    these bits in the fourth step, taking~$\frac{16\delta}{\log_2 n} \cdot
-    2^{i^*}\cdot\sqrt{n} \cdot \log_2 u'$ bits. Finally, for the keys
-    corresponding to the~0 bits in the bitmap from the third step,
-    since~$\mu(\mathbf{x})$ determines the size of the set we index in the last
-    step, it takes~$\left( 1 - \frac{16\delta}{\log_2 n} \right) \cdot
-    2^{i^*}\cdot\sqrt{n} \cdot \log_2 \left( \mu(\mathbf{x}) \cdot u' \right) =
-    \left( 1 - \frac{16\delta}{\log_2 n} \right) \cdot 2^{i^*}\cdot\sqrt{n}
-    \cdot \left[ \log_2 u' - \log_2\log_2 n - \log_2 (1/\delta) + 4 \right]$
+    second, and third steps of the encoding take
+    up~$(n-(2^{i^*+1}-1)\cdot\sqrt{n}) \cdot \log_2 u'$, $|\mathcal{S}_{i^*}|$,
+    and $(2^{i^*+1}-1)\cdot\sqrt{n}$ bits, respectively. Since we have
+    $\eta(\mathbf{x}) \leq 64\delta/\log_2 n$ for all sequencees $\mathbf{x}$
+    that we consider, the number of 1s we store in the bitmap in the third step
+    is at most~$\frac{64\delta}{\log_2 n} \cdot (2^{i^*+1}-1)\cdot\sqrt{n}$ bits. We
+    explicitly store the keys that correspond to these bits in the fourth step,
+    taking~$\frac{64\delta}{\log_2 n} \cdot (2^{i^*+1}-1)\cdot\sqrt{n} \cdot
+    \log_2 u'$ bits. Finally, for the keys corresponding to the~0 bits in the
+    bitmap from the third step, since~$\mu(\mathbf{x})$ determines the size of
+    the set we index in the last step, it takes
+    { \small
+    \begin{align*}
+        & \left( 1 - \frac{64\delta}{\log_2 n} \right) \cdot (2^{i^*+1}-1)\cdot\sqrt{n} \cdot \log_2 \left( \mu(\mathbf{x}) \cdot u' \right) \\
+        & \;\;\;\; = \left( 1 - \frac{64\delta}{\log_2 n} \right) \cdot (2^{i^*+1}-1)\cdot\sqrt{n} \cdot \left[ \log_2 u' - \log_2\log_2 n - \log_2 \frac{1}{\delta} + 4 \right]
+    \end{align*}
+    }
     bits to encode them. The sum of these costs cannot be smaller than the
     entropy of encoding a random sequence from these~${u'}^n/2$ sequences,
     i.e., $n \cdot \log_2 u' - 1$ bits. That is, summing up the costs of the
     encoding, the following inequality holds:
     \begin{align*}
-        |\mathcal{S}_{i^*}| & + n \cdot \log_2 u' \\ 
-        & + 2^{i^*} \cdot \sqrt{n} \cdot \left( 1 - \left( 1-\frac{16\delta}{\log_2 n} \right) \cdot \left[ \log_2\log_2 n + \log_2 \frac{1}{\delta} - 4 \right] \right) \\
+        |&\mathcal{S}_{i^*}| + n \cdot \log_2 u' \\ 
+        & + (2^{i^*+1}-1) \cdot \sqrt{n} \cdot \left( 1 - \left( 1-\frac{64\delta}{\log_2 n} \right) \cdot \left[ \log_2\log_2 n + \log_2 \frac{1}{\delta} - 4 \right] \right) \\
         & \geq n \cdot \log_2 u' - 1.
     \end{align*}
-    Simplifying the above inequality, we get
+    Simplifying the above inequality, we get that $|\mathcal{S}_{i^*}|$ must be
+    at least
     \begin{align*}
-        |\mathcal{S}_{i^*}| \geq 2^{i^*} \cdot \sqrt{n} \cdot \left( \left( 1-\frac{16\delta}{\log_2 n} \right) \cdot \left[ \log_2\log_2 n + \log_2 \frac{1}{\delta} - 4 \right] - 1 \right) - 1,
+        (2^{i^*+1}-1) \sqrt{n} \cdot \left( \left( 1-\frac{64\delta}{\log_2 n} \right) \cdot \left[ \log_2\log_2 n + \log_2 \frac{1}{\delta} - 4 \right] - 1 \right) - 1,
     \end{align*}
     which is equivalent to
     \begin{align*}
-        |\mathcal{S}_{i^*}| \geq |\mathbf{x}_{i^*}| \cdot \left( \log_2\log_2 n + \log_2 \frac{1}{\delta} - \Theta(1) \right),
+        |\mathcal{S}_{i^*}| \geq \sum_{j=1}^{i^*} |\mathbf{x}_j| \cdot \left( \log_2\log_2 n + \log_2 \frac{1}{\delta} - \Theta(1) \right),
     \end{align*}
-    proving the desired result.
+    for~$n$ large enough or~$\delta$ small enough. Letting~$n' =
+    \sum_{j=1}^{i^*} |\mathbf{x}_j|$ and noting that~$\log_2\log_2 n \geq
+    \log_2\log_2 n'$, we have that 
+    \begin{align*}
+        |\mathcal{S}_{i^*}| \geq n' \cdot \left( \log_2\log_2 n' + \log_2 \frac{1}{\delta} - \Theta(1) \right).
+    \end{align*}
+    Finally, recalling that the stream processed by~$\mathcal{S}_{i^*}$ had a
+    length of~$N_{i^*}=n' \cdot E(N_{i^*})$ and rewriting $n'$ as
+    $N_{i^*}/E(N_{i^*})$ yields
+    \begin{align*}
+        |\mathcal{S}_{i^*}| \geq N_{i^*}/E(N_{i^*}) \cdot \left[ \log_2\log_2 (N_{i^*}/E(N_{i^*})) + \log_2 \frac{1}{\delta} - \Theta(1) \right],
+    \end{align*}
+    which proves the desired result.
 \end{proof}
 
 \end{document}
