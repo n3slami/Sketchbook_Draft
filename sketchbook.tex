@@ -232,18 +232,22 @@ counters~\cite{SALSA,BitSense,PyramidSketch,StingySketch,AdaptiveCounterSplicing
 their approaches compromise either accuracy or performance. Therefore, the
 challenge of optimally utilizing memory under skew persists.
 
+
 \textbf{Problem~2: Unbounded Data Growth.}
+
 In most applications, data streams continuously grow over
-time~\cite{Compass,QueryOptimizationSketches,ConvolutionSketch,SketchBasedChangeDetection,WhatsNew,TrafficManagementSurvey}.
-Yet, all current sketches have a fixed size, causing their estimation error to
-increase at least linearly with the stream's length. Because storing or
+time \textcolor{purple}{Io: and we lack accurate estimates of the final stream length is.- cause otherwise it's a bit strange to say that the data grows, as opposed to what?}~\cite{Compass,QueryOptimizationSketches,ConvolutionSketch,SketchBasedChangeDetection,WhatsNew,TrafficManagementSurvey}.
+Yet, all current sketches have a fixed size \textcolor{purple}{Io: that is set before the stream is scanned}, causing their estimation error to
+increase at least linearly with the stream's length. \textcolor{purple}{Io: since this is the first time this issue is mentioned in the paper, we have to treat this as prime real estate and write something very strong here but also that is completely understandable by people. So I would break the previous sentence in half: 1st sentence establishes that "all current sketches have a fixed size that is set before the stream is scanned". 2nd sentence: the error that we get at the end of the stream scales linearly with the stream size: therefore, a bad original estimate of the stream length can cause errors that are much larger than what is intended by the user. }Because storing or
 rescanning the stream is either infeasible or expensive, one cannot reduce the
 error by reconstructing the sketch. Therefore, applications are unable to
 maintain tight error bounds as the stream grows without bound. This poses a
 critical roadblock to deploying sketches at scale, as reported by the creator
 of the widely used Apache Data Sketches
-library~\cite{SimonsYahoo,DataSketches}. This paper is the first to address
-this fundamental limitation.
+library~\cite{SimonsYahoo,DataSketches}. \textcolor{purple}{Io:To our knowledge, }This paper is the first to address
+this fundamental limitation.\textcolor{purple}{Io: smth like "to explicitly address this fundamental limitation and provide a general purpose framework with well-understood trade-offs." - maybe others have employed smth similar, but they haven't done so explicitly. }
+
+
 
 \textbf{Solution: \sketch.}
 We introduce \sketch, a framework that generalizes frequency estimation
@@ -253,7 +257,7 @@ them as they overflow. It colocates each counter and its extension within the
 same cache line and employs specialized bit manipulation routines to decode
 them in constant time. To resolve Problem~2 (Unbounded Data Growth), \sketch\
 expands its number of counters as the incurred error increases with the
-stream's growth. In doing so, it controls the growth of the error and
+stream's growth.\textcolor{purple}{Io: as the stream grows, I wouldn't make it as a function of the error... cause this is somehow weird. We don't keep track of the error, just of a bound on it. So I would keep it simple and just say "grows" and leave the details for later.} In doing so, it controls the growth of the error and
 simultaneously maintains high accuracy and a sub-linear memory footprint.
 
 \textbf{Additional Contributions.}
@@ -299,7 +303,7 @@ layer (e.g., pointers). (ii)~It stores one counter for each unique key.
 collision resolution and expansions. These different overheads multiply with
 the number of streams the application monitors. Problems~(i) and (ii) imply a
 memory footprint that is linear in the number of unique keys in the stream,
-which can be of the same magnitude as the total key count~$N$.
+which can be of the same magnitude as the total key count~$N$. \textcolor{purple}{I would say that this is also the issue with the Spectral Bloom filter}
 
 %(3)~Since the counters are fixed-length, each of them must be long enough to accommodate the maximum count, even if most keys have a very low count.
 
@@ -307,7 +311,7 @@ Frequency estimation sketches address these problems by trading accuracy for
 space. That is, for any key~$x$, a sketch returns an estimate~$\hat{f}(x)$ of
 $x$'s count~$f(x)$. We focus on Count-Min Sketch~\cite{CountMin} for now, as it
 is the simplest and most widely used
-sketch~\cite{ADSMassiveDatasetBook,SketchesTrafficManagementSurvey}. Later, we
+sketch\textcolor{purple}{Io: all of these are debatable claims, I would say "a popular solution" :) }~\cite{ADSMassiveDatasetBook,SketchesTrafficManagementSurvey}. Later, we
 describe Count Sketch~\cite{CountSketch} (\Cref{sec:cs}) and
 Misra-Gries~\cite{MisraGries} (\Cref{sec:mg}) and apply our techniques to them. 
 
@@ -350,7 +354,7 @@ each initialized to zero. We insert a key~$x$ into this array by hashing it to
 one counter and incrementing it. We delete~$x$ by decrementing its
 corresponding counter.\footnote{Users must ensure deletions target previously
 inserted keys. This is because frequency estimation sketches do not store the
-keys and cannot check a deletion's validity.} The counter that key~$x$ hashes
+keys and cannot check a deletion's validity. \textcolor{purple}{Io: I would add this footnote the first time you mention deletions, because that's when the reader will first wonder and it's part of the problem definition.}} The counter that key~$x$ hashes
 to provides an estimate of~$x$'s count. Due to hash collisions, multiple keys
 can map to the same counter. Because of this, we may overestimate the count of
 a key~$x$. This error is at most~$\frac{N}{w}$ in expectation since a key
@@ -359,15 +363,16 @@ total count of keys different from~$x$ is at most~$N$. Increasing the array's
 size makes collisions less likely, thereby decreasing the error and improving
 \emph{Accuracy}. Even so, the error may deviate from its expectation. The
 probability that errors do not exceed the expectation ``too much'' is known as
-the sketch's \emph{Confidence}. A straight-forward application of Markov's
+the sketch's \emph{Confidence}. \textcolor{purple}{Io: I would not say straight-forward but that's just on principle. Using Markov's inequality, one can show that...} A straight-forward application of Markov's
 inequality shows that the error does not exceed~$\frac{eN}{w}$ with a
 confidence of at least~$1-e^{-1}$, i.e., $\Pr\left( |\hat{f}(x)-f(x)| \leq
-\frac{eN}{w} \right) \geq 1-e^{-1}$ for any key~$x$. Here, we use Euler's
+\frac{eN}{w} \right) \geq 1-e^{-1}$ for any key~$x$. \textcolor{purple}{Io: you can put this in a footnote.}Here, we use Euler's
 constant~$e$ due to convention. Any other constant would also work and would
 replace~$e$ in both the accuracy bound and the confidence. This implies that
 the smaller the constant becomes, i.e., the more accurate we expect the sketch
 to be, the lower confidence drops.
 
+\textcolor{purple}{Io: the pargrapg below can be shortened. There's intuition but I'm not exactly sure it adds much technical depth: we get the error because we can only apply Markov, because we don't have upper bounds on the frequencies. I would mention that using more arrays is a way of boosting the success probability.- or probability amplification- this is an established technique. and I wouldn't say the confidence is low as a major tragedy - you just repeat to increase confidence. So something like: "To increase the confidence of the sketch, one can employ multiple arrays with independent randomness." Or if you really want to mention the limitation of Markov, you can say: "The reason is that having even one very frequent key is enough to inflate the estimate of other (perhaps low frequency) keys (due to hash collisions). }
 Yet, with a single array, confidence is low ($\approx 63\%$). The reason is
 that all keys sharing the same counter as a frequent key will suffer from
 inflated estimates. Moreover, since there are many keys with low or moderate
@@ -381,9 +386,11 @@ the probability of collisions and overestimation~\cite{CountMin}.}
 \Cref{fig:cms_overview} shows an example of insertions and queries applied to
 three counter arrays. Returning the minimum for queries boosts confidence
 exponentially, since it only carries severe errors when all estimates err
-significantly. Thus, CMS guarantees an error of at most~$\frac{eN}{w}$ with a
+significantly. \textcolor{purple}{Io: I would move the pairwise footnote here and say that it is enough to use pairwise independence to acheve this. Earlier it's a detail that's not very important, but here, it lands the message that this is not a very complicated random process. }Thus, CMS \textcolor{purple}{with $d$ arrays of length $w$} guarantees an error of at most~$\frac{eN}{w}$ with a
 confidence of~$1-e^{-d}$, i.e., $\Pr\left( |\hat{f}(x)-f(x)| \leq \frac{eN}{w}
 \right) \geq 1-e^{-d}$ for any key~$x$.
+
+
 
 \begin{figure}
     \centering
@@ -640,6 +647,7 @@ short streams, their error exceeds that of CMS as the stream grows. We
 empirically verify this behavior in \Cref{sec:evaluation}.
 
 \textbf{Challenge 2: Unbounded Growth.}
+\textcolor{purple}{Io: this first paragraph feels a bit weak: what exactly is it trying to say? Just that N increases with time? Also, I think calling it "imperative" that we keep the count from the beginning is a bit too much - I mean, that's what normal streams look like so that's part of the definition. So I would suggest this: 1st paragraph: argue that in many applications, we do not have a good estimate of the stream length. Second paragraph: argue that this lack of information poses a significant issue (see my later comments).}
 In many streaming applications, the data stream grows continuously, and it is
 imperative to estimate the count of each key from the stream's beginning. For
 instance, query optimizers often track the number of times each key occurs in a
@@ -647,7 +655,7 @@ table column to estimate the size of a join on that
 column~\cite{Compass,QueryOptimizationSketches,ConvolutionSketch}. As new data
 is inserted, the total number of keys~$N$ increases. Yet, the full count
 history of each key is still needed, since every occurrence contributes equally
-to the join size regardless of when it arrived.
+to the join size regardless of when it arrived. \textcolor{purple}{Io:not sure what this last sentence means? What is the full count history of a key?}
 
 Unbounded stream growth is also a challenge for applications that only require
 key counts over recent time windows. For example, network management systems
@@ -657,10 +665,12 @@ windows~\cite{SketchBasedChangeDetection,WhatsNew,TrafficManagementSurvey}.
 With bursty streams such as network traffic, the number of keys~$N$ in each
 window is unpredictable.
 
+
+\textcolor{purple}{Io: this is the strongest argument and should be higher up. Might also be a good chance to cite Lee Rhodes here again.}
 In existing frequency estimation sketches, the number of counters~$w$ is fixed
-at allocation time. Consequently, the error rate degrades linearly with~$N$
+at allocation time. \textcolor{purple}{Io: I would be a bit careful here, since we are talking about upper bounds on the error and not actual error. So I would say smth like: "as the stream grows, the error accumulates and indeed, existing bounds show that its expected value degrades linearly with the stream length (give example of CMS).  } Consequently, the error rate degrades linearly with~$N$
 (e.g., $N/w$ in the case of CMS). This forces practitioners to tune~$w$ without
-knowledge of the final stream length, hoping to balance accuracy and the memory
+knowledge of the final stream length \textcolor{purple}{Io: argument doesn't make sense. What is "this"? It's not the fact that the error degrades linearly.}, hoping to balance accuracy and the memory
 footprint. Having too few counters leads to significant errors, while having
 too many wastes memory. Deletions make the problem more challenging by
 causing~$N$ to fluctuate over time. Worse yet, even if the ultimate stream
@@ -1544,10 +1554,10 @@ Recall from \Cref{sec:problem_analysis} that processing growing streams with
 existing frequency estimation sketches (e.g., CMS) yields an estimation error
 that increases at least linearly with the total key count~$N$. \sketch\
 addresses this issue by generalizing a sketch to increase its number of
-counters as the stream grows. In the case of CMS, \sketchcms expands
-whenever~$N$ exceeds a tunable threshold. An expansion concatenates the current
+counters as the stream grows. \textcolor{purple}{Io: in the previous sentence, I wouldn't say it "generalizes" a sketch - I would just take it out. I would perhaps also mention that we do not increase the number of arrays, just the counter. }In the case of CMS, \sketchcms expands
+whenever~$N$ exceeds a tunable threshold.\textcolor{purple}{Io: I would merge the previous sentence with the one before it. "\sketch\ addresses this issue by increasing the number of counters as the stream exceeds some tunable thresholds (although this is a bit unclear). Then you can say, for CMS, an expansion doubles the size of each array in each expansion, and concatenates the current...} An expansion concatenates the current
 sketch with a copy of itself, doubling the size of each array. This operation
-is inexpensive since it simply copies counters without rehashing keys. These
+is inexpensive since it simply copies counters without \textcolor{purple}{io: without needing to rehash keys - cause you can't rehash them anyways} rehashing keys. These
 larger arrays reduce the collision probability of future insertions.
 \Cref{fig:sketchbook_chain} illustrates \sketchcms just after the second
 expansion took place (on the right), as well as its state just before the first
@@ -1558,8 +1568,8 @@ of~16, plus the total value of the counters copied from the previous expansion,
 i.e., 4. Queries follow the same algorithm as CMS, targeting the newly
 expanded, largest sketch.
 
-\textbf{Consistent Hash Functions.}
-\sketchcms maintains~$d$ arrays across expansions to ensure the same confidence
+\textbf{Consistent Hash Functions.} \textcolor{purple}{io: the first sentence of the paragraph has nothing to do with the rest of the paragraph, so I would take it out and move it before. Suggested start of the paragraph: "To maintain this consistency across expansions, \sketch\ uses the same hash function for each of these arrays across expansions - what you said.}
+\sketchcms maintains~$d$ arrays across expansions to ensure the same\textcolor{purple}{Io: high, not the same? I mean, the same as before?} confidence
 bound on the errors. It uses the same hash function for each of these arrays
 across expansions. It hashes a key to a counter within an array of size~$w$ by
 taking the~$\log_2 w$ lower-order bits of its hash. Doing so ensures that after
@@ -1582,8 +1592,11 @@ Thus, it avoids wasting memory from the onset in case the stream grows slowly.
 By default, \sketchcms expands whenever~$N$ quadruples. As shown at the bottom
 of \Cref{fig:sketchbook_chain}, expansions occur when the number of keys~$N$
 reaches 4, 16, and 64. These thresholds cause the number of counters in each
-array to grow as~$\sqrt{N}$. As a consequence, we achieve a sub-linear memory
-footprint and sub-linear errors. To see why, recall from \Cref{sec:background}
+array to grow as~$\sqrt{N}$, \textcolor{purple}{Io: the number of counters doubles whenever~$\sqrt{N}$ doubles }. As a consequence, we achieve a sub-linear memory
+footprint and sub-linear errors, \textcolor{purple}{ even when we don't know the stream length in advance. This is the most important part. We can't use the analysis from before to make this argument now, because it doesn't apply - so I would discard the calculation from below.  Instead, I would say: "Namely, if we knew the stream length in advance, we could set $w=\sqrt{N}$ and achieve an expected error of~$O(N/\sqrt{N})=O(\sqrt{N})$  by the end of the stream. In the absense of such an estimate, it becomes unclear if we could maintain such a bound. In section blah, we show that this is indeed possible at a slight increase in error". Something like this.  }
+
+
+To see why, recall from \Cref{sec:background}
 that a CMS allocated with arrays of~$w$ counters has an expected error
 of~$N/w$. By making~$w$ grow as~$\sqrt{N}$, \sketchcms instead attains an
 expected error of~$O(N/\sqrt{N})=O(\sqrt{N})$. Although keys inserted when the
@@ -1724,6 +1737,7 @@ sketch and its copy have changed. \sketchcms applies these deltas to the
 original counters in the earlier sketch. Finally, it discards the current
 sketch and uses the earlier sketch to handle future operations.
 
+\textcolor{purple}{Io: I don't really understand the sentence below, is there an easy example?}
 The contraction threshold is set to the mean of the last two expansion
 thresholds to avoid the problem of updates frequently resizing the sketch. As
 such, a contraction is triggered when the majority of the stream's keys are
@@ -1733,7 +1747,7 @@ size of each array remains the same as before, despite the state of the sketch
 depending on the sequence of insertions and deletions.
 
 Maintaining the sketch record increases the memory footprint by at
-most~$2\times$. When the total key count fluctuates, the memory saved by
+most~$2\times$\textcolor{purple}{Io: a factor of two, it feels a bit weird with 2x}. When the total key count fluctuates, the memory saved by
 contracting outweighs this cost.
 
 \textbf{Rich Space of Tradeoffs.}
@@ -1746,7 +1760,7 @@ the stream's keys accurately in exchange for a larger memory footprint. By
 default, the size function is set to~$W(N)=\sqrt{N}$. We generalize it to a
 \emph{Sub-Linear Power} of the form~$W(N)=N^\alpha/\epsilon$, with
 constants~$\alpha \in [0,1)$ and $\epsilon > 0$. This corresponds to
-having~$(1/\epsilon)\times$ more counters in each array at the beginning and
+having~$(1/\epsilon)\times$ more counters in each array at the beginning \textcolor{purple}{Io: I find this confusing?} and
 expanding when~$N$ grows by~$2^{1/\alpha}\times$, which is larger than two. We
 prove in \Cref{sec:theoretical_analysis} that such a size function
 yields~$O(N/W(N))=O(\epsilon \cdot N^{1-\alpha})$ expected errors. Compared to
