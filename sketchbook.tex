@@ -1974,9 +1974,9 @@ in the case of a standard CS.
 
 \section{Theoretical Analysis}\label{sec:theoretical_analysis}
 We prove {\sketch}'s accuracy, confidence, and performance guarantees for
-general streams of keys. We further show that \sketch\ is space-optimal by
-proving a memory lower bound for frequency estimation sketches that do not know
-the stream's ultimate length.
+general streams of keys. We further show that \sketch\ gives rise to
+space-optimal sketches by proving a memory lower bound for frequency estimation
+sketches that do not know the stream's ultimate length.
 
 \textbf{Accuracy and Confidence.}
 
@@ -1997,8 +1997,8 @@ counter, this cost is:
     \label{lemma:single_counter_space}
     When working with unsigned counters and stubs of length~$s$,
     \counterencodingabbrv\ encodes a counter value~$v$ in $s$ bits if $v < 2^s$
-    and in $4 + 1.26 \cdot \log_2 v$ bits otherwise. Signed counters take one
-    more bit to encode the sign in both cases.
+    and in at most $4 + 1.26 \cdot \log_2 v$ bits otherwise. Signed counters
+    take one more bit to encode the sign in both cases.
 \end{lemma}
 \begin{proof}
     If~$v < 2^s$, it fits in its stub and occupies~$s$ bits. Otherwise, its~$s$
@@ -2045,9 +2045,10 @@ set of keys. A filter never returns a false negative, but it may return a false
 positive with a probability called the \emph{False Positive Rate (FPR)}. The
 lower the desired FPR is, the larger the filter's memory footprint must be. 
 
-It is known that a filter that supports a set of a growing size of~$n$ must use
-at least~$n \cdot [\log_2 1/\delta + \log_2 \log_2 n] - \Theta(n)$ bits of
-memory~\cite{PaghExpandability}. Therefore, a frequency estimation sketch that
+It is known that a filter that supports a set of a growing size of~$n$ with an
+FPR of~$\delta$ must use at least~$n \cdot [ \Omega( \log_2 1/\delta + \log_2
+\log_2 n) - \Theta(1)]$ bits of memory at some point in
+time~\cite{PaghExpandability}. Therefore, a frequency estimation sketch that
 can be used to implement such a filter must also use at least this much memory.
 To illustrate the argument, consider a frequency estimation sketch with only
 overestimation errors (e.g., CMS). Suppose this sketch guarantees an error of
@@ -2064,7 +2065,8 @@ As such, the following theorem holds:
     Any frequency estimation sketch with only overestimation errors that
     processes growing streams with an error bound of~$E(N)$ and a confidence
     of~$1-\delta$ must have a memory footprint of at least~$N/E(N) \cdot
-    [\log_2 1/\delta + \log_2\log_2 (N/E(N)) - \Theta(1)]$ bits.
+    [\Omega\left( \log 1/\delta + \log\log (N/E(N)) \right) - \Theta(1)]$ bits
+    at some point in time while processing the stream.
 \end{theorem}
 
 \begin{figure*}
@@ -2107,8 +2109,9 @@ variance that yields an error bound of~$E(N)$ with a confidence of~$1-\delta$
     \label{thm:sketch_expandability}
     A frequency estimation sketch providing estimates with an expected error
     of~$E(N)$ and a variance of~$\delta \cdot (E(N))^2$ for any key when
-    processing a stream of size~$N$, has a memory footprint of~$N/E(N) \cdot
-    [\log_2 1/\delta + \log_2\log_2 (N/E(N)) - \Theta(1)]$ bits.
+    processing a stream of size~$N$, has a memory footprint of at least~$N/E(N)
+    \cdot [\Omega(\log 1/\delta + \log\log (N/E(N))) - \Theta(1)]$ bits at some
+    point in time while processing the stream.
 \end{restatable}
 %\noindent Note that the variance assumption above captures the design of all
 %existing frequency estimation sketches.
