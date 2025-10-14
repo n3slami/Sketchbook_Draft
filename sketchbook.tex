@@ -235,15 +235,17 @@ challenge of optimally utilizing memory under skew persists.
 \textbf{Problem~2: Unbounded Data Growth.}
 In most applications, data streams continuously grow over
 time~\cite{Compass,QueryOptimizationSketches,ConvolutionSketch,SketchBasedChangeDetection,WhatsNew,TrafficManagementSurvey}.
-Yet, all current sketches have a fixed size, causing their estimation error to
-increase at least linearly with the stream's length. Because storing or
+Yet, all current sketches have a fixed size \textcolor{purple}{Io: that is set before the stream is scanned}, causing their estimation error to
+increase at least linearly with the stream's length. \textcolor{purple}{Io: since this is the first time this issue is mentioned in the paper, we have to treat this as prime real estate and write something very strong here but also that is completely understandable by people. So I would break the previous sentence in half: 1st sentence establishes that "all current sketches have a fixed size that is set before the stream is scanned". 2nd sentence: the error that we get at the end of the stream scales linearly with the stream size: therefore, a bad original estimate of the stream length can cause errors that are much larger than what is intended by the user. }Because storing or
 rescanning the stream is either infeasible or expensive, one cannot reduce the
 error by reconstructing the sketch. Therefore, applications are unable to
 maintain tight error bounds as the stream grows without bound. This poses a
 critical roadblock to deploying sketches at scale, as reported by the creator
 of the widely used Apache Data Sketches
-library~\cite{SimonsYahoo,DataSketches}. This paper is the first to address
-this fundamental limitation.
+library~\cite{SimonsYahoo,DataSketches}. \textcolor{purple}{Io:To our knowledge, }This paper is the first to address
+this fundamental limitation.\textcolor{purple}{Io: smth like "to explicitly address this fundamental limitation" - maybe others have employed smth similar, but they haven't done so explicitly}
+
+
 
 \textbf{Solution: \sketch.}
 We introduce \sketch, a framework that generalizes frequency estimation
@@ -253,7 +255,7 @@ them as they overflow. It colocates each counter and its extension within the
 same cache line and employs specialized bit manipulation routines to decode
 them in constant time. To resolve Problem~2 (Unbounded Data Growth), \sketch\
 expands its number of counters as the incurred error increases with the
-stream's growth. In doing so, it controls the growth of the error and
+stream's growth.\textcolor{purple}{Io: as the stream grows, I wouldn't make it as a function of the error... cause this is somehow weird. We don't keep track of the error, just of a bound on it. So I would keep it simple and just say expands and leave the details for later.} In doing so, it controls the growth of the error and
 simultaneously maintains high accuracy and a sub-linear memory footprint.
 
 \textbf{Additional Contributions.}
@@ -350,7 +352,7 @@ each initialized to zero. We insert a key~$x$ into this array by hashing it to
 one counter and incrementing it. We delete~$x$ by decrementing its
 corresponding counter.\footnote{Users must ensure deletions target previously
 inserted keys. This is because frequency estimation sketches do not store the
-keys and cannot check a deletion's validity.} The counter that key~$x$ hashes
+keys and cannot check a deletion's validity. \textcolor{purple}{Io: I would add this footnote the first time you mention deletions, because that's when the reader will first wonder and it's part of the problem definition.}} The counter that key~$x$ hashes
 to provides an estimate of~$x$'s count. Due to hash collisions, multiple keys
 can map to the same counter. Because of this, we may overestimate the count of
 a key~$x$. This error is at most~$\frac{N}{w}$ in expectation since a key
@@ -368,6 +370,7 @@ replace~$e$ in both the accuracy bound and the confidence. This implies that
 the smaller the constant becomes, i.e., the more accurate we expect the sketch
 to be, the lower confidence drops.
 
+\textcolor{purple}{Io: the pargrapg below can be shortened. There's intuition but I'm not exactly sure it adds much technical depth: we get the error because we can only apply Markov, because we don't have upper bounds on the frequencies. I would mention that using more arrays is a way of boosting the success probability.- or probability amplification- this is an established technique. and I wouldn't say the confidence is low as a major tragedy - you just repeat to increase confidence.}
 Yet, with a single array, confidence is low ($\approx 63\%$). The reason is
 that all keys sharing the same counter as a frequent key will suffer from
 inflated estimates. Moreover, since there are many keys with low or moderate
@@ -381,9 +384,11 @@ the probability of collisions and overestimation~\cite{CountMin}.}
 \Cref{fig:cms_overview} shows an example of insertions and queries applied to
 three counter arrays. Returning the minimum for queries boosts confidence
 exponentially, since it only carries severe errors when all estimates err
-significantly. Thus, CMS guarantees an error of at most~$\frac{eN}{w}$ with a
+significantly. \textcolor{purple}{Io: I would move the pairwise footnote here and say that it is enough to use pairwise independence to acheve this. Earlier it's a detail that's not very important, but here, it lands the message that this is not a very complicated random process. }Thus, CMS guarantees an error of at most~$\frac{eN}{w}$ with a
 confidence of~$1-e^{-d}$, i.e., $\Pr\left( |\hat{f}(x)-f(x)| \leq \frac{eN}{w}
 \right) \geq 1-e^{-d}$ for any key~$x$.
+
+\textcolor{purple}{Io: I read until here}
 
 \begin{figure}
     \centering
@@ -640,6 +645,7 @@ short streams, their error exceeds that of CMS as the stream grows. We
 empirically verify this behavior in \Cref{sec:evaluation}.
 
 \textbf{Challenge 2: Unbounded Growth.}
+\textcolor{purple}{Io: this first paragraph feels a bit weak: what exactly is it trying to say? Just that N increases with time? Also, I think calling it "imperative" that we keep the count from the beginning is a bit too much - I mean, that's what normal streams look like so that's part of the definition. So I would suggest this: 1st paragraph: argue that in many applications, we do not have a good estimate of the stream length. Second paragraph: argue that this lack of information poses a significant issue (see my later comments).}
 In many streaming applications, the data stream grows continuously, and it is
 imperative to estimate the count of each key from the stream's beginning. For
 instance, query optimizers often track the number of times each key occurs in a
@@ -647,7 +653,7 @@ table column to estimate the size of a join on that
 column~\cite{Compass,QueryOptimizationSketches,ConvolutionSketch}. As new data
 is inserted, the total number of keys~$N$ increases. Yet, the full count
 history of each key is still needed, since every occurrence contributes equally
-to the join size regardless of when it arrived.
+to the join size regardless of when it arrived. \textcolor{purple}{Io:not sure what this last sentence means? What is the full count history of a key?}
 
 Unbounded stream growth is also a challenge for applications that only require
 key counts over recent time windows. For example, network management systems
@@ -656,6 +662,8 @@ within fixed time
 windows~\cite{SketchBasedChangeDetection,WhatsNew,TrafficManagementSurvey}.
 With bursty streams such as network traffic, the number of keys~$N$ in each
 window is unpredictable.
+
+\textcolor{purple}{Io: I would link this paragraph with the previous ones. The previous ones establ}
 
 In existing frequency estimation sketches, the number of counters~$w$ is fixed
 at allocation time. Consequently, the error rate degrades linearly with~$N$
