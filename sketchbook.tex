@@ -2064,7 +2064,7 @@ As such, the following theorem holds:
     Any frequency estimation sketch with only overestimation errors that
     processes growing streams with an error bound of~$E(N)$ and a confidence
     of~$1-\delta$ must have a memory footprint of at least~$N/E(N) \cdot
-    [\log 1/\delta + \log\log (N/E(N) - \Theta(1)]$ bits.
+    [\log_2 1/\delta + \log_2\log_2 (N/E(N)) - \Theta(1)]$ bits.
 \end{theorem}
 
 \begin{figure*}
@@ -2108,17 +2108,17 @@ variance that yields an error bound of~$E(N)$ with a confidence of~$1-\delta$
     A frequency estimation sketch providing estimates with an expected error
     of~$E(N)$ and a variance of~$\delta \cdot (E(N))^2$ for any key when
     processing a stream of size~$N$, has a memory footprint of~$N/E(N) \cdot
-    [\log 1/\delta + \log\log (N/E(N)) - \Theta(1)]$ bits.
+    [\log_2 1/\delta + \log_2\log_2 (N/E(N)) - \Theta(1)]$ bits.
 \end{restatable}
 %\noindent Note that the variance assumption above captures the design of all
 %existing frequency estimation sketches.
 
 One can verify from \Cref{thm:all_counters_space} that, when fixing the
 confidence using a constant number of arrays~$d$ while using a sub-linear power
-(resp. linear) size function~$W(N)$ to achieve an error bound of~$E(N)$, the memory
-footprint becomes~$O\left( N/E(N) \cdot \log (N/E(N)) \right)$ (resp. $O(N/E(N)
-\cdot \log N \cdot \log\log N)$) bits. This almost matches the memory lower
-bound of \Cref{thm:sketch_expandability} with a slight difference in the
+(resp. linear) size function~$W(N)$ to achieve an error bound of~$E(N)$, the
+memory footprint becomes~$O\left( N/E(N) \cdot \log (N/E(N)) \right)$ (resp.
+$O(N/E(N) \cdot \log N \cdot \log\log N)$) bits. This almost matches the memory
+lower bound of \Cref{thm:sketch_expandability} with a slight difference in the
 logarithmic terms. Compressing the counter arrays by coarsely quantizing their
 counters and applying run-length encoding allows \sketch\ to match these lower
 bounds.
@@ -2544,14 +2544,14 @@ contractions and can forgo storing a record of the sketch's state.
     that, by Chebyshev's inequality, this sketch guarantees an estimation error
     of~$2E(N)$ with a confidence of~$1-\delta$. We show that if such a sketch
     is ``too space-efficient,'' it can be used to compress many sequences
-    of~$n=N/(2E(N)+1)$ keys~$\mathbf{x}=x_1,\dots,x_n$ coming from a large
+    of~$n=N/(2E(N))$ keys~$\mathbf{x}=x_1,\dots,x_n$ coming from a large
     universe~$U$ of size~$u \gg n$ to a size smaller than their entropy, which
     must be impossible. Our argument holds regardless of the time complexity
     of~$\mathcal{S}$'s operations. For simplicity, we prove this theorem
     assuming that~$\mathbb{E}[\hat{f}(x)]=f(x)$, which corresponds
     to~$\mathcal{S}$ having an estimation error of~$E(N)$ with a confidence
-    of~$1-\delta$. Here, we compress sequences of~$n=N/(E(N)+1)$ keys. This
-    proof is generalizable to the full statement of the theorem.
+    of~$1-\delta$. Here, we compress sequences of~$n=N/E(N)$ keys. This proof
+    is generalizable to the full statement of the theorem.
 
     Consider the process of iterating through~$\mathbf{x}$'s keys. We
     partition~$\mathbf{x}$ into contiguous subsequences~$\mathbf{x}_1,
@@ -2559,8 +2559,8 @@ contractions and can forgo storing a record of the sketch's state.
     of~$2^i \cdot \sqrt{n}$ and $\ell=\log_2 n/2$. While iterating through
     these subsequences, we reinsert each key enough times into~$\mathcal{S}$
     such that by the time we are done with~$\mathbf{x}_1,\dots,\mathbf{x}_i$
-    for any $i$, we have inserted each key a total~$E(N_i)+1$ times, where
-    $N_i=(E(N_i)+1) \cdot \sum_{j=1}^i |\mathbf{x}_j|$. We denote the state
+    for any $i$, we have inserted each key a total~$E(N_i)$ times, where
+    $N_i=E(N_i) \cdot \sum_{j=1}^i |\mathbf{x}_j|$. We denote the state
     of~$\mathcal{S}$ after processing the subsequences~$\mathbf{x}_1, \dots,
     \mathbf{x}_i$ as $\mathcal{S}_i$. We denote $\mathcal{S}_i$'s estimate for
     the count of key~$x$ as $\hat{f}_i(x)$ while denoting the actual count
@@ -2642,7 +2642,11 @@ contractions and can forgo storing a record of the sketch's state.
             \hat{f}_{i^*}(x) \right]$ by setting the remaining randomness
             of~$\mathcal{S}_{i^*}$ to all possible combinations, processing
             $\mathbf{x}_{i^*+1}, \dots, \mathbf{x}_\ell$, and averaging the
-            estimates~$\hat{f}_\ell(x)$. Recall that 
+            estimates~$\hat{f}_\ell(x)$. Note that here we are assuming
+            that~$\mathcal{S}$ is a linear sketch, which allows us to scale its
+            state to increase the counts of the keys
+            in~$\mathbf{x}_1,\dots,\mathbf{x}_{i^*}$ to the count of~$E(N)$
+            of the entire stream without scanning them. Recall that 
             $$ \;\;\;\;\;\;\;\;\;\;\; 2 \cdot V(N)/\ell \geq \hat{e}_{i^*}(x) = \mathbb{E}\left[ \left( \mathbb{E}\left[ \hat{f}_\ell(x) \;\middle|\; \hat{f}_{i^*}(x) \right] - f_\ell(x) \right)^2 \right]. $$
             This implies that the estimate~$g(x)$ is unlikely to deviate more
             than~$E(N)$ from $f_\ell(x)$. That is, when~$g(x)/E(N)$ is smaller
