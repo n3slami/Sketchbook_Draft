@@ -1554,10 +1554,10 @@ Recall from \Cref{sec:problem_analysis} that processing growing streams with
 existing frequency estimation sketches (e.g., CMS) yields an estimation error
 that increases at least linearly with the total key count~$N$. \sketch\
 addresses this issue by generalizing a sketch to increase its number of
-counters as the stream grows. In the case of CMS, \sketchcms expands
-whenever~$N$ exceeds a tunable threshold. An expansion concatenates the current
+counters as the stream grows. \textcolor{purple}{Io: in the previous sentence, I wouldn't say it "generalizes" a sketch - I would just take it out. I would perhaps also mention that we do not increase the number of arrays, just the counter. }In the case of CMS, \sketchcms expands
+whenever~$N$ exceeds a tunable threshold.\textcolor{purple}{Io: I would merge the previous sentence with the one before it. "\sketch\ addresses this issue by increasing the number of counters as the stream exceeds some tunable thresholds (although this is a bit unclear). Then you can say, for CMS, an expansion doubles the size of each array in each expansion, and concatenates the current...} An expansion concatenates the current
 sketch with a copy of itself, doubling the size of each array. This operation
-is inexpensive since it simply copies counters without rehashing keys. These
+is inexpensive since it simply copies counters without \textcolor{purple}{io: without needing to rehash keys - cause you can't rehash them anyways} rehashing keys. These
 larger arrays reduce the collision probability of future insertions.
 \Cref{fig:sketchbook_chain} illustrates \sketchcms just after the second
 expansion took place (on the right), as well as its state just before the first
@@ -1568,8 +1568,8 @@ of~16, plus the total value of the counters copied from the previous expansion,
 i.e., 4. Queries follow the same algorithm as CMS, targeting the newly
 expanded, largest sketch.
 
-\textbf{Consistent Hash Functions.}
-\sketchcms maintains~$d$ arrays across expansions to ensure the same confidence
+\textbf{Consistent Hash Functions.} \textcolor{purple}{io: the first sentence of the paragraph has nothing to do with the rest of the paragraph, so I would take it out and move it before. Suggested start of the paragraph: "To maintain this consistency across expansions, \sketch\ uses the same hash function for each of these arrays across expansions - what you said.}
+\sketchcms maintains~$d$ arrays across expansions to ensure the same\textcolor{purple}{Io: high, not the same? I mean, the same as before?} confidence
 bound on the errors. It uses the same hash function for each of these arrays
 across expansions. It hashes a key to a counter within an array of size~$w$ by
 taking the~$\log_2 w$ lower-order bits of its hash. Doing so ensures that after
@@ -1592,8 +1592,11 @@ Thus, it avoids wasting memory from the onset in case the stream grows slowly.
 By default, \sketchcms expands whenever~$N$ quadruples. As shown at the bottom
 of \Cref{fig:sketchbook_chain}, expansions occur when the number of keys~$N$
 reaches 4, 16, and 64. These thresholds cause the number of counters in each
-array to grow as~$\sqrt{N}$. As a consequence, we achieve a sub-linear memory
-footprint and sub-linear errors. To see why, recall from \Cref{sec:background}
+array to grow as~$\sqrt{N}$, \textcolor{purple}{Io: the number of counters doubles whenever~$\sqrt{N}$ doubles }. As a consequence, we achieve a sub-linear memory
+footprint and sub-linear errors, \textcolor{purple}{ even when we don't know the stream length in advance. This is the most important part. We can't use the analysis from before to make this argument now, because it doesn't apply - so I would discard the calculation from below.  Instead, I would say: "Namely, if we knew the stream length in advance, we could set $w=\sqrt{N}$ and achieve an expected error of~$O(N/\sqrt{N})=O(\sqrt{N})$  by the end of the stream. In the absense of such an estimate, it becomes unclear if we could maintain such a bound. In section blah, we show that this is indeed possible at a slight increase in error". Something like this.  }
+
+
+To see why, recall from \Cref{sec:background}
 that a CMS allocated with arrays of~$w$ counters has an expected error
 of~$N/w$. By making~$w$ grow as~$\sqrt{N}$, \sketchcms instead attains an
 expected error of~$O(N/\sqrt{N})=O(\sqrt{N})$. Although keys inserted when the
@@ -1734,6 +1737,7 @@ sketch and its copy have changed. \sketchcms applies these deltas to the
 original counters in the earlier sketch. Finally, it discards the current
 sketch and uses the earlier sketch to handle future operations.
 
+\textcolor{purple}{Io: I don't really understand the sentence below, is there an easy example?}
 The contraction threshold is set to the mean of the last two expansion
 thresholds to avoid the problem of updates frequently resizing the sketch. As
 such, a contraction is triggered when the majority of the stream's keys are
@@ -1743,7 +1747,7 @@ size of each array remains the same as before, despite the state of the sketch
 depending on the sequence of insertions and deletions.
 
 Maintaining the sketch record increases the memory footprint by at
-most~$2\times$. When the total key count fluctuates, the memory saved by
+most~$2\times$\textcolor{purple}{Io: a factor of two, it feels a bit weird with 2x}. When the total key count fluctuates, the memory saved by
 contracting outweighs this cost.
 
 \textbf{Rich Space of Tradeoffs.}
@@ -1756,7 +1760,7 @@ the stream's keys accurately in exchange for a larger memory footprint. By
 default, the size function is set to~$W(N)=\sqrt{N}$. We generalize it to a
 \emph{Sub-Linear Power} of the form~$W(N)=N^\alpha/\epsilon$, with
 constants~$\alpha \in [0,1)$ and $\epsilon > 0$. This corresponds to
-having~$(1/\epsilon)\times$ more counters in each array at the beginning and
+having~$(1/\epsilon)\times$ more counters in each array at the beginning \textcolor{purple}{Io: I find this confusing?} and
 expanding when~$N$ grows by~$2^{1/\alpha}\times$, which is larger than two. We
 prove in \Cref{sec:theoretical_analysis} that such a size function
 yields~$O(N/W(N))=O(\epsilon \cdot N^{1-\alpha})$ expected errors. Compared to
