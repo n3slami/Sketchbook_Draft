@@ -2070,7 +2070,7 @@ Applying \Cref{lemma:single_counter_space} to all counters yields:
     (k/w) + 1))$. 
 
     By a similar analysis to that of Theorem~??, the number of increments and
-    decrements~$k$ to each array in \sketch\, when accounting for the copied
+    decrements~$k$ to each array in \sketch, when accounting for the copied
     counters, is~$O(N)$. Similarly, one can show that~$k=O(N \log N)$ when the
     size function is linear. Plugging these values into the formula above and
     multiplying by the number of arrays~$d$ proves the result.
@@ -2175,14 +2175,16 @@ expansions and contractions is constant, as they modify~$d \cdot W(N) \leq N$
 counters every time~$N$ more than doubles or halves.
 
 \section{Evaluation}\label{sec:evaluation}
-We evaluate \sketch\ by benchmarking \sketchcms and \sketchcs against existing
-frequency estimation sketches.
+We now turn to empirically evaluate \sketch.
 Experiments~\hyperlink{experiment:accuracy}{1}{\nobreakdash-}\hyperlink{experiment:vale_tuning}{3}
 demonstrate how well \sketchcms accommodates skew, while
 Experiments~\hyperlink{experiment:expansion}{4} and
 \hyperlink{experiment:contraction}{5} show how it handles unbounded data
-growth. Experiment~\hyperlink{experiment:arruacy_unbiased}{6} shows the
-generality of \sketch\ by evaluating \sketchcs.
+growth.
+Experiments~\hyperlink{experiment:accuracy}{1}-\hyperlink{experiment:contraction}{5}
+all employ \sketchcms, while
+Experiment~\hyperlink{experiment:arruacy_unbiased}{6} showcases \sketchcs to
+demonstrate \sketch's generality.
 
 \textbf{Platform.}
 We run the experiments on a Fedora 41 machine with an Intel Xeon w7-2495X
@@ -2198,13 +2200,13 @@ sketch~\cite{WavingSketch} to represent hybrid methods. For counter sharing
 methods, we employ the following three baselines: Stingy
 sketch~\cite{StingySketch} implements the hierarchy of shared counters with the
 lowest level and the upper levels consisting of 6-bit and 2-bit counters,
-respectively. Coding sketch~\cite{CodingSketch} doubles as a compression-based
-method, as it applies hypergraph peeling to compress the hierarchy. Tailored
-sketch~\cite{TailoredSketch} increments each counter with a predefined
-probability to increase its counting range. It scales the value of each counter
-by this probability during queries. We implement \sketch\ in \texttt{C++} and
-use the open-source \texttt{C++} implementations of the baselines. We compile
-all sketches using \texttt{gcc-13}.
+respectively. Coding sketch~\cite{CodingSketch} applies hypergraph peeling to
+compress the hierarchy of shared counters, and is therefore also a
+compression-based method. Tailored sketch~\cite{TailoredSketch} increments each
+counter with a predefined probability to increase its counting range, and
+scales back its value by this probability during queries. We implement \sketch\
+in \texttt{C++} and use the open-source \texttt{C++} implementations of the
+baselines. We compile all sketches using \texttt{gcc-13}.
 
 \textbf{Datasets and Workloads.}
 Following prior
@@ -2233,24 +2235,25 @@ In \Cref{fig:accuracy_bench}, we feed each workload to each baseline while
 varying the allotted memory budget. This experiment features bounded data
 growth, allowing us to focus on how well each baseline accommodates skew. Each
 point on the curves represents a complete run of the experiment starting from
-scratch. We optimally tune each baseline at each point to minimize the error
-and enable a fair comparison. The table to the right of
-\Cref{fig:accuracy_bench} details the tuned parameters of \sketchcms for each
-point. For the \textsc{Kosarak} dataset, we use smaller memory budgets, as its
-traces are shorter in length.
+scratch. We tune each baseline at each point to minimize the error and enable a
+fair comparison. The table to the right of \Cref{fig:accuracy_bench} details
+the tuned parameters of \sketchcms for each point. We increase the memory
+budget by factors of 2 on the $x$-axis up to 4 MBs, though for the
+\textsc{Kosarak} dataset, we use smaller budgets as the workload trace is
+shorter in length.
 
 \Cref{fig:accuracy_bench} shows that \sketchcms has a lower estimation error
 than most other baselines by as much as an order of magnitude while providing
 similar or superior insertion and query performance. This is because it finely
 extends the counters without sharing or merging them. Compared to the baseline
-with the closest errors, i.e., SALSA, \sketchcms has lower errors by 40\% while
-having far faster insertions and queries by as much as~$3\times$ and
-$2.4\times$, respectively. This performance improvement is due to \sketchcms's
-use of rank and select primitives, as well as
+with the closest errors, i.e., SALSA, \sketchcms has lower errors by 40\%
+across the board while providing far faster insertions and queries by as much
+as~$3\times$ and $2.4\times$, respectively. This performance improvement is due
+to \sketchcms's use of rank and select primitives, as well as
 Optimizations~\hyperlink{optimization:fast_division}{1}{\nobreakdash-}\hyperlink{optimization:hash_splicing}{5}
 described in \Cref{sec:accommodating_skew}. The curves of Coding sketch are
 shifted to the right, as it allocates additional memory to decompress the
-hierarchy. When the memory budget is low under the \textsc{CAIDA} dataset,
+counters. When the memory budget is low under the \textsc{CAIDA} dataset,
 Tailored sketch is more accurate than \sketchcms due to its probabilistic
 increment strategy enabling it to store shorter counters in exchange for
 introducing underestimations. Applying the same technique to \sketchcms yields
