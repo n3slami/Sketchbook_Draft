@@ -2010,8 +2010,8 @@ sketches that do not know the stream's ultimate length.
 
 \textbf{Accuracy and Confidence.} We first show the different accuracy trade-offs we get depending on whether the size function grows linearly or sub-linearly with $N$.
 
-\begin{theorem}\label{thm:cms-w} 	Let $\mathcal{E}_{W,CMS}$  denote the error of \sketchcms with size function $W$ and one array of counters. For a stream with $\ell_1$ norm $N$, it holds that:
-	$$\expectation{\mathcal{E}_{W, CMS}} \leq  \begin{cases}
+\begin{theorem}\label{thm:cms-w} 	Let $\mathcal{E}_{W,CMS}$  denote the error of \sketchcms with size function $W$ and one array of counters. For a stream with $N$ total keys, it holds that:
+	$$\expectation{E_{W, CMS}(N)} \leq  \begin{cases}
 		\log_2(N) \cdot \frac{N}{W(N)}, & \text{if $W(N)=N/\epsilon$,}\\
 		\frac{N}{W(N)}, & \text{if $W(N)=N^{1-\alpha}/\epsilon$, for $0<\alpha < 1$ \;. }
 	\end{cases}$$
