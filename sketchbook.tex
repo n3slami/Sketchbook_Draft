@@ -55,6 +55,10 @@
 \newcommand{\sketchmg}{\sketch\textsubscript{MG}\xspace}
 \newcommand{\counterencoding}{\underline{va}riable-\underline{l}ength count\underline{e}r}
 \newcommand{\counterencodingabbrv}{VALE}
+%added by Ioana
+\newcommand{\parentheses}[1]{\left(#1\right)}
+\newcommand{\expectation}[1]{\mathsf{E}\left[ #1 \right]}
+\newcommand{\variance}[1]{\textsf{Var}\left[ #1 \right]}
 
 \graphicspath{{./figures/}}
 
@@ -2004,7 +2008,14 @@ general streams of keys. We further show that \sketch\ gives rise to
 space-optimal sketches by proving a memory lower bound for frequency estimation
 sketches that do not know the stream's ultimate length.
 
-\textbf{Accuracy and Confidence.}
+\textbf{Accuracy and Confidence.} We first show the different accuracy trade-offs we get depending on whether the size function grows linearly or sub-linearly with $N$.
+
+\begin{theorem}\label{thm:cms-w} 	Let $\mathcal{E}_{W,CMS}$  denote the error of \sketchcms with size function $W$ and one array of counters. For a stream with $\ell_1$ norm $N$, it holds that:
+	$$\expectation{\mathcal{E}_{W, CMS}} \leq  \begin{cases}
+		\log_2(N) \cdot \frac{N}{W(N)}, & \text{if $W(N)=N/\epsilon$,}\\
+		\frac{N}{W(N)}, & \text{if $W(N)=N^{1-\alpha}/\epsilon$, for $0<\alpha < 1$ \;. }
+	\end{cases}$$
+\end{theorem}
 
 \iffalse
 We prove in~\Cref{sec:theoretical_analysis} that \sketch\ maintains its
@@ -2013,6 +2024,8 @@ of arrays to improve confidence over time. We omit this from our exposition due
 to its similarity to the approach of expanding the number of counters in each
 array.
 \fi
+
+
 
 \textbf{Memory Footprint.}
 Since \counterencodingabbrv's adaptive tuning ensures few bits are unused per
