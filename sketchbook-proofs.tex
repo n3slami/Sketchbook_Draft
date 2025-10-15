@@ -413,29 +413,31 @@ While the term ${f_{\leq j}(x) }^2  - {f_{\leq j-1}(x) }^2$ might seem curious, 
 
 The claim follows.
 \end{proof}
-At this point, it becomes perhaps more natural to understand why we defined the size function to depend on the squared $\ell_2$ norm of the stream vector. We now discuss different bounds we get on the variance depending on the size function.
-
-\medskip\noindent
-\textbf{Setting $W(F) =  F/\epsilon$ in CS.}   In this case, we start with the original sketch $\mathcal{S}_0$ that allows streams for which their squared $\ell_2$ norm is at most some $F_0$. The size function doubles whenever the squared $\ell_2$ norm doubles. In this case $F_{j+1} = 2 \cdot F_j$ for all $j\geq 0$ and, in general, $F_j = 2^j \cdot F_0$ for all $j\geq 0$. In this case, we get that:
-
-\begin{align*}
-	\variance{\hat{f}(z)} &\leq  \sum_{j=0}^{i}  \parentheses{F_{j} - F_{j-1}} \cdot \frac{2^{i-j}}{W_i} \\
-	&\leq \frac{1}{W_i} \cdot \parentheses{  F_0\cdot 2^{i}+ \sum_{j=1}^{i}  \parentheses{2^{j} - 2^{j-1}} \cdot F_0 \cdot 2^{i-j}}\\
-	&\leq \frac{1}{W_i} \cdot  \parentheses{  F_0\cdot 2^{i}+  \sum_{j=1}^{i}  2^{j-1} \cdot F_0 \cdot 2^{i-j}} \\
-		&\leq \frac{1}{W_i} \cdot  \parentheses{  F_0\cdot 2^{i}+  \sum_{j=1}^{i}  F_0 \cdot 2^{i-1}}\\
-		&\leq  \frac{1}{W_i} \cdot  \parentheses{  F_i+  (i-1)\cdot F_i/2} =   \frac{F_i}{W_i} \cdot  \frac{i+1}{2} \;.
-\end{align*}
 
 
-
-\medskip\noindent
-\textbf{Setting $W(F) =  F^{1-c}/\epsilon$ in CS, for some $0<c<1$.} In this case, the size function doubles more rarely, whenever $F_{i+1} = 2^{1/(1-c)} \cdot F_i$. Since $0<c<1$, note that this implies that $F_{i+1}$ is bigger than $2F_i$. This difference is why we avoid the extra dependency on $i$ in the error term. Formally, we have that $F_i = 2^{i/(1-c)} \cdot F_0$ and thus:
-
-\begin{align*}
-	\sum_{j=0}^i  2^{i-j} \cdot  (F_{j+1} - F_j) & =	\sum_{j=0}^i  2^{i-j} \cdot  (2^{(j+1)/(1-c)}\cdot T_0 - 2^{j/(1-c)}\cdot T_0)\\
-	&=  \sum_{j=0}^i  2^{i-j} \cdot  2^{j/(1-c)} \cdot T_0 \cdot (2^{1/(1-c)} -1) \\
-	&= 2^i \cdot T_0 \cdot (2^{1/(1-c)} -1) \cdot   \sum_{j=0}^i   2^{j/(1-c) - j}   \;.
-\end{align*}	
+%At this point, it becomes perhaps more natural to understand why we defined the size function to depend on the squared $\ell_2$ norm of the stream vector. We now discuss different bounds we get on the variance depending on the size function.
+%
+%\medskip\noindent
+%\textbf{Setting $W(F) =  F/\epsilon$ in CS.}   In this case, we start with the original sketch $\mathcal{S}_0$ that allows streams for which their squared $\ell_2$ norm is at most some $F_0$. The size function doubles whenever the squared $\ell_2$ norm doubles. In this case $F_{j+1} = 2 \cdot F_j$ for all $j\geq 0$ and, in general, $F_j = 2^j \cdot F_0$ for all $j\geq 0$. In this case, we get that:
+%
+%\begin{align*}
+%	\variance{\hat{f}(z)} &\leq  \sum_{j=0}^{i}  \parentheses{F_{j} - F_{j-1}} \cdot \frac{2^{i-j}}{W_i} \\
+%	&\leq \frac{1}{W_i} \cdot \parentheses{  F_0\cdot 2^{i}+ \sum_{j=1}^{i}  \parentheses{2^{j} - 2^{j-1}} \cdot F_0 \cdot 2^{i-j}}\\
+%	&\leq \frac{1}{W_i} \cdot  \parentheses{  F_0\cdot 2^{i}+  \sum_{j=1}^{i}  2^{j-1} \cdot F_0 \cdot 2^{i-j}} \\
+%		&\leq \frac{1}{W_i} \cdot  \parentheses{  F_0\cdot 2^{i}+  \sum_{j=1}^{i}  F_0 \cdot 2^{i-1}}\\
+%		&\leq  \frac{1}{W_i} \cdot  \parentheses{  F_i+  (i-1)\cdot F_i/2} =   \frac{F_i}{W_i} \cdot  \frac{i+1}{2} \;.
+%\end{align*}
+%
+%
+%
+%\medskip\noindent
+%\textbf{Setting $W(F) =  F^{1-c}/\epsilon$ in CS, for some $0<c<1$.} In this case, the size function doubles more rarely, whenever $F_{i+1} = 2^{1/(1-c)} \cdot F_i$. Since $0<c<1$, note that this implies that $F_{i+1}$ is bigger than $2F_i$. This difference is why we avoid the extra dependency on $i$ in the error term. Formally, we have that $F_i = 2^{i/(1-c)} \cdot F_0$ and thus:
+%
+%\begin{align*}
+%	\sum_{j=0}^i  2^{i-j} \cdot  (F_{j+1} - F_j) & =	\sum_{j=0}^i  2^{i-j} \cdot  (2^{(j+1)/(1-c)}\cdot T_0 - 2^{j/(1-c)}\cdot T_0)\\
+%	&=  \sum_{j=0}^i  2^{i-j} \cdot  2^{j/(1-c)} \cdot T_0 \cdot (2^{1/(1-c)} -1) \\
+%	&= 2^i \cdot T_0 \cdot (2^{1/(1-c)} -1) \cdot   \sum_{j=0}^i   2^{j/(1-c) - j}   \;.
+%\end{align*}	
 
 
 
