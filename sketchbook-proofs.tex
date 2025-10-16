@@ -457,6 +457,72 @@ We note that the calculations from the above are highly similar to those of \ske
 
 
 
+\subsection{Bounds for Misra Gries}
+
+In the case of the MG sketch, we consider a slightly more general division of time into epochs. We start with a sketch that uses $W_0$ counters until the stream length reaches $N_0$. At this point in time, the sketch increases the number of counters to $W_1$. We leave the relationship between $W_0$ and $W_1$ undefined for now. The sketch uses $W_1$ counters until the stream length reaches $N_1$, and we call this period of time epoch $i$.  Once $N_2$ is reached, the sketch switches to $W_2$ counters (starting epoch $2$) and so on. We then prove the following:
+
+\begin{lemma}\label{lemma:mg-w}
+	Let $E(N)$  denote the error of \sketchmg with size function $W$ on a stream of total key count $N$. Then, at the end of epoch $i$, we have the following:
+	$$E(N_i)\leq \sum_{j=0}^i  \frac{N_j - N_{j-1}}{W_j+1}   \;,$$
+	where $N_{j}$ for $j\geq 0$ denotes the total key length of the stream at the end of epoch $j$. 
+\end{lemma}
+\begin{proof}
+	We begin by first defining some notation. Let $C_i$ denote the total count of frequencies stored in the sketch at the end of epoch $i$ (with $C_{-1}=0$). Note that $C_i \geq 0$ always, since we only delete from the sketch when all the counters are nonzero. Let $d_i$ also denote the number of deletions we make to the sketch during epoch $i$. By design, note the following relationship for $i\geq 1$:
+	$$ C_i = C_{i-1} + N_i - N_{i-1} - d_i \cdot (W_i+1) \;.$$
+	
+	For simplicity, consider the case in which $i=1$. At the beginning of epoch $i$, the frequencies stored in the sketch add up to $C_{0}$. During the epoch, we see $N_1-N_0$ fresh insertions, which either increase the frequencies stored in the sketch by $1$, or delete $W_i$ frequencies from the sketch. The number of elements in $N_1-N_0$ that issue these $W_i$ deletes is exactly $d_i$. In other words, there are $N_1-N_0-d_i$ elements that increase the sketch counts by $1$, and $d_i$ elements that decrease the sketch count by $W_i$. The total changes are therefore $N_1-N_0-d_i - d_i \cdot W_i$, which is how we got the first expression. 
+	
+	From the above, we get that:
+	$$d_i = \frac{N_i - N_{i-1} + C_{i-1}-C_i}{W_i+1} \;.$$
+	
+	Now, for any specific key $x$, the maximum error that we can make in its frequency is if we delete one from its frequency every time we delete something from the sketch (i.e., this worst-case is achieved when the sketch stores all occurences of $x$ from the beginning and then keeps deleting one from its count every time it seems an element). Formally, if we are at the end of epoch $i$, then the error is bounded as:
+	
+	$$ E(N_i) \leq f(x)  -  \hat{f}(x) \leq \sum_{j=0}^i d_j \;.$$
+	
+	
+\noindent
+	We now plug in our expression for $d_j$ and get that:
+
+\begin{align*}
+	 \sum_{j=0}^i d_j  &= \sum_{j=0}^i  \frac{N_j - N_{j-1} + C_{j-1}-C_j}{W_j+1} \\
+	 &= \sum_{j=0}^i  \frac{N_j - N_{j-1}}{W_j+1} + \sum_{j=0}^i \frac{C_{j-1}-C_j}{W_j+1} \\
+	 &=\sum_{j=0}^i  \frac{N_j - N_{j-1}}{W_j+1} + \sum_{j=0}^{i-1} C_j \cdot \parentheses{-\frac{1}{W_j+1}+\frac{1}{W_{j+1}+1}} - \frac{C_i}{W_i+1}\\
+	 &=\sum_{j=0}^i  \frac{N_j - N_{j-1}}{W_j+1} - \sum_{j=0}^{i-1} C_j \cdot \frac{W_{j+1} - W_j}{(W_j+1)(W_{j+1}+1)} - \frac{C_i}{W_i+1}\\
+	 &\leq \sum_{j=0}^i  \frac{N_j - N_{j-1}}{W_j+1}  \;,
+\end{align*}
+where the last inequality holds because we are ignoring negative factors in the sum.
+\end{proof}
+
+
+\textcolor{red}{Haven't written the theorem yet}
+Now, if $W(N) = N/\epsilon-1$ (so that the erorr becomes upper bounded by $\epsilon$) and we would increase counters by one at a time, we would get that $W(N_{i+1}) = W(N_i) + 1$ when $N_{i+1}= N_i + \epsilon$ and the error term would become
+
+	$$E(N_i)\leq \sum_{j=0}^i  \frac{\epsilon}{W_0+j} \leq \epsilon \cdot \log(1+j/W_0)   \;.$$
+	
+If, on the other hand, we would choose $W(N) = N^{\alpha}/\epsilon$ and we would double the counters every time the size function doubles, then $N_{j+1}=2^{1/\alpha}\cdot N_j$ and it would be BLAH.\textcolor{purple}{slight nonsense! - it's true that we could get write the upper bound over $W_j$ instead of $W_j+1$ and then it would be easier - choose your own adventure}
+
+
+
+\medskip\noindent
+\textcolor{red}{We can prove the following but I have no clue how to use it. There is this slight possible way to tighten it: what if the frequencies don't add by too much in a particular epoch, then what? Alternatively, it could be that the residual doesn't change by much either, but I guess that's only good for us, because then we spend more time with higher counters, and so our error is lower?}
+
+\begin{lemma}\label{lemma:mg-res-w}
+	Let $E(N)$  denote the error of \sketchmg with size function $W$ on a stream of total key count $N$. Then, at the end of epoch $i$, we have the following:
+	$$E(N_i)\leq \sum_{j=0}^i  \frac{N^{\text{res}(k)}_j- N^{\text{res}(k)}_{j-1}}{W_j+1-k}   \;,$$
+	where $N^{\text{res}(k)}_j$ for $j\geq 0$ denotes the total key length of the stream at the end of epoch $j$ minus the top $k$ elements in the stream by the end of epoch $i$.
+\end{lemma}
+\begin{proof}
+	\textcolor{red}{Proof sketch}
+	
+	In the previous bound, we can claim that:
+	$$ C_i - C_{i-1} \geq  N^{(k)}_i - N^{(k)}_{i-1} - dk \;,$$
+where $N^{(k)}_i $ denotes the frequncies of the top $k$ elements at the end of epoch $i$ (the top $k$ with respect to the whole stream).
+In other words, the change in the sketch frequencies is at least the change in the sketch frequencies restricted to the top $k$ elements. Then you get that:
+
+	$$d_i \leq  \frac{N_i - N_{i-1} -N^{(k)}_i + N^{(k)}_{i-1}}{W_i+1-k} = \sum_{j=0}^i  \frac{N^{\text{res}(k)}_j- N^{\text{res}(k)}_{j-1}}{W_j+1-k}  \;.$$
+	
+
+\end{proof}
 
 
 \end{document}
