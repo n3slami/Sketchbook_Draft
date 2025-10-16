@@ -2138,12 +2138,13 @@ sketches that do not know the stream's ultimate length.
 %\begin{definition} Consider a stream with total frequency length $N=\sum_y f(y)$, and let $E_W(N)$  denote the expected error of \sketchcms  with size function $W$ and $d=1$. Similarly, let $E(N) = N/W(N)$ be the bound on the expected error that CS with $d=1$ makes on the stream. We define the \emph{price of expandability} for CS to be the ratio $$\textsc{PoE}_{W,CS}(N)= E_W(N)/E(N) \;.$$
 %\end{definition}
 
-\begin{theorem}\label{thm:cms-w} Let $E_W(N)$  denote the error of \sketchcms  with size function $W$ and one array of counters, on a stream of total frequencies $N = \sum_y f(y)$.  Similarly, let $E(N) = N/W(N)$ denote the bound on the expected error of a CountSketch that allocates one array of $w(N)$ counters upfront. Then:
+\begin{restatable}{theorem}{thmcms}
+\label{thm:cms-w} Let $E_W(N)$  denote the error of \sketchcms  with size function $W$ and one array of counters, on a stream of total frequencies $N = \sum_y f(y)$.  Similarly, let $E(N) = N/W(N)$ denote the bound on the expected error of a CountSketch that allocates one array of $w(N)$ counters upfront. Then:
 	$$\expectation{E_W(N)} \leq  \begin{cases}
 		\log_2(N)  \cdot E(N), & \text{if $W(N)=N/\epsilon$,}\\
-		\frac{1-2^{-1/\alpha}}{1-2^{1-1/\alpha}} \cdot E(N), & \text{if $W(N)=N^{\alpha}/\epsilon$, for $\alpha \in [0,1)$ \;. }
+		\frac{2^{1/\alpha-1}}{2^{1/\alpha-1}-1} \cdot E(N), & \text{if $W(N)=N^{\alpha}/\epsilon$, for $\alpha \in [0,1)$ \;. }
 	\end{cases}$$
-\end{theorem}
+\end{restatable}
 
 We note that the bound on the accuracy of \sketchcms\ with one array counter translates directly into high confidence bounds when we employ multiple arrays. The analysis proceeds similarly as for CS (apply Markov's inequality, and use $d$ arrays to boost the confidence). Specifically in the case in which $W$ is sublinear in $N$, we get exactly the same accuracy and confidence bounds as CS without varying the number of arrays.  One can also expand the number
 of arrays to improve confidence over time. We omit this from our exposition due
@@ -2152,13 +2153,13 @@ array.
 
 In the case of CMS, we witness a similar phenomenon, but this time, when $W$ is a function of the $\ell_2$ norm of the stream $F=\sum_y (f(y))^2$ and the error is determined by the variance of the returned estimator:
 
-
-\begin{theorem}\label{thm:cs-w} 	 Let $V_W(F)$  denote the error of \sketchcs  with size function $W$ and one array of counters, on a stream with squared $\ell_2$ norm $F = \sum_y f(y)^2$. Similarly, let $V(N) = F/W(F)$ denote the bound on the variance of the  error of a CountSketch that allocates one array of $w(F)$ counters upfront. Then:
+\begin{restatable}{theorem}{thmcs}
+\label{thm:cs-w} 	 Let $V_W(F)$  denote the error of \sketchcs  with size function $W$ and one array of counters, on a stream with squared $\ell_2$ norm $F = \sum_y f(y)^2$. Similarly, let $V(N) = F/W(F)$ denote the bound on the variance of the  error of a CountSketch that allocates one array of $w(F)$ counters upfront. Then:
 	$$\variance{V_{W}(F)} \leq  \begin{cases}
 		\log_2(F) \cdot V(F) & \text{if $W(F)=F/\epsilon$,}\\
-	\frac{1-2^{-1/\alpha}}{1-2^{1-1/\alpha}} \cdot V(F), & \text{if $W(F)=F^{\alpha}/\epsilon$, for $\alpha \in [0,1)$ \;. }
+\frac{2^{1/\alpha-1}}{2^{1/\alpha-1}-1} \cdot V(F), & \text{if $W(F)=F^{\alpha}/\epsilon$, for $\alpha \in [0,1)$ \;. }
 	\end{cases}$$
-\end{theorem}
+\end{restatable}
 
 Finally, in the case of Misra-Gries, we show that similar bounds as in~\Cref{thm:cms-w} hold (except they are deterministic rather than in expectation).
 \iffalse
@@ -2716,7 +2717,35 @@ for a lower price of expandability.
 Because MG does not support deletions, \sketchmg does not need to support
 contractions and can forgo storing a record of the sketch's state.
 
-\section{Omitted Proofs}\label{sec:ommitted_proofs}
+
+
+\section{Upper bounds - proofs of Theorem~\ref{thm:cms-w},Theorem~\ref{thm:cs-w} and bounds for Misra Gries}label{sec:ommitted_proofs_upper}
+For simplicity, we will first discuss the analysis for the case in which we have an insertion-only stream, and later discuss why our arguments carry over when we also have deletions. In the following, we will also assume that, for both CS and CMS, the number of arrays we employ is $d=1$. This does not change the expected error (in the CMS case) or the variance of the error (in the CS case),  merely the confidence we have over the estimate.
+
+We will do the analysis assuming a general size function $W$ and then discuss how the analysis proceeds for specific instantiantions of  $W$ (linear or sub-linear regime). Note that we perform doubling each time the function $W$ doubles. In the CMS case, $W$ is a function of $N = \sum f(x)$, the $\ell_1$ norm of the stream. In the CS case,  $W$ is a function of $F = \sum f^2(x)$, the squared $\ell_2$ norm of the stream. In either case, we can track the moments \emph{in time} in which the value of the function doubles. Formally, instead of thinking of $W$ as a function of the the $\ell_1$ or $\ell_2$ norms of the stream, we think of it as a function of time such that, at any point in time $t$, $W_t$ is the number of counters the sketch uses at time $t$.
+
+\medskip\noindent
+\textbf{Division of time into epochs.} Let $T_0$ be the first time the sketch is instantiated: this sketch has $W_0$ counters and is used as long as the length of the stream is at most $N_0$. 
+We then define $T_i$ for $i\geq 1$ to be the first moment in time when the length of the array doubles, i.e., $W_i = 2\cdot W_{i-1}$. Note that, in between times $T_{i}$ and $T_{i+1}$, the length of the array stays the same (i.e., it is equal to $W_i$). We call this period of time epoch $i$ and denote by $\mathcal{S}_{i}$ the \emph{active} sketch during this epoch (i.e., the one that has arrays of length $W_i$). According to our design, updates to the stream during Epoch $i$ are executed directly on $\mathcal{S}_{i}$. For the purposes of executing queries fast, we also aggregate all previous sketches into the active sketch. 	
+
+Formally, let $(x,1)$ be an update that occured in some epoch $0\leq j < i$ before the current epoch. In the aggregation step, this update operation is replicated on all the counters in $\mathcal{S}_i$ that $x$ could have hashed into. Namely, if $x$ hashed to an index $\mathcal{J}_x$ in epoch $j$ for one of the arrays, then, during epoch $i$, all of the $2^{j-1}$ counters $\{0,1\}^{j-i} \circ \mathcal{J}_x$ ingest the update $(x,\Delta)$, where $\circ$ denotes concatenation and $ \{0,1\}^{j-i}$ denotes all binary strings of length $j-1$. From the perspective of the fixed counter, what this means is that the counter ingests previous updates from elements that don't technically hash into it. We describe this in more detail in what follows.
+
+\medskip\noindent
+\textbf{Agreggating counters from previous epochs.} Let $\mathcal{I}$ be a counter in some epoch $i$. This counter ingests the following operations:
+
+\begin{itemize}
+	\item updates $(x,1)$ from epoch $i$ and for which $h(x) = \mathcal{I}$. This event occurs with probability $1/W_i$ since there are $W_i$ counters in the array during that epoch. For ease of analysis, we define $\mathcal{C}_{i,\mathcal{I}}(x)$ to be the indicator random variable that is $1$ if this event occurs, and $0$ otherwise. Then $\Pr{\mathcal{C}_{i,\mathcal{I}}(x) =1}= 1/W_i$.
+	\item updates $(x,1)$ from epoch $i-1$ that, during epoch $i-1$, hashed into a counter that matches the rightmost $\log W_i - 1$ bits of $\mathcal{I}$ in its binary representation. This event occurs with probability $2/W_i$. The factor $2$ accounts for the mistakes that the aggregation step makes, i.e., processing updates from previous epoch that would not have hashed into $\mathcal{I}$ in the current epoch.
+	\item  in general, updates $(x,1)$ from epoch $j <i $ and for which $h(x)$ matches $\mathcal{I}$ in the rightmost $j$ bits of its binary representation. This event occurs with probability $2^{i-j}/W_i$. Similarly as before, we define $\mathcal{C}_{j,\mathcal{I}}(x)$ to be the indicator random variable that is $1$ if this event occurs, and $0$ otherwise. Then  $\Pr{\mathcal{C}_{j,\mathcal{I}}(x) =1}=  2^{i-j}/W_i$.
+\end{itemize}
+
+While updates from previous epochs have a higher chance of hashing into $\mathcal{I}$ than updates in epoch $i$, we can nevertheless bound the influence they have on the total error of the estimate returned by CMS, CS and Misra Gries.
+
+\medskip\noindent
+\textbf{Streams with deletions.} In order to account for deletions, we note that the state of \sketch\ in a stream with deletions is dominated by the state of \sketch\ on a related insertion-only stream. To begin with, notice that, due to the way we perform contractions, we can pretend that all previous epochs (except the one we're actively in), have only insertions in them (the state of counters in \sketch\ is exactly the same as if we only had insertions previously). We now argue about deletions $(x,-1)$ that only occur during some active epoch $i$ and that have not triggered a contraction.  If, during the same epoch $i$, there is also an insertion $(x,1)$, then we can act as if this (insertion, deletion) pair did not occur in the stream, i.e., the value of the counter incurs no change during that epoch $i$. Any extra deletions during epoch $i$ that are not cancelled out by insertions during the same epoch can only decrement the value of the counter, and they do not negatively affect the upper bounds we compute.  In other words, the value of the counter in epoch $i$ is smaller than its value in a stream in which we remove these extra deletions. Most crucially, by considering this insertions-only stream, we do not miss any errors the counter accumulates  from previous epochs. Namely, during epoch $i$ might still incur errors from previous insertions of $x$ from epochs $j<i$ that would not have hashed to the counter during epoch $i$ (i.e., the event $\mathcal{C}_{j,\mathcal{I}}(x)$ still holds and we cannot undo it since we do not know when the last insertion of $x$ occured).
+
+
+\section{Lower bound - proof of Theorem~\ref{thm:sketch_expandability}}\label{sec:ommitted_proofs}
 \thmsketchexpandabilitylabel*
 \begin{proof}
     Our proof follows a contradiction argument similar to the proof of

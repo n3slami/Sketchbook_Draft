@@ -261,7 +261,7 @@ While updates from previous epochs have a higher chance of hashing into $\mathca
 
 
 
-\subsection{Bounds for CMS}
+\subsubsection{Bounds for CMS}
 In the case of CMS, each counter gathers the sum of frequencies of elements that hash into it and returns this as the estimate. We show the following:
 
 
@@ -272,16 +272,16 @@ Let $E_W(N)$  denote the estimate of \sketchcms  with size function $W$ and one 
 \end{lemma}
 
 \begin{proof}
-	During epoch $i$, we have $N_{i+1}-N_{i}$ fresh insertions (i.e., that have not been cancelled out by deletions). We group all these insertions that occur during a given epoch into one big insertion per element. Formally, let $f_i(x)$ denote the minimum of $0$ and the total count of updates of the form $(x,1)$ that occur during epoch $i$ minus the updates of the form $(x,-1)$ from that same epoch . Note that $\sum_x f_j(x) = N_{j+1}-N_j$ for all $j\geq 0$. Note that, in our previous notation, $E_W(N_{i+1})= \mathcal{I}$ and can be expressed as:
+	During epoch $i$, we have $N_{i+1}-N_{i}$ fresh insertions (i.e., that have not been cancelled out by deletions). We group all these insertions that occur during a given epoch into one big insertion per element. Formally, let $f_i(x)$ increase in the frequency of $x$ during epoch $i$.  Note that $\sum_x f_j(x) = N_{j+1}-N_j$ for all $j\geq 0$. Note that, in our previous notation, $E_W(N_{i+1}) \leq \mathcal{I}$ and can be expressed as:
 
 	
 	$$ \mathcal{I} =\sum_{j=0}^i   \sum_x \mathcal{C}_{j,\mathcal{I}}(x) \cdot f_j(x)   \;.$$
 	
 	\noindent
-	In other words, the counter $\mathcal{I}$ gets the frequency $f_j(x)$ added to it if and only if the event $\mathcal{C}_{j,\mathcal{I}}(x)$ occurs. We also have that $\expectation{\mathcal{C}_{j,\mathcal{I}}(x)} \leq 2^{i-j}/W_i$. By linearity of expectation, we then get that:
+	In other words, the counter $\mathcal{I}$ gets the frequency $f_j(x)$ added to it if and only if the event $\mathcal{C}_{j,\mathcal{I}}(x)$ occurs. We also have that $\expectation{\mathcal{C}_{j,\mathcal{I}}(x)} = 2^{i-j}/W_i$. By linearity of expectation, we then get that:
 	
 	\begin{align*}
-		E[\mathcal{I}] &\leq  \sum_{j=0}^i   \sum_x \frac{2^{i-j}}{W_i} \cdot f_j(x) = \frac{1}{W_i} \cdot  \sum_{j=0}^i   \sum_x 2^{i-j} \cdot f_j(x)\\
+		E[\mathcal{I}] &= \sum_{j=0}^i   \sum_x \frac{2^{i-j}}{W_i} \cdot f_j(x) = \frac{1}{W_i} \cdot  \sum_{j=0}^i   \sum_x 2^{i-j} \cdot f_j(x)\\
 		&=	\frac{1}{W_i} \cdot  \sum_{j=0}^i   2^{i-j}  \sum_x f_j(x) = \frac{1}{W_i} \cdot  \sum_{j=0}^i  2^{i-j} \cdot  (N_{j+1} - N_j) \;.
 	\end{align*}
 
@@ -312,38 +312,35 @@ Plugging in this bound in the formula from~\Cref{lemma:cms-w} (i.e., dividing by
 
 
 \medskip\noindent
-\textbf{The case in which $W(N) =  N^{1-\alpha}/\epsilon$, for some $0<\alpha<1$.} In this case, the size function doubles more rarely, whenever $N_{i+1} = 2^{1/(1-\alpha)} \cdot N_i$. Since $0<\alpha<1$, note that this implies that $N_{i+1}$ is bigger than $2\cdot N_i$. This difference is why we avoid the extra dependency on $i$ in the error term. Formally, we have that $N_i = 2^{i/(1-\alpha)} \cdot N_0$ and thus:
+\textbf{The case in which $W(N) =  N^{\alpha}/\epsilon$, for some $0< \alpha<1$.} In this case, the size function doubles more rarely, whenever $N_{i+1} = 2^{1/\alpha} \cdot N_i$. Since $0<\alpha<1$, note that this implies that $N_{i+1}$ is bigger than $2\cdot N_i$. This difference is why we avoid the extra dependency on $i$ in the error term. Formally, we have that $N_i = 2^{i/\alpha} \cdot N_0$ and thus:
 
 \begin{align*}
-	\sum_{j=0}^i  2^{i-j} \cdot  (N_{j+1} - N_j) & =	\sum_{j=0}^i  2^{i-j} \cdot  (2^{(j+1)/(1-\alpha)}\cdot N_0 - 2^{j/(1-\alpha)}\cdot N_0)\\
-	&=  \sum_{j=0}^i  2^{i-j} \cdot  2^{j/(1-\alpha)} \cdot N_0 \cdot (2^{1/(1-\alpha)} -1) \\
-	&= 2^i \cdot N_0 \cdot (2^{1/(1-\alpha)} -1) \cdot   \sum_{j=0}^i   2^{j/(1-\alpha) - j}   \;.
+	\sum_{j=0}^i  2^{i-j} \cdot  (N_{j+1} - N_j) & =	\sum_{j=0}^i  2^{i-j} \cdot  (2^{(j+1)/\alpha}\cdot N_0 - 2^{j/\alpha}\cdot N_0)\\
+	&=  \sum_{j=0}^i  2^{i-j} \cdot  2^{j/\alpha} \cdot N_0 \cdot (2^{1/\alpha} -1) \\
+	&= 2^i \cdot N_0 \cdot (2^{1/\alpha} -1) \cdot   \sum_{j=0}^i   2^{j/\alpha- j}  \;.
 \end{align*}	
 
 \noindent
-For simplicity, we define $2^{1/(1-\alpha)-1} = a$ and observe that:
-$$ \sum_{j=0}^i   2^{j/(1-\alpha) - j}   =  \sum_{j=0}^i   a^j =  (a^{i+1}-1)/(a-1) \;.   $$
+For simplicity, we define $2^{1/\alpha-1} = a$ and observe that:
+$$ \sum_{j=0}^i   2^{j/\alpha - j}   =  \sum_{j=0}^i   a^j =  (a^{i+1}-1)/(a-1) \;.   $$
 
 \noindent
-We then get that:
+Moreover, we have that $2a = 2^{1/\alpha}$ and we can rewrite the error term as:
 
 \begin{align*}
-	\sum_{j=0}^i  2^{i-j} \cdot  (N_{j+1} - N_j) & = 2^i \cdot N_0 \cdot (2^{1/(1-\alpha)} -1) \cdot   \sum_{j=0}^i   2^{j/(1-\alpha) - j}  \\
+	\sum_{j=0}^i  2^{i-j} \cdot  (N_{j+1} - N_j) & = 2^i \cdot N_0 \cdot (2^{1/\alpha} -1) \cdot   \sum_{j=0}^i   2^{j/\alpha- j}  \\
 &= 2^i \cdot N_0 \cdot (2a -1) \cdot (a^{i+1}-1)/(a-1)  \\
-	&\leq  2^{i+1} \cdot N_0 \cdot (a^{i+1}-1) \leq  2^{i+1} \cdot N_0 \cdot a^{i+1} \;.\\
+&\leq  2^{i+1} \cdot N_0 \cdot  a^{i+2}/(a-1) \;,
 \end{align*}	
 
+where in the last step, we used the bounds $2a-1 \leq 2a$ and $a^{i+1}-1\leq a^{i+1}$ for simplicity. Since $N_{i+1} = (2a)^{i+1} \cdot N_0$, we have that:
 
-\noindent
-We now notice that $2a = 2^{1/(1-\alpha)}$ and so
-$$ 2^{i+1} \cdot N_0 \cdot a^{i+1} = 2^{(i+1)/(1-\alpha)} \cdot N_0  =  N_{i+1}\;.$$
 
-\noindent Therefore, the expected error from ~\Cref{lemma:cms-w} becomes:
+
 \begin{align*}
-	E[\mathcal{I}]  &\leq   \frac{1}{W_i} \cdot 	\sum_{j=0}^i  2^{i-j} \cdot  (N_{j+1} - N_j) \leq    \frac{N_{i+1}}{W_i} \;.
+	\sum_{j=0}^i  2^{i-j} \cdot  (N_{j+1} - N_j) &\leq  N_{i+1} \cdot a/(a-1)  \;.
 \end{align*}
-The claim follows.
-
+The claim follows by plugging this bound in the expected error from ~\Cref{lemma:cms-w}.
 
 
 \end{proof}
@@ -446,7 +443,7 @@ We note that the calculations from the above are highly similar to those of \ske
 
 
 \medskip\noindent
-\textbf{Setting $W(F) =  F^{1-\alpha}/\epsilon$ in CS, for some $0<c<1$.} In this case, the size function doubles more rarely, whenever $F_{i+1} = 2^{1/(1-\alpha)} \cdot F_i$. Since $0<\alpha<1$, note that this implies that $F_{i+1}$ is bigger than $2F_i$. This difference is why we avoid the extra dependency on $i$ in the error term. Plugging this into the statement of~\Cref{lemma:cs-w}, we have that $F_i = 2^{i/(1-\alpha)} \cdot F_0$ and thus:
+\textbf{Setting $W(F) =  F^{\alpha}/\epsilon$ in CS, for some $0<\alpha<1$.} In this case, the size function doubles more rarely, whenever $F_{i+1} = 2^{1/\alpha} \cdot F_i$. Since $0<\alpha<1$, note that this implies that $F_{i+1}$ is bigger than $2F_i$. This difference is why we avoid the extra dependency on $i$ in the error term. Plugging this into the statement of~\Cref{lemma:cs-w}, we have that $F_i = 2^{i/(1-\alpha)} \cdot F_0$ and thus:
 
 \begin{align*}
 	\sum_{j=0}^i  2^{i-j} \cdot  (F_{j+1} - F_j) & =	\sum_{j=0}^i  2^{i-j} \cdot  (2^{(j+1)/(1-\alpha)}\cdot T_0 - 2^{j/(1-\alpha)}\cdot T_0)\\
