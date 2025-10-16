@@ -219,6 +219,9 @@
 %% information and builds the first part of the formatted document.
 \maketitle
 
+\section{Stuff}
+
+
 
 \section{Theoretical Analysis and Results}\label{sec:theoretical_analysis_and_results}
 
@@ -422,7 +425,7 @@ At this point, it becomes perhaps more natural to understand why we defined the 
 \begin{theorem}\label{thm:cs-w} 	 Let $V_W(F)$  denote the estimate of \sketchcs  with size function $W$ and one array of counters, on a stream with squared $\ell_2$ norm $F = \sum_y f(y)^2$. Then:
 	$$\variance{V_{W}(F)} \leq  \begin{cases}
 		\log_2(F) \cdot \frac{F}{W(F)}, & \text{if $W(F)=F/\epsilon$,}\\
-		\frac{F}{W(F)}, & \text{if $W(F)=F^{1-\alpha}/\epsilon$, for $0<\alpha < 1$ \;. }
+		\frac{1-2^{-1/\alpha}}{1-2^{1-1/\alpha}}\frac{F}{W(F)}, & \text{if $W(F)=F^{1-\alpha}/\epsilon$, for $0<\alpha < 1$ \;. }
 	\end{cases}$$
 \end{theorem}
 
