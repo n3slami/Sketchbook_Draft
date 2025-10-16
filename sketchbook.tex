@@ -2075,38 +2075,6 @@ Applying \Cref{lemma:single_counter_space} to all counters yields:
     multiplying by the number of arrays~$d$ proves the result.
 \end{proof}
 
-\textbf{Memory Footprint Lower Bound.}
-To prove a memory footprint lower bound for frequency estimation sketches, we
-use them to implement filters and leverage their memory lower bounds. A filter
-is a compact data structure that answers whether a query key exists in a given
-set of keys. A filter never returns a false negative, but it may return a false
-positive with a probability called the \emph{False Positive Rate (FPR)}. The
-lower the desired FPR is, the larger the filter's memory footprint must be. 
-
-It is known that a filter that supports a set of a growing size of~$n$ with an
-FPR of~$\delta$ must use at least~$n \cdot [ \Omega( \log_2 1/\delta + \log_2
-\log_2 n) - \Theta(1)]$ bits of memory at some point in
-time~\cite{PaghExpandability}. Therefore, a frequency estimation sketch that
-can be used to implement such a filter must also use at least this much memory.
-To illustrate the argument, consider a frequency estimation sketch with only
-overestimation errors (e.g., CMS). Suppose this sketch guarantees an error of
-at most~$E(N)$ and a confidence of~$1-\delta$ for streams of length~$N$. One
-can use this sketch to implement a filter with an FPR of~$\delta$ over a set of
-size~$n=N/(E(N)+1)$ by inserting each key~$E(N)+1$ times. Filtering proceeds by
-checking if the frequency of a given key is at least~$E(N)+1$, returning a
-positive if it is and a negative otherwise. Querying a key within the set
-returns an estimate that is always at least as large as~$E(N)+1$ (i.e., a true
-positive) while querying a key outside of the set only yields an estimate
-of~$E(N)+1$ and above (i.e., a false positive) with a probability of~$\delta$.
-As such, the following theorem holds:
-\begin{theorem}
-    Any frequency estimation sketch with only overestimation errors that
-    processes growing streams with an error bound of~$E(N)$ and a confidence
-    of~$1-\delta$ must have a memory footprint of at least~$N/E(N) \cdot
-    [\Omega\left( \log 1/\delta + \log\log (N/E(N)) \right) - \Theta(1)]$ bits
-    at some point in time while processing the stream.
-\end{theorem}
-
 \begin{figure*}
     \centering
     \setlength{\tabcolsep}{2.5pt}
@@ -2138,6 +2106,38 @@ As such, the following theorem holds:
     chunk~$c$ and the stub length~$s$ used by \sketchcms in each point.}
     \label{fig:accuracy_bench}
 \end{figure*}
+
+\textbf{Memory Footprint Lower Bound.}
+To prove a memory footprint lower bound for frequency estimation sketches, we
+use them to implement filters and leverage their memory lower bounds. A filter
+is a compact data structure that answers whether a query key exists in a given
+set of keys. A filter never returns a false negative, but it may return a false
+positive with a probability called the \emph{False Positive Rate (FPR)}. The
+lower the desired FPR is, the larger the filter's memory footprint must be. 
+
+It is known that a filter that supports a set of a growing size of~$n$ with an
+FPR of~$\delta$ must use at least~$n \cdot [ \Omega( \log_2 1/\delta + \log_2
+\log_2 n) - \Theta(1)]$ bits of memory at some point in
+time~\cite{PaghExpandability}. Therefore, a frequency estimation sketch that
+can be used to implement such a filter must also use at least this much memory.
+To illustrate the argument, consider a frequency estimation sketch with only
+overestimation errors (e.g., CMS). Suppose this sketch guarantees an error of
+at most~$E(N)$ and a confidence of~$1-\delta$ for streams of length~$N$. One
+can use this sketch to implement a filter with an FPR of~$\delta$ over a set of
+size~$n=N/(E(N)+1)$ by inserting each key~$E(N)+1$ times. Filtering proceeds by
+checking if the frequency of a given key is at least~$E(N)+1$, returning a
+positive if it is and a negative otherwise. Querying a key within the set
+returns an estimate that is always at least as large as~$E(N)+1$ (i.e., a true
+positive) while querying a key outside of the set only yields an estimate
+of~$E(N)+1$ and above (i.e., a false positive) with a probability of~$\delta$.
+As such, the following theorem holds:
+\begin{theorem}
+    Any frequency estimation sketch with only overestimation errors that
+    processes growing streams with an error bound of~$E(N)$ and a confidence
+    of~$1-\delta$ must have a memory footprint of at least~$N/E(N) \cdot
+    [\Omega\left( \log 1/\delta + \log\log (N/E(N)) \right) - \Theta(1)]$ bits
+    at some point in time while processing the stream.
+\end{theorem}
 
 It is difficult to implement a filter with a sketch that has two-sided errors,
 since underestimations may introduce false negatives. Nevertheless, we prove in
@@ -2229,6 +2229,20 @@ in the stream. We compute the absolute difference of each estimate from the
 ground-truth and average the results to derive the baseline's \emph{Average
 Absolute Error (AAE)}.
 
+\begin{figure}
+    \centering
+    \includegraphics[width=0.95\columnwidth]{skew_vale_tuning.pdf}
+    \begin{tikzpicture}
+        \node[inner sep=1pt,align=center] (A) at (0,0) {\textbf{A)}};
+        \node[inner sep=1pt,right=3.5 of A,align=center] (B) {\textbf{B)}};
+        \node[inner sep=1pt,left=1.0 of A,align=center] (dummy) {};
+    \end{tikzpicture}
+    \caption{By automatically tuning \counterencodingabbrv, \sketchcms adapts
+    to all levels of skew and attains the highest accuracy and the lower memory
+    footprint.}
+    \label{fig:skew_vale_tuning_bench}
+\end{figure}
+
 \hypertarget{experiment:accuracy}{\textbf{Experiment 1: Accuracy vs. Memory Tradeoff.}}
 In \Cref{fig:accuracy_bench}, we feed each workload to each baseline while
 varying the allotted memory budget. This experiment features bounded data
@@ -2261,17 +2275,48 @@ curve.
 
 \begin{figure}
     \centering
-    \includegraphics[width=0.95\columnwidth]{skew_vale_tuning.pdf}
-    \begin{tikzpicture}
-        \node[inner sep=1pt,align=center] (A) at (0,0) {\textbf{A)}};
-        \node[inner sep=1pt,right=3.5 of A,align=center] (B) {\textbf{B)}};
-        \node[inner sep=1pt,left=1.0 of A,align=center] (dummy) {};
-    \end{tikzpicture}
-    \caption{By automatically tuning \counterencodingabbrv, \sketchcms adapts
-    to all levels of skew and attains the highest accuracy and the lower memory
-    footprint.}
-    \label{fig:skew_vale_tuning_bench}
+    \includegraphics[width=0.95\columnwidth]{expansion.pdf}
+    \caption{\sketchcms achieves both a low error rate and a small memory
+    footprint when processing growing streams.}
+    \label{fig:expansion_bench}
 \end{figure}
+
+\begin{figure}
+    \centering
+    \hspace*{0.05mm}
+    \includegraphics[width=0.98\columnwidth]{contraction.pdf}
+    \caption{\sketchcms saves a significant amount of memory by contracting when
+    many keys are deleted.}
+    \label{fig:contraction_bench}
+\end{figure}
+
+\begin{figure*}
+    \centering
+    \begin{tabular}{cc}
+        \includegraphics[width=0.77\textwidth]{accuracy_unbiased.pdf}
+        \hspace{4pt}
+        \def\arraystretch{0.82}%  1 is the default, change whatever you need
+        \small
+        \begin{tabular}[b]{ccc} 
+            \toprule 
+            Memory [MB] & $c$ & $s$ \\ 
+            \midrule 
+            1/8 & 39 & 10 \\ 
+            1/4 & 42 & 9 \\ 
+            1/2 & 45 & 8 \\ 
+            1 & 51 & 7 \\ 
+            2 & 64 & 5 \\ 
+            4 & 75 & 4 \\ 
+            \bottomrule 
+            \vspace{0.58cm}
+        \end{tabular} 
+    \end{tabular}
+    \caption{\sketchcs has the lowest errors and fastest insertions compared to
+    all other unbiased baselines. The table to the right presents the tuning of
+    \counterencodingabbrv's parameters, i.e., the number of counters per
+    chunk~$c$ and the stub length~$s$.}
+    \label{fig:accuracy_unbiased_bench}
+\end{figure*}
 
 \hypertarget{experiment:skew}{\textbf{Experiment 2: Accuracy under Varying Levels of Skew.}}
 \Cref{fig:skew_vale_tuning_bench}-A) compares the estimation errors of all
@@ -2306,51 +2351,6 @@ fixed configuration by as much as~$5\times$, as shown in
 the fixed tuning version of \sketchcms decreases when given many counters. This
 is because the counter values shrink just enough so that many of them fit in
 their stubs, removing many of the extensions and tails arrays.
-
-\begin{figure}
-    \centering
-    \includegraphics[width=0.95\columnwidth]{expansion.pdf}
-    \caption{\sketchcms achieves both a low error rate and a small memory
-    footprint when processing growing streams.}
-    \label{fig:expansion_bench}
-\end{figure}
-
-\begin{figure}
-    \centering
-    \includegraphics[width=0.92\columnwidth]{contraction.pdf}
-    \hspace*{1.5mm}
-    \caption{\sketchcms saves a significant amount of memory by contracting when
-    many keys are deleted.}
-    \label{fig:contraction_bench}
-\end{figure}
-
-\begin{figure*}
-    \centering
-    \begin{tabular}{cc}
-        \includegraphics[width=0.75\textwidth]{accuracy_unbiased.pdf}
-        \hspace{4pt}
-        \def\arraystretch{0.82}%  1 is the default, change whatever you need
-        \small
-        \begin{tabular}[b]{ccc} 
-            \toprule 
-            Memory [MB] & $c$ & $s$ \\ 
-            \midrule 
-            1/8 & 39 & 10 \\ 
-            1/4 & 42 & 9 \\ 
-            1/2 & 45 & 8 \\ 
-            1 & 51 & 7 \\ 
-            2 & 64 & 5 \\ 
-            4 & 75 & 4 \\ 
-            \bottomrule 
-            \vspace{0.58cm}
-        \end{tabular} 
-    \end{tabular}
-    \caption{\sketchcs has the lowest errors and fastest insertions compared to
-    all other unbiased baselines. The table to the right presents the tuning of
-    \counterencodingabbrv's parameters, i.e., the number of counters per
-    chunk~$c$ and the stub length~$s$.}
-    \label{fig:accuracy_unbiased_bench}
-\end{figure*}
 
 \hypertarget{experiment:expansion}{\textbf{Experiment 4: Accuracy and Memory under Data Growth.}}
 We now compare the accuracy and memory footprint of the baselines when the
