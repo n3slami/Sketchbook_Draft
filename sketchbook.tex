@@ -2142,7 +2142,7 @@ sketches that do not know the stream's ultimate length.
 \label{thm:cms-w} Let $E_W(N)$  denote the error of \sketchcms  with size function $W$ and one array of counters, on a stream of total frequencies $N = \sum_y f(y)$.  Similarly, let $E(N) = N/W(N)$ denote the bound on the expected error of a CountSketch that allocates one array of $w(N)$ counters upfront. Then:
 	$$\expectation{E_W(N)} \leq  \begin{cases}
 		\log_2(N)  \cdot E(N), & \text{if $W(N)=N/\epsilon$,}\\
-		\frac{2^{1/\alpha-1}}{2^{1/\alpha-1}-1} \cdot E(N), & \text{if $W(N)=N^{\alpha}/\epsilon$, for $\alpha \in [0,1)$ \;. }
+		\frac{2^{2/\alpha}}{2^{1/\alpha-1}-1} \cdot E(N), & \text{if $W(N)=N^{\alpha}/\epsilon$, for $\alpha \in [0,1)$ \;. }
 	\end{cases}$$
 \end{restatable}
 
@@ -2157,7 +2157,7 @@ In the case of CMS, we witness a similar phenomenon, but this time, when $W$ is 
 \label{thm:cs-w} 	 Let $V_W(F)$  denote the error of \sketchcs  with size function $W$ and one array of counters, on a stream with squared $\ell_2$ norm $F = \sum_y f(y)^2$. Similarly, let $V(N) = F/W(F)$ denote the bound on the variance of the  error of a CountSketch that allocates one array of $w(F)$ counters upfront. Then:
 	$$\variance{V_{W}(F)} \leq  \begin{cases}
 		\log_2(F) \cdot V(F) & \text{if $W(F)=F/\epsilon$,}\\
-\frac{2^{1/\alpha-1}}{2^{1/\alpha-1}-1} \cdot V(F), & \text{if $W(F)=F^{\alpha}/\epsilon$, for $\alpha \in [0,1)$ \;. }
+\frac{2^{2/\alpha}}{2^{1/\alpha-1}-1} \cdot V(F), & \text{if $W(F)=F^{\alpha}/\epsilon$, for $\alpha \in [0,1)$ \;. }
 	\end{cases}$$
 \end{restatable}
 
@@ -2719,7 +2719,8 @@ contractions and can forgo storing a record of the sketch's state.
 
 
 
-\section{Upper bounds - proofs of Theorem~\ref{thm:cms-w},Theorem~\ref{thm:cs-w} and bounds for Misra Gries}label{sec:ommitted_proofs_upper}
+\section{Upper bounds - proofs of Theorem~\ref{thm:cms-w}, Theorem~\ref{thm:cs-w} and bounds for Misra Gries}\label{sec:ommitted_proofs_upper}
+
 For simplicity, we will first discuss the analysis for the case in which we have an insertion-only stream, and later discuss why our arguments carry over when we also have deletions. In the following, we will also assume that, for both CS and CMS, the number of arrays we employ is $d=1$. This does not change the expected error (in the CMS case) or the variance of the error (in the CS case),  merely the confidence we have over the estimate.
 
 We will do the analysis assuming a general size function $W$ and then discuss how the analysis proceeds for specific instantiantions of  $W$ (linear or sub-linear regime). Note that we perform doubling each time the function $W$ doubles. In the CMS case, $W$ is a function of $N = \sum f(x)$, the $\ell_1$ norm of the stream. In the CS case,  $W$ is a function of $F = \sum f^2(x)$, the squared $\ell_2$ norm of the stream. In either case, we can track the moments \emph{in time} in which the value of the function doubles. Formally, instead of thinking of $W$ as a function of the the $\ell_1$ or $\ell_2$ norms of the stream, we think of it as a function of time such that, at any point in time $t$, $W_t$ is the number of counters the sketch uses at time $t$.
@@ -2743,6 +2744,85 @@ While updates from previous epochs have a higher chance of hashing into $\mathca
 
 \medskip\noindent
 \textbf{Streams with deletions.} In order to account for deletions, we note that the state of \sketch\ in a stream with deletions is dominated by the state of \sketch\ on a related insertion-only stream. To begin with, notice that, due to the way we perform contractions, we can pretend that all previous epochs (except the one we're actively in), have only insertions in them (the state of counters in \sketch\ is exactly the same as if we only had insertions previously). We now argue about deletions $(x,-1)$ that only occur during some active epoch $i$ and that have not triggered a contraction.  If, during the same epoch $i$, there is also an insertion $(x,1)$, then we can act as if this (insertion, deletion) pair did not occur in the stream, i.e., the value of the counter incurs no change during that epoch $i$. Any extra deletions during epoch $i$ that are not cancelled out by insertions during the same epoch can only decrement the value of the counter, and they do not negatively affect the upper bounds we compute.  In other words, the value of the counter in epoch $i$ is smaller than its value in a stream in which we remove these extra deletions. Most crucially, by considering this insertions-only stream, we do not miss any errors the counter accumulates  from previous epochs. Namely, during epoch $i$ might still incur errors from previous insertions of $x$ from epochs $j<i$ that would not have hashed to the counter during epoch $i$ (i.e., the event $\mathcal{C}_{j,\mathcal{I}}(x)$ still holds and we cannot undo it since we do not know when the last insertion of $x$ occured).
+
+\subsection{Bounds for CMS}
+In the case of CMS, each counter gathers the sum of frequencies of elements that hash into it and returns this as the estimate. Recall that the $\ell_1$ norm of a stream is the total sum of frequencies of that stream. We show the following:
+
+
+\begin{lemma}\label{lemma:cms-w}
+	Let $E_W(N)$  denote the estimate of \sketchcms  with size function $W$ and one array of counters, on a stream of $\ell_1$ norm $N$. Then, at the end of epoch $i$, we have the following:
+	$$\expectation{E_W(N_{i+1})} \leq  \frac{1}{W_i} \cdot 	\sum_{j=0}^i  2^{i-j} \cdot  (N_{j+1} - N_j) \;,$$
+	where $N_{j}$ for $j\geq 0$ denotes the $\ell_1$ norm of the stream at the start of epoch $j$. 
+\end{lemma}
+
+\begin{proof}
+	During epoch $i$, we have $N_{i+1}-N_{i}$ fresh insertions (i.e., that have not been cancelled out by deletions). Let $f_i(x)$ denote the increase (if any) in the frequency of $x$ during epoch $i$.  Note that $\sum_x f_j(x) = N_{j+1}-N_j$ for all $j\geq 0$. Note that, in our previous notation, $E_W(N_{i+1}) \leq \mathcal{I}$ and can be expressed as:
+	
+	
+	$$ \mathcal{I} =\sum_{j=0}^i   \sum_x \mathcal{C}_{j,\mathcal{I}}(x) \cdot f_j(x)   \;.$$
+	
+	\noindent
+	In other words, the counter $\mathcal{I}$ gets the frequency $f_j(x)$ added to it if and only if the event $\mathcal{C}_{j,\mathcal{I}}(x)$ occurs. We also have that $\expectation{\mathcal{C}_{j,\mathcal{I}}(x)} = 2^{i-j}/W_i$. By linearity of expectation, we then get that:
+	
+	\begin{align*}
+		E[\mathcal{I}] &= \sum_{j=0}^i   \sum_x \frac{2^{i-j}}{W_i} \cdot f_j(x) = \frac{1}{W_i} \cdot  \sum_{j=0}^i   \sum_x 2^{i-j} \cdot f_j(x)\\
+		&=	\frac{1}{W_i} \cdot  \sum_{j=0}^i   2^{i-j}  \sum_x f_j(x) = \frac{1}{W_i} \cdot  \sum_{j=0}^i  2^{i-j} \cdot  (N_{j+1} - N_j) \;.
+	\end{align*}
+	
+	The claim follows.
+\end{proof}
+
+
+
+In other words, the increase in error we get because of aggregating the sketches is dominated by the term $\sum_{j=0}^i  2^{i-j} \cdot  (N_{j+1} - N_j)$. This is where the specific size function $W$ we employ has an effect, since it translates into bounds on $N_j$ (and specifically their relative sizes). We now consider various special cases and discuss their respective behavior:
+
+\thmcms*
+\begin{proof}
+	
+	
+	In the case in which  $W(N) =  N/\epsilon$ , the size function doubles whenever the number of elements doubles, i.e.,  $N_{j+1} = 2 \cdot N_j$ for all $j\geq 0$ and, in general, $N_j = 2^j \cdot N_0$ for all $j\geq 0$. The additional error term then becomes:
+	\begin{align*}
+		\sum_{j=0}^i  2^{i-j} \cdot  (N_{j+1} - N_j) & =	\sum_{j=0}^i  2^{i-j} \cdot  (2^{j+1}\cdot N_0 - 2^{j}\cdot N_0)\\
+		&=  \sum_{j=0}^i  2^{i-j} \cdot  2^j \cdot N_0 = (i+1) \cdot 2^i \cdot N_0\\
+		&= (i+1) \cdot N_i\;.
+	\end{align*}	
+	
+	Plugging in this bound in the formula from~\Cref{lemma:cms-w} (i.e., dividing by $W(N_i)=W_i$, we get the main claim for $W(N)=N/\epsilon$. 
+	
+	
+	\medskip\noindent
+	\textbf{The case in which $W(N) =  N^{\alpha}/\epsilon$, for some $0< \alpha<1$.} In this case, the size function doubles more rarely, whenever $N_{i+1} = 2^{1/\alpha} \cdot N_i$. Since $0<\alpha<1$, note that this implies that $N_{i+1}$ is bigger than $2\cdot N_i$. This difference is why we avoid the extra dependency on $i$ in the error term. Formally, we have that $N_i = 2^{i/\alpha} \cdot N_0$ and thus:
+	
+	\begin{align*}
+		\sum_{j=0}^i  2^{i-j} \cdot  (N_{j+1} - N_j) & =	\sum_{j=0}^i  2^{i-j} \cdot  (2^{(j+1)/\alpha}\cdot N_0 - 2^{j/\alpha}\cdot N_0)\\
+		&=  \sum_{j=0}^i  2^{i-j} \cdot  2^{j/\alpha} \cdot N_0 \cdot (2^{1/\alpha} -1) \\
+		&= 2^i \cdot N_0 \cdot (2^{1/\alpha} -1) \cdot   \sum_{j=0}^i   2^{j/\alpha- j}  \;.
+	\end{align*}	
+	
+	\noindent
+	For simplicity, we define $2^{1/\alpha-1} = a$ and observe that:
+	$$ \sum_{j=0}^i   2^{j/\alpha - j}   =  \sum_{j=0}^i   a^j =  (a^{i+1}-1)/(a-1) \;.   $$
+	
+	\noindent
+	Moreover, we have that $2a = 2^{1/\alpha}$ and we can rewrite the error term as:
+	
+	\begin{align*}
+		\sum_{j=0}^i  2^{i-j} \cdot  (N_{j+1} - N_j) & = 2^i \cdot N_0 \cdot (2^{1/\alpha} -1) \cdot   \sum_{j=0}^i   2^{j/\alpha- j}  \\
+		&= 2^i \cdot N_0 \cdot (2a -1) \cdot (a^{i+1}-1)/(a-1)  \\
+		&\leq  2^{i+1} \cdot N_0 \cdot  a^{i+2}/(a-1) \;,
+	\end{align*}	
+	
+	where in the last step, we used the bounds $2a-1 \leq 2a$ and $a^{i+1}-1\leq a^{i+1}$ for simplicity. Since $N_{i} = (2a)^{i} \cdot N_0$, we have that:
+	
+	
+	
+	\begin{align*}
+		\sum_{j=0}^i  2^{i-j} \cdot  (N_{j+1} - N_j) &\leq  N_{i} \cdot 2a^2/(a-1)  \;.
+	\end{align*}
+	The claim follows by plugging this bound in the expected error from ~\Cref{lemma:cms-w}.
+	
+	
+\end{proof}
 
 
 \section{Lower bound - proof of Theorem~\ref{thm:sketch_expandability}}\label{sec:ommitted_proofs}
