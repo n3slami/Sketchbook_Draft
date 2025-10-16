@@ -1905,8 +1905,9 @@ when~$N$ grows by~$2^{1/\alpha}\times$, which is larger than two. We prove in
 yields~$O(N/W(N))=O(\epsilon \cdot N^{1-\alpha})$ expected errors. Compared to
 a fixed-size CMS allocated upfront with arrays of~$W(N)$ counters, \sketchcms's
 error is only larger by a small constant factor\footnote{The constant factor in
-question is~$(2^{1/\alpha}-1) \cdot \frac{1-2^{(\alpha-1) \cdot \log_2 N}}{2^{1/\alpha-1}-1}$, which is at
-most~$\frac{2^{1/\alpha}-1}{2^{1/\alpha-1}-1}$ and converges to~$2 \cdot \log_2 N$ as
+question is~$(2^{1/\alpha}-1) \cdot \frac{1-2^{(\alpha-1) \cdot \log_2
+N}}{2^{1/\alpha-1}-1}$, which is at
+most~$\frac{2^{1/\alpha}-1}{2^{1/\alpha-1}-1}$ and converges to~$\log_2 N$ as
 $\alpha$ tends to 1.}.
 
 One may hope to achieve a constant (i.e., non-increasing) expected error by
@@ -2141,14 +2142,13 @@ and variance of future estimates. By doing so for \sketchcms, we show in
 	$$
     \expectation{E(N)} \leq  
     \begin{cases}
-        \frac{2^{1/\alpha}-1}{2^{1/\alpha-1}-1} \cdot \epsilon N^{1-\alpha} & \text{if $W(N)=N^{\alpha}/\epsilon$, for $\alpha \in [0,1)$,} \\
-		2 \log_2 N \cdot \epsilon & \text{if $W(N)=N/\epsilon$.}
+        O(1) \cdot \epsilon N^{1-\alpha} & \text{if $W(N)=N^{\alpha}/\epsilon$, for $\alpha \in [0,1)$,} \\
+		\log_2 N \cdot \epsilon & \text{if $W(N)=N/\epsilon$.}
 	\end{cases}
     $$
     Compared to a fixed-size CMS that, given knowledge of~$N$, is allocated
     upfront with an array of~$W(N)$ counters, the expected error terms above
-    are higher by a factor of at
-    most~$\frac{2^{1/\alpha}-1}{2^{1/\alpha-1}-1}$ and $2 \log_2 N$.
+    are higher by at most a constant and a logarithmic factor.
 \end{restatable}
 Applying Markov's inequality to the expectated error above yields the same
 confidence bounds as CMS. Moreover, through a similar analysis to that of CMS,
@@ -2158,9 +2158,9 @@ grows.\footnote{One can also expand the number of arrays to improve confidence
 over time. We omit this from our exposition due to its similarity to the
 approach of expanding the number of counters in each array.}
 
-A similar phenomenon occurs for the variance of the error in the case of CS,
-but this time, $W(\cdot)$ is a function of the squared~$\ell_2$-norm of the
-stream~$F=\sum_y (f(y))^2$:
+We show in \Cref{sec:ommitted_proofs_upper} that a similar phenomenon occurs
+for the variance of the error in the case of CS, but this time, $W(\cdot)$ is a
+function of the squared~$\ell_2$-norm of the stream~$F=\sum_y (f(y))^2$:
 \begin{restatable}{theorem}{thmcs}
     \label{thm:cs-w}
     Let~$V(F)$ denote the variance of the error of \sketchcs when using the
@@ -2169,14 +2169,15 @@ stream~$F=\sum_y (f(y))^2$:
 	$$
     V(F) \leq  
     \begin{cases}
-        \frac{2^{1/\alpha}-1}{2^{1/\alpha-1}-1} \cdot \epsilon F^{1-\alpha} & \text{if $W(F)=F^{\alpha}/\epsilon$, for $\alpha \in [0,1)$, } \\
-        2 \log_2(F) \cdot \epsilon & \text{if $W(F)=F/\epsilon$.}
+        O(1) \cdot \epsilon F^{1-\alpha} & \text{if $W(F)=F^{\alpha}/\epsilon$, for $\alpha \in [0,1)$, } \\
+        \log_2 F \cdot \epsilon & \text{if $W(F)=F/\epsilon$.}
 	\end{cases}
     $$
     Compared to a fixed-size CS that, with knowledge of~$F$, is allocated
     upfront with an array of $W(N)$ counters, the variance terms above are
-    higher by a factor of at most~$\frac{2^{1/\alpha}-1}{2^{1/\alpha-1}-1}$
-    and $2 \log_2 F$.
+    higher by at most a constant and a logarithmic\footnote{Since~$F \leq N^2$,
+    where $N$ is the total key count, we have that~$\log_2 F \leq 2 \cdot
+    \log_2 N$.} factor.
 \end{restatable}
 As in the case of \sketchcms, applying Chebyshev's inequality and employing $d$
 independent arrays yields stable confidence bounds that match that of CS.
@@ -2911,8 +2912,8 @@ various special cases and discuss their respective behavior:
         &= N_{i+1} \cdot (2^{1/\alpha} -1) \cdot \frac{1 - 2^{(1-1/\alpha) \cdot (i+1)}}{2^{1/\alpha} - 2} \\
         &= N_{i+1} \cdot (2^{1/\alpha} -1) \cdot \frac{1 - 2^{(\alpha-1) \cdot \log_2 (N_{i+1}/N_0)}}{2^{1/\alpha} - 2}.
 	\end{align*}	
-    In the last line above we have used the property that $i+1 =
-    \log_{2^{1/\alpha}} (N_{i+1}/N_0) = \log_{2^{1/\alpha}} 2 \cdot \log_2
+    In the last line above we have used the property that~$i+1$ is equal to
+    $\log_{2^{1/\alpha}} (N_{i+1}/N_0) = \log_{2^{1/\alpha}} 2 \cdot \log_2
     (N_{i+1}/N_0) = \alpha \cdot \log_2 (N_{i+1}/N_0)$. The claim follows by
     plugging this bound in the expected error from \Cref{lemma:cms-w}.
 \end{proof}
