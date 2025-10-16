@@ -112,8 +112,8 @@
     they use uniformly-sized counters to track the key counts, and thus
     dedicate memory to storing the leading zeros of many small counter values.
     (2)~Their estimation error deteriorates at least linearly with the length
-    of the stream, which may grow longer over time. This is because they count
-    the keys using a fixed number of counters. 
+    of the stream, which may grow indefinitely over time. This is because they
+    count the keys using a fixed number of counters. 
 
     We present \sketch, a framework that generalizes frequency estimation
     sketches to address these problems by dynamically adapting to the stream's
@@ -121,11 +121,11 @@
     upfront and elongates them as they overflow with extensions stored within
     the same cache line. It leverages specialized bit manipulation routines to
     quickly access a counter's extension. It also adaptively maintains accurate
-    estimates by expanding its number of counters sublinearly with respect to
-    the incurred error. We apply \sketch\ to Count-Min Sketch, Count Sketch,
-    and Misra-Gries, and show, both theoretically and empirically, that
-    \sketch\ significantly improves their accuracy and memory over the state of
-    the art while maintaining competitive or superior performance.
+    estimates by expanding its number of counters with respect to the incurred
+    error. We apply \sketch\ to Count-Min Sketch and Count Sketch, and show,
+    both theoretically and empirically, that \sketch\ significantly improves
+    their accuracy and memory over the state of the art while maintaining
+    competitive or superior performance.
 \end{abstract}
 
 \maketitle
@@ -166,30 +166,30 @@ The source code, data, and/or other artifacts have been made available at
 \textbf{Data Streams.}
 Modern systems increasingly depend on the real-time statistical analysis of
 data in high-speed and massive data streams. Because these streams can grow
-without bound, storing them in full (for instance, all packets sent in a
+indefinitely, storing them in full (for instance, all packets sent in a
 network) is often impractical. Even with enough storage, scanning the data to
-compute the statistics (for example, the rows of a SQL table) is prohibitively
-expensive. As a result, many applications compute and maintain the required
-statistics incrementally as new data arrives or old data is removed. Examples
-include network traffic
+compute the statistics (for example, the rows of a SQL table) is expensive. As
+a result, many applications compute and maintain the required statistics
+incrementally as new data arrives or old data is removed. Examples include
+network traffic
 monitoring~\cite{WhatsNew,SketchingStreamsNet,RandomizedAdmissionEstimation,Blink,LOFT},
 streaming SQL engines~\cite{Flink}, sensor data
 mining~\cite{SensorDataAnalytics,RobustAggregationSensorNetworks}, and
-financial time-series forecasting~\cite{AssociationRules,TimeSeriesModeling}.
+financial time-series data forecasting~\cite{AssociationRules,TimeSeriesModeling}.
 
 \textbf{Frequency Estimation.}
 One of the most fundamental statistics in data stream analysis is
 frequency{\textemdash}the number of times each key appears in the stream.
 Tracking these counts exactly requires maintaining a counter for every distinct
-key, which quickly leads to a prohibitive memory footprint if the stream
-contains many unique keys. To overcome this issue, \emph{Frequency Estimation
-Sketches} approximate the counts using a compact, fixed-size structure. At a
-high level, this structure maps each key to one counter among a small set of
-counters (e.g., via hashing). It answers a query for a key by returning the
-corresponding counter value as an estimate. This compact structure has a
-bounded memory footprint, though mapping collisions among keys introduce
-estimation errors. Such sketches are key components in a wide range of systems,
-including query
+key, which leads to a substantial memory overhead if the stream contains many
+unique keys. To overcome this issue, \emph{Frequency Estimation Sketches}
+approximate the counts using a compact, fixed-size structure. At a high level,
+this structure maps each key to a counter among a small set of counters (e.g.,
+via hashing). It estimates the frequency of a given key based on its
+corresponding counter. In this way, sketches significantly reduce the memory
+footprint, though they introduce estimation errors, since multiple keys may map
+to the same counter. Sketches have become key components in a wide range of
+systems, including query
 optimizers~\cite{Compass,QueryOptimizationSketches,ConvolutionSketch}, network
 monitors~\cite{SketchBasedChangeDetection,WhatsNew,TrafficManagementSurvey},
 and genome analysis pipelines~\cite{CMSkmer,SetMinSketch}.
@@ -218,7 +218,7 @@ speed~\cite{CountMeanMin,SALSA,BitSense,PyramidSketch,StingySketch,AdaptiveCount
 \textbf{Goals.}
 Ideally, a frequency estimation sketch should provide a low estimation error
 and a modest memory footprint. At the same time, it should ensure high
-performance to accommodate fast-paced data streams. In this paper, we show that
+performance to accommodate rapidly growing streams. In this paper, we show that
 all existing sketches fall short of one or more of these goals due to two core
 problems.
 
@@ -241,28 +241,27 @@ In most applications, data streams grow without
 bound~\cite{Compass,QueryOptimizationSketches,ConvolutionSketch,SketchBasedChangeDetection,WhatsNew,TrafficManagementSurvey}.
 Yet, all current sketches must be allocated to a fixed size before processing
 the stream. This causes their estimation error to scale at least linearly with
-the stream's unknown length. Incorrectly setting the sketch's size may lead to
-much larger errors than desired. Because storing or rescanning the stream is
-either infeasible or expensive, one cannot reduce the error by reconstructing
-the sketch. Therefore, applications are unable to maintain tight error bounds
-as the stream grows. This poses a critical roadblock to deploying sketches at
-scale, as reported by the creators of the widely used Apache Data Sketches
-library~\cite{SimonsYahoo,DataSketches}. As a result, several works study how
-to accommodate unbounded data growth for sketches that solve related problems,
-such as approximate set
-membership~\cite{PaghExpandability,TaffyFilters,InfiniFilter,AlephFilter}. To
-our knowledge, this paper is the first to address this fundamental limitation
-for frequency estimation sketches.
+the stream's unknown length. Employing a sketch that is too small leads to much
+larger errors than desired. Because storing or rescanning the stream is either
+infeasible or expensive, one cannot reduce the error by reconstructing the
+sketch. Thus, applications are unable to maintain tight error bounds as the
+stream grows. This problem is critical when deploying sketches at scale, as
+reported by the creators of the Apache Data Sketches
+library~\cite{SimonsYahoo,DataSketches}. Recent works have tackled the
+challenge of accommodating unbounded data growth for filter data
+structures~\cite{PaghExpandability,TaffyFilters,InfiniFilter,AlephFilter}. This
+paper is the first to address this problem for frequency estimation sketches.
 
 \textbf{Solution: \sketch.}
 We introduce \sketch, a framework that generalizes frequency estimation
-sketches to address the two challenges described above. To address Problem~1
-(Skew), \sketch\ allocates small counters initially and dynamically extends
-them as they overflow. It colocates each counter and its extension within the
-same cache line and employs specialized bit manipulation routines to decode
-them in constant time. To resolve Problem~2 (Unbounded Data Growth), \sketch\
-expands its number of counters as the stream grows. In doing so, it maintains
-both sublinear errors and a sublinear memory footprint.
+sketches to address the above two challenges. To address Problem~1 (Skew),
+\sketch\ allocates small counters initially and dynamically extends them as
+they overflow. It colocates each counter and its extension within the same
+cache line and employs specialized bit manipulation routines to decode them in
+constant time. To resolve Problem~2 (Unbounded Data Growth), \sketch\ expands
+its number of counters as the stream grows. In doing so, it bounds both the
+error and the memory footprint and establishes a Pareto frontier of tradeoffs
+between them.
 
 \textbf{Additional Contributions.}
 \begin{enumerate}
@@ -275,11 +274,11 @@ both sublinear errors and a sublinear memory footprint.
     \item We characterize the accuracy-memory tradeoff space \sketch\ spans as
         it dynamically expands.
     \item We prove a lower bound on the minimum space required for any
-        expandable sketch to achieve a target error and show that \sketch's
-        memory footprint meets this bound.
+        expandable frequency estimation sketch to achieve a target error and
+        show that \sketch's memory footprint meets this bound.
     \item We apply \sketch\ to two representative sketches{\textemdash}CMS and
-        CS{\textemdash}to demonstrate its generality. We also provide a roadmap
-        for applying \sketch\ to MG as future work.
+        CS{\textemdash}to demonstrate its generality. In the appendix, we 
+        provide a roadmap for applying \sketch\ to MG~as~future~work.
     \item We evaluate \sketch\ against state-of-the-art frequency estimation
         sketches and show that it significantly reduces memory consumption
         under skew and error under growing streams, while maintaining equal or
@@ -466,7 +465,8 @@ remain small while only a few grow large. Because CMS relies on uniformly-sized
 counters that must be sufficiently long to store the maximum counter value, it
 wastes substantial memory by allocating excessive bits to the many counters
 with small values. Ideally, each counter should be just long enough to fit its
-value, thereby saving space or allowing more counters to improve accuracy.
+value, thereby saving space or allowing the storage of more counters to improve
+accuracy.
 
 \textbf{Hybrid Methods.}
 A common strategy for tackling this problem is to track the heavy hitters
@@ -487,7 +487,7 @@ Other approaches compress the counters using algorithms such as compressive
 sensing~\cite{TreeSensing,BitSense} or hypergraph peeling~\cite{CodingSketch}.
 Yet, these methods impose heavy decompression overheads on queries.
 
-\textbf{Counter Sharing Methods.}
+\textbf{Counter Sharing.}
 Counter sharing approaches store the counter values in a hierarchy of counters,
 with the lowest level storing the counter values in short counters and the
 upper levels handling overflows using shared
@@ -504,7 +504,7 @@ after~$N$ insertions into an array of size~$w$, each counter overflows into
 the~$\Theta(\log (N/w))$ levels above it. This blows up the values
 of~$\Theta(N/w)$ other counters, increasing the estimation error by the same
 factor. The counter sharing methods in the literature experiment with the
-hierarchy’s structure, including aspects like the counter sizes and the fanout.
+hierarchy’s structure by varying the counter sizes and the fanout.
 
 \begin{figure}
     \centering
@@ -628,7 +628,7 @@ hierarchy’s structure, including aspects like the counter sizes and the fanout
     \label{fig:counter_sharing_merging}
 \end{figure}
 
-\textbf{Counter Merging Methods.}
+\textbf{Counter Merging.}
 Counter merging is an alternative approach that starts with 8-bit counters and
 merges adjacent overflowing counters into a longer counter that sums up the
 original values~\cite{SALSA}. The right side of
@@ -2085,16 +2085,16 @@ Applying \Cref{lemma:single_counter_space} to all counters yields:
         \begin{tabular}[b]{ccccccc} 
             \toprule 
             \multirow{2}{*}[0.0em]{Memory [MB]} & \multicolumn{2}{c}{$\textsc{Kosarak}$} & \multicolumn{2}{c}{$\textsc{WebDocs}$} & \multicolumn{2}{c}{$\textsc{CAIDA}$} \\ 
-            & $c$ & $s$ & $c$ & $s$ & $c$ & $s$ \\ 
+            & \hspace*{1.5mm}$c$ & $s$ & \hspace*{1.5mm}$c$ & $s$\hspace*{0.75mm} & \hspace*{0.75mm}$c$ & $s$ \\ 
             \midrule 
-            1/32 & 39 & 10 & - & - & - & - \\ 
-            1/16 & 42 & 9 & - & - & - & - \\ 
-            1/8 & 43 & 7 & 33 & 12 & 39 & 10 \\ 
-            1/4 & 68 & 5 & 34 & 12 & 42 & 9 \\ 
-            1/2 & 75 & 5 & 39 & 10 & 45 & 8 \\ 
-            1 & 81 & 4 & 38 & 10 & 51 & 7 \\ 
-            2 & - & - & 50 & 7 & 64 & 5 \\ 
-            4 & - & - & 70 & 5 & 75 & 4 \\ 
+            1/32 & \hspace*{1.5mm}39 & 10 & \hspace*{1.5mm}- & -\hspace*{0.75mm} & \hspace*{0.75mm}- & - \\ 
+            1/16 & \hspace*{1.5mm}42 & 9 & \hspace*{1.5mm}- & -\hspace*{0.75mm} & \hspace*{0.75mm}- & - \\ 
+            1/8 & \hspace*{1.5mm}43 & 7 & \hspace*{1.5mm}33 & 12\hspace*{0.75mm} & \hspace*{0.75mm}39 & 10 \\ 
+            1/4 & \hspace*{1.5mm}68 & 5 & \hspace*{1.5mm}34 & 12\hspace*{0.75mm} & \hspace*{0.75mm}42 & 9 \\ 
+            1/2 & \hspace*{1.5mm}75 & 5 & \hspace*{1.5mm}39 & 10\hspace*{0.75mm} & \hspace*{0.75mm}45 & 8 \\ 
+            1 & \hspace*{1.5mm}81 & 4 & \hspace*{1.5mm}38 & 10\hspace*{0.75mm} & \hspace*{0.75mm}51 & 7 \\ 
+            2 & \hspace*{1.5mm}- & - & \hspace*{1.5mm}50 & 7\hspace*{0.75mm} & \hspace*{0.75mm}64 & 5 \\ 
+            4 & \hspace*{1.5mm}- & - & \hspace*{1.5mm}70 & 5\hspace*{0.75mm} & \hspace*{0.75mm}75 & 4 \\ 
             \bottomrule 
             \vspace{2cm}
         \end{tabular} 
@@ -2175,15 +2175,13 @@ counters every time~$N$ more than doubles or halves.
 
 \section{Evaluation}\label{sec:evaluation}
 We now turn to empirically evaluate \sketch.
-Experiments~\hyperlink{experiment:accuracy}{1}{\nobreakdash-}\hyperlink{experiment:vale_tuning}{3}
-demonstrate how well \sketchcms accommodates skew, while
+Experiments~\hyperlink{experiment:accuracy}{1} to
+\hyperlink{experiment:vale_tuning}{3} focus on accommodating skew, while
 Experiments~\hyperlink{experiment:expansion}{4} and
-\hyperlink{experiment:contraction}{5} show how it handles unbounded data
-growth.
+\hyperlink{experiment:contraction}{5} deal with unbounded data growth.
 Experiments~\hyperlink{experiment:accuracy}{1}-\hyperlink{experiment:contraction}{5}
 all employ \sketchcms, while
-Experiment~\hyperlink{experiment:arruacy_unbiased}{6} showcases \sketchcs to
-demonstrate \sketch's generality.
+Experiment~\hyperlink{experiment:arruacy_unbiased}{6} showcases \sketchcs.
 
 \textbf{Platform.}
 We run the experiments on a Fedora 41 machine with an Intel Xeon w7-2495X
@@ -2192,8 +2190,8 @@ features a 1920 KB L1 cache, a 48 MB L2 cache, and a 45 MB L3 cache, along with
 64 GBs of RAM. 
 
 \textbf{Baselines.}
-We compare \sketchcms to a traditional CMS, as well as its variants described
-in \Cref{sec:problem_analysis} that aim to cater to skew. We use
+We compare \sketchcms to a traditional CMS, as well as the variants described
+in \Cref{sec:problem_analysis} that cater to skew. We use
 SALSA~\cite{SALSA} to represent counter merging methods and Waving
 sketch~\cite{WavingSketch} to represent hybrid methods. For counter sharing
 methods, we employ the following three baselines: Stingy
@@ -2210,7 +2208,7 @@ baselines. We compile all sketches using \texttt{gcc-13}.
 \textbf{Datasets and Workloads.}
 Following prior
 work~\cite{CountMeanMin,SALSA,BitSense,PyramidSketch,StingySketch,AdaptiveCounterSplicing,CounterTree,TreeSensing,TailoredSketch,AugmentedSketch,HeavyGuardian,HeavyKeeper,WavingSketch,ElasticSketch,MVSketch,SpaceSaving,BatchUpdateMisraGries,BitMatcher,JigsawSketch,MicroscopeSketch,PSketch,TightSketch},
-we compare the baselines by employing the following real-world streams:
+we compare the baselines by employing three real-world streams:
 \begin{itemize}
     \item \textsc{Kosarak}: 8M anonymized clicks from a news
         portal~\cite{Kosarak}. This dataset is highly skewed, resembling a
@@ -2243,35 +2241,36 @@ Absolute Error (AAE)}.
     \label{fig:skew_vale_tuning_bench}
 \end{figure}
 
-\hypertarget{experiment:accuracy}{\textbf{Experiment 1: Accuracy vs. Memory Tradeoff.}}
+\hypertarget{experiment:accuracy}{\textbf{Experiment 1: Accuracy and Speed vs. Memory.}}
 In \Cref{fig:accuracy_bench}, we feed each workload to each baseline while
 varying the allotted memory budget. This experiment features bounded data
 growth, allowing us to focus on how well each baseline accommodates skew. Each
 point on the curves represents a complete run of the experiment starting from
-scratch. We tune each baseline at each point to minimize the error and enable a
-fair comparison. The table to the right of \Cref{fig:accuracy_bench} details
-the tuned parameters of \sketchcms for each point. We increase the memory
-budget by factors of 2 on the $x$-axis up to 4 MBs, though for the
-\textsc{Kosarak} dataset, we use smaller budgets as the workload trace is
-shorter in length.
+scratch. We tune each baseline at each point to minimize the error and thus
+reflect the best that it can achieve. The table to the right of
+\Cref{fig:accuracy_bench} details the tuned parameters of \sketchcms, i.e., the
+number of counters per chunk~$c$ and the stub length~$s$, for each point. We
+increase the memory budget by factors of 2 on the $x$-axis up to 4 MBs, though
+for the \textsc{Kosarak} dataset, we use smaller budgets as the workload trace
+is shorter.
 
 \Cref{fig:accuracy_bench} shows that \sketchcms has a lower estimation error
 than most other baselines by as much as an order of magnitude while providing
 similar or superior insertion and query performance. This is because it finely
 extends the counters without sharing or merging them. Compared to the baseline
 with the closest errors, i.e., SALSA, \sketchcms has lower errors by 40\%
-across the board while providing far faster insertions and queries by as much
+across the board while providing faster insertions and queries by as much
 as~$3\times$ and $2.4\times$, respectively. This performance improvement is due
 to \sketchcms's use of rank and select primitives, as well as
-Optimizations~\hyperlink{optimization:fast_division}{1}{\nobreakdash-}\hyperlink{optimization:hash_splicing}{5}
-described in \Cref{sec:accommodating_skew}. The curves of Coding sketch are
-shifted to the right, as it allocates additional memory to decompress the
-counters. When the memory budget is low under the \textsc{CAIDA} dataset,
-Tailored sketch is more accurate than \sketchcms due to its probabilistic
-increment strategy enabling it to store shorter counters in exchange for
-introducing underestimations. Applying the same technique to \sketchcms yields
-lower errors than Tailored sketch by~$2.38\times$, as shown by the dotted
-curve.
+Optimizations~\hyperlink{optimization:fast_division}{1} to
+\hyperlink{optimization:hash_splicing}{5} described in
+\Cref{sec:accommodating_skew}. The curves of Coding sketch are shifted to the
+right since it allocates additional memory to decompress the counters. When the
+memory budget is low under the \textsc{CAIDA} dataset, Tailored sketch is more
+accurate than \sketchcms due to its probabilistic increment strategy enabling
+it to store shorter counters in exchange for introducing underestimations.
+Applying the same technique to \sketchcms yields lower errors than Tailored
+sketch by~$2.38\times$, as shown by the dotted curve.
 
 \begin{figure}
     \centering
@@ -2324,25 +2323,25 @@ baselines under the same memory budget as the amount of skew in the data
 varies. Here, we generate streams of 100M keys from a \textsc{Zipfian}
 distribution over 100K distinct keys. We vary the exponent parameter, i.e., the
 skewness, on the~$x${\nobreakdash-}axis from~0.0 to 3.2, which correspond to a
-uniform and a highly skewed dataset (similar to the \textsc{Kosarak} dataset),
-respectively. Unlike the previous experiment, where we tuned each baseline to
-each workload, here we use a unified tuning across the workloads to reflect the
-scenario where the data's skew is unknown. We allow \sketchcms to adapt its
-tuning to the dataset's skew as it is being inserted. Note that the other
-baselines are unable to do a similar adaptation.
+uniform and a highly skewed dataset, respectively. Unlike the previous
+experiment, where we tuned each baseline to each workload, here we use a
+unified tuning across the workloads to reflect the scenario where the data's
+skew is unknown. We allow \sketchcms to adapt its tuning to the dataset's skew
+as it is being inserted. Note that the other baselines are unable to do a
+similar adaptation.
 
 \Cref{fig:skew_vale_tuning_bench}-A) shows that \sketchcms provides the lowest
-error for all levels of skew. It outperforms the closest baseline by an order
+error for all degrees of skew. It outperforms the closest baseline by an order
 of magnitude for more uniform workloads and by~$3\times$ for more skewed
-workloads, respectively. This is because it adapts on the fly to skew by
-employing shorter stubs for more skewed workloads, allowing it to store more
-counters under the same memory budget. 
+workloads. This is because it adapts on the fly to skew by employing shorter
+stubs for more skewed workloads, allowing it to store more counters under the
+same memory budget. 
 
 \hypertarget{experiment:vale_tuning}{\textbf{Experiment 3: Memory Savings of Adaptively Tuning \counterencodingabbrv.}}
 \Cref{fig:skew_vale_tuning_bench}-B) compares \sketchcms's memory footprint
-when using a fixed tuning for \counterencodingabbrv{\textemdash}with~$c=64$
-counters per chunk and stubs of length~$s=6${\textemdash}to when it adapts the
-tuning as the stream grows. Here, each point corresponds to a run of the
+when using a fixed tuning for \counterencodingabbrv to when it adapts the
+tuning as the stream grows. We employ the default tuning of~$c=64$
+counters per chunk and stubs of length~$s=6${\textemdash} for the fixed tuning version. Here, each point corresponds to a run of the
 experiment where we fix the total number of counters in the sketch and insert
 the \textsc{CAIDA} dataset. Adaptively tuning \counterencodingabbrv\ bounds the
 number of allocated tails arrays and improves the memory footprint over using a
@@ -2373,8 +2372,7 @@ This culminates in the three versions of \sketchcms (with exponents~$\alpha$ of
 $0.5$, $0.75$, and $1.0$) improving the error over the best baseline by one,
 two, and three orders of magnitude. The right subfigure in
 \Cref{fig:expansion_bench} shows that these versions of \sketchcms maintain a
-small and more stable memory footprint relative to the stream's length, whereas
-the relative memory footprints of all other baselines shrink indefinitely.
+small and more stable memory footprint relative to the stream's length.
 
 \iffalse
 \hypertarget{experiment:size_function}{\textbf{Experiment 5: Tradeoffs of Different Size Functions.}}
@@ -2388,41 +2386,38 @@ the stream's length in exchange for more memory.
 \fi
 
 \hypertarget{experiment:contraction}{\textbf{Experiment 5: Contractions.}}
-\Cref{fig:contraction_bench} demonstrates the benefits of supporting
-contractions in \sketchcms. Here, we insert the \textsc{CAIDA} dataset and
-subsequently delete all of its keys in a random order while measuring both the
-error and the memory footprint. We only compare \sketchcms to CMS, as all other
-baselines do not provide a deletion API.
+\Cref{fig:contraction_bench} showcases deletions and contractions in
+\sketchcms. Here, we insert the \textsc{CAIDA} dataset and subsequently delete
+keys in a random order while measuring the error and the memory footprint. We
+only compare \sketchcms to CMS since all other baselines do not provide a
+deletion API.
 
-As shown in \Cref{fig:contraction_bench}, \sketchcms maintains lower errors
-than a CMS of the same size by as much as two orders of magnitude. This is
-because \counterencodingabbrv\ encodes the counter values in far less space,
-allowing the storage of more counters. As keys are deleted, \sketchcms
-contracts to save memory, while CMS wastes memory by remaining the same size.
-This enables achieving a lower memory footprint than CMS by as much
-as~$285\times$. The reduced number of counters slightly increases \sketchcms's
-error, yet it never grows beyond CMS's error. 
+As shown, \sketchcms maintains lower errors than a CMS of the same size by as
+much as two orders of magnitude. This is because \counterencodingabbrv\ encodes
+the counter values in far less space, allowing the storage of more counters. As
+keys are deleted, \sketchcms contracts to save memory, while CMS wastes memory
+by remaining the same size. This enables achieving a lower memory footprint
+than CMS by as much as~$285\times$. The reduced number of counters slightly
+increases \sketchcms's error, yet it never grows beyond CMS's error. 
 
-\hypertarget{experiment:accuracy_unbiased}{\textbf{Experiment 6: Unbiased Accuracy vs. Memory Tradeoff.}}
-To show the generality of \sketch\ and that it benefits tasks requiring
-unbiased frequency estimation (e.g., query optimization), we evaluate \sketchcs
-against all baselines that provide unbiased estimates. We compare it to a
-traditional CS and Waving sketch~\cite{WavingSketch}, which is representative
-of unbiased hybrid methods. We also compare to Stingy
+\hypertarget{experiment:accuracy_unbiased}{\textbf{Experiment 6: Unbiased Accuracy and Speed vs. Memory.}}
+We now showcase \sketchcs to demonstrate the applicability of \sketch\ beyond
+CMS. We compare it to a traditional CS and Waving sketch~\cite{WavingSketch},
+which is representative of unbiased hybrid methods. We also compare to Stingy
 sketch~\cite{StingySketch} and Coding sketch~\cite{CodingSketch} applied to CS,
-representing counter sharing methods with unbiased estimates. Note that we
-exclude SALSA~\cite{SALSA}, the only counter merging method, as its
-implementation does not provide a variant with unbiased estimates. We employ
-the \textsc{CAIDA} dataset and optimally tune each baseline to enable a fair
-comparison, as in Experiment~\hyperlink{experiment:accuracy}{1}.
+representing counter sharing methods with unbiased estimates. We exclude
+SALSA~\cite{SALSA} as its library does not provide a variant with unbiased
+estimates. We employ the \textsc{CAIDA} dataset and tune each baseline to
+minimize the error, as in Experiment~\hyperlink{experiment:accuracy}{1}.
 
 As shown in \Cref{fig:accuracy_unbiased_bench}, by leveraging the memory
 savings of \counterencodingabbrv\ to store more counters, \sketchcs achieves
 lower errors than the next best baseline by as much as an order of magnitude.
 It also has the fastest insertions while closely matching the query performance
 of the most performant sketch. This is due to \sketchcs utilizing
-Optimizations~\hyperlink{optimization:fast_division}{1}{\nobreakdash-}\hyperlink{optimization:hash_splicing}{5}
-introduced in \Cref{sec:accommodating_skew} to speed up accessing counters.
+Optimizations~\hyperlink{optimization:fast_division}{1} to
+\hyperlink{optimization:hash_splicing}{5} introduced in
+\Cref{sec:accommodating_skew} to speed up accessing counters.
 
 \section{Conclusion}
 We introduced \sketch, the first framework for generalizing a frequency
