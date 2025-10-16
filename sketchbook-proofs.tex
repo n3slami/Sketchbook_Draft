@@ -240,23 +240,21 @@ We will do the analysis assuming a general size function $W$ and then discuss ho
 \textbf{Division of time into epochs.} Let $T_0$ be the first time the sketch is instantiated: this sketch has $W_0$ counters and is used as long as the length of the stream is at most $N_0$. 
 We then define $T_i$ for $i\geq 1$ to be the first moment in time when the length of the array doubles, i.e., $W_i = 2\cdot W_{i-1}$. Note that, in between times $T_{i}$ and $T_{i+1}$, the length of the array stays the same (i.e., it is equal to $W_i$). We call this period of time epoch $i$ and denote by $\mathcal{S}_{i}$ the \emph{active} sketch during this epoch (i.e., the one that has arrays of length $W_i$). According to our design, updates to the stream during Epoch $i$ are executed directly on $\mathcal{S}_{i}$. For the purposes of executing queries fast, we also aggregate all previous sketches into the active sketch. 	
 
-Formally, let $(x,\Delta)$ be an update that occured in some epoch $0\leq j < i$ before the current epoch. In the aggregation step, this update operation is replicated on all the counters in $\mathcal{S}_i$ that $x$ could have hashed into. Namely, if $x$ hashed to an index $\mathcal{J}_x$ in epoch $j$ for one of the arrays, then, during epoch $i$, all of the $2^{j-1}$ counters $\mathcal{J}_x \circ \{0,1\}^{j-i}$ ingest the update $(x,\Delta)$, where $\circ$ denotes concatenation and $ \{0,1\}^{j-i}$ denotes all binary strings of length $j-1$. From the perspective of the fixed counter, what this means is that the counter must also ingest previous updates from elements that don't technically hash into it.
+Formally, let $(x,1)$ be an update that occured in some epoch $0\leq j < i$ before the current epoch. In the aggregation step, this update operation is replicated on all the counters in $\mathcal{S}_i$ that $x$ could have hashed into. Namely, if $x$ hashed to an index $\mathcal{J}_x$ in epoch $j$ for one of the arrays, then, during epoch $i$, all of the $2^{j-1}$ counters $\{0,1\}^{j-i} \circ \mathcal{J}_x$ ingest the update $(x,\Delta)$, where $\circ$ denotes concatenation and $ \{0,1\}^{j-i}$ denotes all binary strings of length $j-1$. From the perspective of the fixed counter, what this means is that the counter ingests previous updates from elements that don't technically hash into it. We describe this in more detail in what follows.
 
-\noindent
-\textbf{Agreggating counters from previous epochs.} Formally, let $\mathcal{I}$ be a counter in epoch $i$. This counter ingests the following operations:
+\medskip\noindent
+\textbf{Agreggating counters from previous epochs.} Let $\mathcal{I}$ be a counter in some epoch $i$. This counter ingests the following operations:
 
 \begin{itemize}
 	\item updates $(x,1)$ from epoch $i$ and for which $h(x) = \mathcal{I}$. This event occurs with probability $1/W_i$ since there are $W_i$ counters in the array during that epoch. For ease of analysis, we define $\mathcal{C}_{i,\mathcal{I}}(x)$ to be the indicator random variable that is $1$ if this event occurs, and $0$ otherwise. Then $\Pr{\mathcal{C}_{i,\mathcal{I}}(x) =1}= 1/W_i$.
-	\item updates $(x,1)$ from epoch $i-1$ that, during epoch $i-1$, hashed into a counter that matches the leftmost $\log W_i - 1$ bits of $\mathcal{I}$ in the binary representation (meaning, their current $h(x)$ value differs from $\mathcal{I}$ in at most the last $1$ bit of their binary representation). This event occurs with probability at most $2/W_i$. We emphasize that this is merely an upper bound: the factor $2$ accounts for the mistakes that the aggregation step makes, i.e., processing updates from previous epoch that would not have hashed into $\mathcal{I}$ in the current epoch.
-	\item  in general, updates $(x,1)$ from epoch $j <i $ and for which $h(x)$ differs from $\mathcal{I}$ only in the last $i-j$ bits of its binary representation. This event occurs with probability at most $2^{i-j}/W_i$. Similarly as before, we define $\mathcal{C}_{j,\mathcal{I}}(x)$ to be the indicator random variable that is $1$ if this event occurs, and $0$ otherwise. Then  $\Pr{\mathcal{C}_{j,\mathcal{I}}(x) =1}\leq  2^{i-j}/W_i$. Similarly as before, note that this is merely an upper bound: for $x$ such that $h(x) = \mathcal{I}$, the $\Pr{\mathcal{C}_{j,\mathcal{I}}(x) =1 | h(x) = \mathcal{I}}=1$ no matter when the update to $x$ was processed in the stream.
+	\item updates $(x,1)$ from epoch $i-1$ that, during epoch $i-1$, hashed into a counter that matches the rightmost $\log W_i - 1$ bits of $\mathcal{I}$ in its binary representation. This event occurs with probability $2/W_i$. The factor $2$ accounts for the mistakes that the aggregation step makes, i.e., processing updates from previous epoch that would not have hashed into $\mathcal{I}$ in the current epoch.
+	\item  in general, updates $(x,1)$ from epoch $j <i $ and for which $h(x)$ matches $\mathcal{I}$ in the rightmost $j$ bits of its binary representation. This event occurs with probability $2^{i-j}/W_i$. Similarly as before, we define $\mathcal{C}_{j,\mathcal{I}}(x)$ to be the indicator random variable that is $1$ if this event occurs, and $0$ otherwise. Then  $\Pr{\mathcal{C}_{j,\mathcal{I}}(x) =1}=  2^{i-j}/W_i$.
 \end{itemize}
 
 While updates from previous epochs have a higher chance of hashing into $\mathcal{I}$ than updates in epoch $i$, we can nevertheless bound the influence they have on the total error of the estimate returned by CMS, CS and Misra Gries.
 
 \medskip\noindent
-\textbf{Streams with deletions.} In order to account for deletions, we note that the state of \sketch\ in a stream with deletions is dominated by the state of \sketch\ on a related insertion-only stream. Namely, let $(x,-1)$ be a deletion that occurs during epoch $i$. If, previously in epoch $i$, there was an insertion $(x,1)$, then we can act as if this (insertion, deletion) pair did not occur, i.e., the value of the counter incurs no extra errors with respect to an insertion-only stream during epoch $i$. If, on the other hand, there are no insertions that occur during that epoch, then a counter during epoch $i$ might still incur errors from previous insertions of $x$ that occured during previous epochs $j<i$ and would not have hashed to the counter during epoch $i$ (event$\mathcal{C}_{j,\mathcal{I}}(x)$ still holds ). This is because the deletion of $x$ subtracts one from the correct counter of $x$ during epoch $i$, but cannot subtract one from all the other counters that $x$ got inserted into as a consequence of expansions. To remove these errors, \sketch\ subtracts the re \textcolor{olive}{To be determined}
-
-
+\textbf{Streams with deletions.} In order to account for deletions, we note that the state of \sketch\ in a stream with deletions is dominated by the state of \sketch\ on a related insertion-only stream. To begin with, notice that, due to the way we perform contractions, we can pretend that all previous epochs (except the one we're actively in), have only insertions in them (the state of counters in \sketch\ is exactly the same as if we only had insertions previously). We now argue about deletions $(x,-1)$ that only occur during some active epoch $i$ and that have not triggered a contraction.  If, during the same epoch $i$, there is also an insertion $(x,1)$, then we can act as if this (insertion, deletion) pair did not occur in the stream, i.e., the value of the counter incurs no change during that epoch $i$. Any extra deletions during epoch $i$ that are not cancelled out by insertions during the same epoch can only decrement the value of the counter, and they do not negatively affect the upper bounds we compute.  In other words, the value of the counter in epoch $i$ is smaller than its value in a stream in which we remove these extra deletions. Most crucially, by considering this insertions-only stream, we do not miss any errors the counter accumulates  from previous epochs. Namely, during epoch $i$ might still incur errors from previous insertions of $x$ from epochs $j<i$ that would not have hashed to the counter during epoch $i$ (i.e., the event $\mathcal{C}_{j,\mathcal{I}}(x)$ still holds and we cannot undo it since we do not know when the last insertion of $x$ occured).
 
 
 
@@ -265,13 +263,13 @@ In the case of CMS, each counter gathers the sum of frequencies of elements that
 
 
 \begin{lemma}\label{lemma:cms-w}
-Let $\mathcal{E}_{W, CMS}$  denote the error of \sketchcms  with size function $W$ and one array of counters. Then, at the end of epoch $i$, we have the following:
-	$$\expectation{\mathcal{E}_{W,CMS}} \leq  \frac{1}{W_i} \cdot 	\sum_{j=0}^i  2^{i-j} \cdot  (N_{j+1} - N_j) \;,$$
-	where $N_j$ for $j\geq 0$ denotes the $\ell_1$ norm of the stream at the start of epoch $j$. 
+Let $E_W(N)$  denote the estimate of \sketchcms  with size function $W$ and one array of counters, on a stream of $\ell_1$ norm $N$. Then, at the end of epoch $i$, we have the following:
+	$$\expectation{E_W(N_{i+1})} \leq  \frac{1}{W_i} \cdot 	\sum_{j=0}^i  2^{i-j} \cdot  (N_{j+1} - N_j) \;,$$
+	where $N_{j}$ for $j\geq 0$ denotes the $\ell_1$ norm of the stream at the start of epoch $j$. 
 \end{lemma}
 
 \begin{proof}
-	During epoch $i$, we have $N_{i+1}-N_{i}$ insertions. We first cluster all the insertions that occur during a given epoch into one big insertion per element. Formally, let $f_i(x)$ denote the total count of updates  of the form $(x,\Delta)$ that occur in the stream during epoch $i$. Note that $\sum_x f_j(x) = N_{j+1}-N_j$ for all $j\geq 0$. Note that, in our previous notation, $\mathcal{E}_{W,CMS} = \mathcal{I}$ and can be expressed as:
+	During epoch $i$, we have $N_{i+1}-N_{i}$ fresh insertions (i.e., that have not been cancelled out by deletions). We group all these insertions that occur during a given epoch into one big insertion per element. Formally, let $f_i(x)$ denote the minimum of $0$ and the total count of updates of the form $(x,1)$ that occur during epoch $i$ minus the updates of the form $(x,-1)$ from that same epoch . Note that $\sum_x f_j(x) = N_{j+1}-N_j$ for all $j\geq 0$. Note that, in our previous notation, $E_W(N_{i+1})= \mathcal{I}$ and can be expressed as:
 
 	
 	$$ \mathcal{I} =\sum_{j=0}^i   \sum_x \mathcal{C}_{j,\mathcal{I}}(x) \cdot f_j(x)   \;.$$
@@ -283,14 +281,16 @@ Let $\mathcal{E}_{W, CMS}$  denote the error of \sketchcms  with size function $
 		E[\mathcal{I}] &\leq  \sum_{j=0}^i   \sum_x \frac{2^{i-j}}{W_i} \cdot f_j(x) = \frac{1}{W_i} \cdot  \sum_{j=0}^i   \sum_x 2^{i-j} \cdot f_j(x)\\
 		&=	\frac{1}{W_i} \cdot  \sum_{j=0}^i   2^{i-j}  \sum_x f_j(x) = \frac{1}{W_i} \cdot  \sum_{j=0}^i  2^{i-j} \cdot  (N_{j+1} - N_j) \;.
 	\end{align*}
+
+The claim follows.
 \end{proof}
 
 
 
-In other words, the increase in error we get because of aggregating the sketches is dominated by the term $\sum_{j=0}^i  2^{i-j} \cdot  (N_{j+1} - N_j)$. This is where the specific size function $W$ we employ has an effect, since it translates into bounds on $N_i$ (and specifically their relative sizes). We now consider various special cases and discuss their respective behavior:
+In other words, the increase in error we get because of aggregating the sketches is dominated by the term $\sum_{j=0}^i  2^{i-j} \cdot  (N_{j+1} - N_j)$. This is where the specific size function $W$ we employ has an effect, since it translates into bounds on $N_j$ (and specifically their relative sizes). We now consider various special cases and discuss their respective behavior:
 
-\begin{theorem}\label{thm:cms-w} 	Let $\mathcal{E}_{W,CMS}$  denote the error of \sketchcms with size function $W$ and one array of counters. For a stream with $\ell_1$ norm $N$, it holds that:
-	$$\expectation{\mathcal{E}_{W, CMS}} \leq  \begin{cases}
+\begin{theorem}\label{thm:cms-w} Let $E_W(N)$  denote the estimate of \sketchcms  with size function $W$ and one array of counters, on a stream of $\ell_1$ norm $N = \sum_y f(y)$. Then:
+	$$\expectation{E_W(N)} \leq  \begin{cases}
 		\log_2(N) \cdot \frac{N}{W(N)}, & \text{if $W(N)=N/\epsilon$,}\\
 	\frac{N}{W(N)}, & \text{if $W(N)=N^{1-\alpha}/\epsilon$, for $0<\alpha < 1$ \;. }
 	\end{cases}$$
@@ -317,27 +317,29 @@ Plugging in this bound in the formula from~\Cref{lemma:cms-w} (i.e., dividing by
 	&= 2^i \cdot N_0 \cdot (2^{1/(1-\alpha)} -1) \cdot   \sum_{j=0}^i   2^{j/(1-\alpha) - j}   \;.
 \end{align*}	
 
+\noindent
 For simplicity, we define $2^{1/(1-\alpha)-1} = a$ and observe that:
 $$ \sum_{j=0}^i   2^{j/(1-\alpha) - j}   =  \sum_{j=0}^i   a^j =  (a^{i+1}-1)/(a-1) \;.   $$
 
+\noindent
 We then get that:
 
 \begin{align*}
-	\sum_{j=0}^i  2^{i-j} \cdot  (N_{j+1} - N_j) & = 2^i \cdot T_0 \cdot (2^{1/(1-\alpha)} -1) \cdot   \sum_{j=0}^i   2^{j/(1-\alpha) - j}  \\
+	\sum_{j=0}^i  2^{i-j} \cdot  (N_{j+1} - N_j) & = 2^i \cdot N_0 \cdot (2^{1/(1-\alpha)} -1) \cdot   \sum_{j=0}^i   2^{j/(1-\alpha) - j}  \\
 &= 2^i \cdot N_0 \cdot (2a -1) \cdot (a^{i+1}-1)/(a-1)  \\
 	&\leq  2^{i+1} \cdot N_0 \cdot (a^{i+1}-1) \leq  2^{i+1} \cdot N_0 \cdot a^{i+1} \;.\\
 \end{align*}	
 
 
-
+\noindent
 We now notice that $2a = 2^{1/(1-\alpha)}$ and so
-$$ 2^{i+1} \cdot N_0 \cdot a^{i+1} = 2^{(i+1)/(1-\alpha)} \cdot N_0  = 2^{1/(1-\alpha)} \cdot N_i\;.$$
+$$ 2^{i+1} \cdot N_0 \cdot a^{i+1} = 2^{(i+1)/(1-\alpha)} \cdot N_0  =  N_{i+1}\;.$$
 
-\noindent Therefore, the expected error becomes:
+\noindent Therefore, the expected error from ~\Cref{lemma:cms-w} becomes:
 \begin{align*}
-	E[\mathcal{I}]  &\leq   \frac{1}{W_i} \cdot 	\sum_{j=0}^i  2^{i-j} \cdot  (N_{j+1} - N_j) \leq  2^{1/(1-\alpha)} \cdot \frac{N_i}{W_i} =   \frac{N_{i+1}}{W_i} \;,
+	E[\mathcal{I}]  &\leq   \frac{1}{W_i} \cdot 	\sum_{j=0}^i  2^{i-j} \cdot  (N_{j+1} - N_j) \leq    \frac{N_{i+1}}{W_i} \;.
 \end{align*}
-ince, during epoch $i$, the length of the stream could be as high as $N_{i+1}$, and we have that $N_{i+1} = 2^{1/(1-\alpha)}$. The claim follows by again invoking~\Cref{lemma:cms-w}. 
+The claim follows.
 
 
 
@@ -345,12 +347,12 @@ ince, during epoch $i$, the length of the stream could be as high as $N_{i+1}$, 
 
 \subsection{Bounds for CS}
 
- In the case of CS,  we obtain a similar claim to that of~\Cref{lemma:cms-w}:
+ In the case of CS,  we obtain a similar claim to that of~\Cref{lemma:cms-w}, except as a function of the squared $\ell_2$ norm of the stream.
  
  
  \begin{lemma}\label{lemma:cs-w}
- Let $\mathcal{E}_{W, CS}$  denote the error of \sketchcs  with size function $W$ and one array of counters. Then, at the end of epoch $i$, we have the following:
- 	$$\variance{\mathcal{E}_{W,CS}} \leq  \frac{1}{W_i} \cdot 	\sum_{j=0}^i  2^{i-j} \cdot  (F_{j+1} - F_j) \;,$$
+ Let $V_W(F)$  denote the estimate of \sketchcs  with size function $W$ and one array of counters, on a stream with squared $\ell_2$ norm $F = \sum_y f(y)^2$. Then, at the end of epoch $i$, we have the following:
+ 	$$\variance{V_W(F_{i+1})} \leq  \frac{1}{W_i} \cdot 	\sum_{j=0}^i  2^{i-j} \cdot  (F_{j+1} - F_j) \;,$$
  	where $F_j$ denotes the squared  $\ell_2$ norm of the stream at the start of epoch $j$. 
  \end{lemma}
  \begin{proof}
@@ -415,33 +417,43 @@ The claim follows.
 \end{proof}
 
 
-%At this point, it becomes perhaps more natural to understand why we defined the size function to depend on the squared $\ell_2$ norm of the stream vector. We now discuss different bounds we get on the variance depending on the size function.
-%
-%\medskip\noindent
-%\textbf{Setting $W(F) =  F/\epsilon$ in CS.}   In this case, we start with the original sketch $\mathcal{S}_0$ that allows streams for which their squared $\ell_2$ norm is at most some $F_0$. The size function doubles whenever the squared $\ell_2$ norm doubles. In this case $F_{j+1} = 2 \cdot F_j$ for all $j\geq 0$ and, in general, $F_j = 2^j \cdot F_0$ for all $j\geq 0$. In this case, we get that:
-%
-%\begin{align*}
-%	\variance{\hat{f}(z)} &\leq  \sum_{j=0}^{i}  \parentheses{F_{j} - F_{j-1}} \cdot \frac{2^{i-j}}{W_i} \\
-%	&\leq \frac{1}{W_i} \cdot \parentheses{  F_0\cdot 2^{i}+ \sum_{j=1}^{i}  \parentheses{2^{j} - 2^{j-1}} \cdot F_0 \cdot 2^{i-j}}\\
-%	&\leq \frac{1}{W_i} \cdot  \parentheses{  F_0\cdot 2^{i}+  \sum_{j=1}^{i}  2^{j-1} \cdot F_0 \cdot 2^{i-j}} \\
-%		&\leq \frac{1}{W_i} \cdot  \parentheses{  F_0\cdot 2^{i}+  \sum_{j=1}^{i}  F_0 \cdot 2^{i-1}}\\
-%		&\leq  \frac{1}{W_i} \cdot  \parentheses{  F_i+  (i-1)\cdot F_i/2} =   \frac{F_i}{W_i} \cdot  \frac{i+1}{2} \;.
-%\end{align*}
-%
-%
-%
-%\medskip\noindent
-%\textbf{Setting $W(F) =  F^{1-c}/\epsilon$ in CS, for some $0<c<1$.} In this case, the size function doubles more rarely, whenever $F_{i+1} = 2^{1/(1-c)} \cdot F_i$. Since $0<c<1$, note that this implies that $F_{i+1}$ is bigger than $2F_i$. This difference is why we avoid the extra dependency on $i$ in the error term. Formally, we have that $F_i = 2^{i/(1-c)} \cdot F_0$ and thus:
-%
-%\begin{align*}
-%	\sum_{j=0}^i  2^{i-j} \cdot  (F_{j+1} - F_j) & =	\sum_{j=0}^i  2^{i-j} \cdot  (2^{(j+1)/(1-c)}\cdot T_0 - 2^{j/(1-c)}\cdot T_0)\\
-%	&=  \sum_{j=0}^i  2^{i-j} \cdot  2^{j/(1-c)} \cdot T_0 \cdot (2^{1/(1-c)} -1) \\
-%	&= 2^i \cdot T_0 \cdot (2^{1/(1-c)} -1) \cdot   \sum_{j=0}^i   2^{j/(1-c) - j}   \;.
-%\end{align*}	
+At this point, it becomes perhaps more natural to understand why we defined the size function to depend on the squared $\ell_2$ norm of the stream vector. We now discuss different bounds we get on the variance depending on the size function.
+
+\begin{theorem}\label{thm:cs-w} 	 Let $V_W(F)$  denote the estimate of \sketchcs  with size function $W$ and one array of counters, on a stream with squared $\ell_2$ norm $F = \sum_y f(y)^2$. Then:
+	$$\variance{V_{W}(F)} \leq  \begin{cases}
+		\log_2(F) \cdot \frac{F}{W(F)}, & \text{if $W(F)=F/\epsilon$,}\\
+		\frac{F}{W(F)}, & \text{if $W(F)=F^{1-\alpha}/\epsilon$, for $0<\alpha < 1$ \;. }
+	\end{cases}$$
+\end{theorem}
+
+We note that the calculations from the above are highly similar to those of \sketchcms\ from~\Cref{thm:cms-w}, with the difference that we now see a dependency on $F$ rather than $N$. We include them for completeness:
+\begin{proof}
+ In the case in which $W(F) =  F/\epsilon$, we start with the original sketch $\mathcal{S}_0$ that allows streams for which their squared $\ell_2$ norm is at most some $F_0$. The size function doubles whenever the squared $\ell_2$ norm doubles. In this case $F_{j+1} = 2 \cdot F_j$ for all $j\geq 0$ and, in general, $F_j = 2^j \cdot F_0$ for all $j\geq 0$. In this case, we get that:
+
+	
+
+\begin{align*}
+	\variance{V_W} &\leq  \sum_{j=0}^{i}  \parentheses{F_{j} - F_{j-1}} \cdot \frac{2^{i-j}}{W_i} \\
+	&\leq \frac{1}{W_i} \cdot \parentheses{  F_0\cdot 2^{i}+ \sum_{j=1}^{i}  \parentheses{2^{j} - 2^{j-1}} \cdot F_0 \cdot 2^{i-j}}\\
+	&\leq \frac{1}{W_i} \cdot  \parentheses{  F_0\cdot 2^{i}+  \sum_{j=1}^{i}  2^{j-1} \cdot F_0 \cdot 2^{i-j}} \\
+		&\leq \frac{1}{W_i} \cdot  \parentheses{  F_0\cdot 2^{i}+  \sum_{j=1}^{i}  F_0 \cdot 2^{i-1}}\\
+		&\leq  \frac{1}{W_i} \cdot  \parentheses{  F_i+  (i-1)\cdot F_i/2} =   \frac{F_i}{W_i} \cdot  \frac{i+1}{2} \;.
+\end{align*}
 
 
 
+\medskip\noindent
+\textbf{Setting $W(F) =  F^{1-\alpha}/\epsilon$ in CS, for some $0<c<1$.} In this case, the size function doubles more rarely, whenever $F_{i+1} = 2^{1/(1-\alpha)} \cdot F_i$. Since $0<\alpha<1$, note that this implies that $F_{i+1}$ is bigger than $2F_i$. This difference is why we avoid the extra dependency on $i$ in the error term. Plugging this into the statement of~\Cref{lemma:cs-w}, we have that $F_i = 2^{i/(1-\alpha)} \cdot F_0$ and thus:
 
+\begin{align*}
+	\sum_{j=0}^i  2^{i-j} \cdot  (F_{j+1} - F_j) & =	\sum_{j=0}^i  2^{i-j} \cdot  (2^{(j+1)/(1-\alpha)}\cdot T_0 - 2^{j/(1-\alpha)}\cdot T_0)\\
+	&=  \sum_{j=0}^i  2^{i-j} \cdot  2^{j/(1-\alpha)} \cdot T_0 \cdot (2^{1/(1-\alpha)} -1) \\
+	&= 2^i \cdot T_0 \cdot (2^{1/(1-\alpha)} -1) \cdot   \sum_{j=0}^i   2^{j/(1-\alpha) - j}   \;.
+\end{align*}	
+
+
+
+\end{proof}
 
 
 
