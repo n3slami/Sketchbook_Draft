@@ -376,6 +376,70 @@
     numpages={12}
 }
 
+@article{InfiniFilter,
+    author = {Dayan, Niv and Bercea, Ioana and Reviriego, Pedro and Pagh, Rasmus},
+    title = {InfiniFilter: Expanding Filters to Infinity and Beyond},
+    year = {2023},
+    issue_date = {June 2023},
+    publisher = {Association for Computing Machinery},
+    address = {New York, NY, USA},
+    volume = {1},
+    number = {2},
+    url = {https://doi.org/10.1145/3589285},
+    doi = {10.1145/3589285},
+    abstract = {Filter data structures have been used ubiquitously since the
+        1970s to answer approximate set-membership queries in various areas of
+            computer science including architecture, networks, operating
+            systems, and databases. Such filters need to be allocated with a
+            given capacity in advance to provide a guarantee over the false
+            positive rate. In many applications, however, the data size is not
+            known in advance, requiring filters to dynamically expand. This
+            paper shows that existing methods for expanding filters exhibit at
+            least one of the following flaws: (1) they entail an expensive scan
+            over the whole data set, (2) they require a lavish memory
+            footprint, (3) their query, delete and/or insertion performance
+            plummets, (4) their false positive rate skyrockets, and/or (5)~they
+            cannot expand indefinitely.We introduce InfiniFilter, a new method
+            for expanding filters that addresses these shortcomings.
+                InfiniFilter is a hash table that stores a fingerprint for each
+                    entry. It doubles in size when it reaches capacity, and it
+                    sacrifices one bit from each fingerprint to map it to the
+                    expanded hash table. The core novelty is a new and flexible
+                    hash slot format that sets longer fingerprints to newer
+                    entries. This keeps the average fingerprint length long and
+                    thus the false positive rate stable. At the same time,
+                         InfiniFilter provides stable insertion/query/delete
+                             performance as it is comprised of a unified hash
+                             table. We implement InfiniFilter on top of
+                             Quotient Filter, and we demonstrate theoretically
+                             and empirically that it offers superior cost
+                             properties compared to existing methods: it better
+                             scales performance, the false positive rate, and
+                             the memory footprint, all at the same time.},
+    journal = {Proc. ACM Manag. Data},
+    month = {jun},
+    articleno = {140},
+    numpages = {27},
+    keywords = {approximate set membership, scalability, expandability, data growth, quotient filter, probabalistic data structures, bloom filter}
+}
+
+@misc{AlephFilter,
+    title={Aleph Filter: To Infinity in Constant Time}, 
+    author={Niv Dayan and Ioana Bercea and Rasmus Pagh},
+    year={2024},
+    eprint={2404.04703},
+    archivePrefix={arXiv},
+    primaryClass={cs.DB},
+    url={https://arxiv.org/abs/2404.04703}, 
+}
+
+@article{TaffyFilters,
+    author = {Apple, Jim},
+    title = {Stretching your data with taffy filters},
+    journal = {Software: Practice and Experience},
+    year = {2022}
+}
+
 @article{PaghExpandability,
     title={How to Approximate a Set without Knowing Its Size in Advance},
     author={Rasmus Pagh and Gil Segev and Udi Wieder},
@@ -2755,6 +2819,22 @@
     year={2023},
     url={https://simons.berkeley.edu/talks/lee-rhodes-yahoo-inc-2023-10-12},
     urldate={2025-10-10}
+}
+
+@Online{DataSketchesAPI1,
+    author={The Apache Software Foundation},
+    title={The DataSketches\texttrademark HLL sketch family package},
+    year={2024},
+    url={https://apache.github.io/datasketches-java/6.1.0/org/apache/datasketches/hll/package-summary.html},
+    urldate={2025-10-15}
+}
+
+@Online{DataSketchesAPI2,
+    author={The Apache Software Foundation},
+    title={ItemsSketch Class Documentation},
+    year={2024},
+    url={https://apache.github.io/datasketches-java/6.0.0/org/apache/datasketches/frequencies/ItemsSketch.html#merge(org.apache.datasketches.frequencies.ItemsSketch)},
+    urldate={2025-10-15}
 }
 
 @misc{Kosarak,

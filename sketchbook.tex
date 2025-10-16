@@ -236,22 +236,23 @@ counters~\cite{SALSA,BitSense,PyramidSketch,StingySketch,AdaptiveCounterSplicing
 their approaches compromise either accuracy or performance. Therefore, the
 challenge of optimally utilizing memory under skew persists.
 
-
 \textbf{Problem~2: Unbounded Data Growth.}
-
-In most applications, data streams continuously grow over
-time \textcolor{purple}{Io: and we lack accurate estimates of the final stream length is.- cause otherwise it's a bit strange to say that the data grows, as opposed to what?}~\cite{Compass,QueryOptimizationSketches,ConvolutionSketch,SketchBasedChangeDetection,WhatsNew,TrafficManagementSurvey}.
-Yet, all current sketches have a fixed size \textcolor{purple}{Io: that is set before the stream is scanned}, causing their estimation error to
-increase at least linearly with the stream's length. \textcolor{purple}{Io: since this is the first time this issue is mentioned in the paper, we have to treat this as prime real estate and write something very strong here but also that is completely understandable by people. So I would break the previous sentence in half: 1st sentence establishes that "all current sketches have a fixed size that is set before the stream is scanned". 2nd sentence: the error that we get at the end of the stream scales linearly with the stream size: therefore, a bad original estimate of the stream length can cause errors that are much larger than what is intended by the user. }Because storing or
-rescanning the stream is either infeasible or expensive, one cannot reduce the
-error by reconstructing the sketch. Therefore, applications are unable to
-maintain tight error bounds as the stream grows without bound. This poses a
-critical roadblock to deploying sketches at scale, as reported by the creator
-of the widely used Apache Data Sketches
-library~\cite{SimonsYahoo,DataSketches}. \textcolor{purple}{Io:To our knowledge, }This paper is the first to address
-this fundamental limitation.\textcolor{purple}{Io: smth like "to explicitly address this fundamental limitation and provide a general purpose framework with well-understood trade-offs." - maybe others have employed smth similar, but they haven't done so explicitly. }
-
-
+In most applications, data streams grow without
+bound~\cite{Compass,QueryOptimizationSketches,ConvolutionSketch,SketchBasedChangeDetection,WhatsNew,TrafficManagementSurvey}.
+Yet, all current sketches must be allocated to a fixed size before processing
+the stream. This causes their estimation error to scale at least linearly with
+the stream's unknown length. Incorrectly setting the sketch's size may lead to
+much larger errors than desired. Because storing or rescanning the stream is
+either infeasible or expensive, one cannot reduce the error by reconstructing
+the sketch. Therefore, applications are unable to maintain tight error bounds
+as the stream grows. This poses a critical roadblock to deploying sketches at
+scale, as reported by the creators of the widely used Apache Data Sketches
+library~\cite{SimonsYahoo,DataSketches}. As a result, several works study how
+to accommodate unbounded data growth for sketches that solve related problems,
+such as approximate set
+membership~\cite{PaghExpandability,TaffyFilters,InfiniFilter,AlephFilter}. To
+our knowledge, this paper is the first to address this fundamental limitation
+for frequency estimation sketches.
 
 \textbf{Solution: \sketch.}
 We introduce \sketch, a framework that generalizes frequency estimation
@@ -260,9 +261,8 @@ sketches to address the two challenges described above. To address Problem~1
 them as they overflow. It colocates each counter and its extension within the
 same cache line and employs specialized bit manipulation routines to decode
 them in constant time. To resolve Problem~2 (Unbounded Data Growth), \sketch\
-expands its number of counters as the incurred error increases with the
-stream's growth.\textcolor{purple}{Io: as the stream grows, I wouldn't make it as a function of the error... cause this is somehow weird. We don't keep track of the error, just of a bound on it. So I would keep it simple and just say "grows" and leave the details for later.} In doing so, it controls the growth of the error and
-simultaneously maintains high accuracy and a sublinear memory footprint.
+expands its number of counters as the stream grows. In doing so, it maintains
+both sublinear errors and a sublinear memory footprint.
 
 \textbf{Additional Contributions.}
 \begin{enumerate}
@@ -307,21 +307,18 @@ layer (e.g., pointers). (ii)~It stores one counter for each unique key.
 collision resolution and expansions. These different overheads multiply with
 the number of streams the application monitors. Problems~(i) and (ii) imply a
 memory footprint that is linear in the number of unique keys in the stream,
-which can be of the same magnitude as the total key count~$N$. \textcolor{purple}{I would say that this is also the issue with the Spectral Bloom filter}
-
-%(3)~Since the counters are fixed-length, each of them must be long enough to accommodate the maximum count, even if most keys have a very low count.
+which can be of the same magnitude as the total key count~$N$.
 
 Frequency estimation sketches address these problems by trading accuracy for
 space. That is, for any key~$x$, a sketch returns an estimate~$\hat{f}(x)$ of
 $x$'s count~$f(x)$. We focus on Count-Min Sketch~\cite{CountMin} for now, as it
 is the simplest and most widely used
-sketch\textcolor{purple}{Io: all of these are debatable claims, I would say "a popular solution" :) }~\cite{ADSMassiveDatasetBook,SketchesTrafficManagementSurvey}. Later, we
+sketch~\cite{ADSMassiveDatasetBook,SketchesTrafficManagementSurvey}. Later, we
 describe Count Sketch~\cite{CountSketch} (\Cref{sec:cs}) and
 Misra-Gries~\cite{MisraGries} (\Cref{sec:mg}) and apply our techniques to them. 
 
 \begin{table}
     \centering
-    \caption{Definitions of terms and symbols.}
     \bgroup
     \def\arraystretch{1.025}
     \small
@@ -349,6 +346,7 @@ Misra-Gries~\cite{MisraGries} (\Cref{sec:mg}) and apply our techniques to them.
         \bottomrule
     \end{tabular}
     \egroup
+    \caption{Definitions of terms and symbols.}
     \label{tab:term_and_symbol_definitions}
 \end{table}
 
@@ -358,7 +356,7 @@ each initialized to zero. We insert a key~$x$ into this array by hashing it to
 one counter and incrementing it. We delete~$x$ by decrementing its
 corresponding counter.\footnote{Users must ensure deletions target previously
 inserted keys. This is because frequency estimation sketches do not store the
-keys and cannot check a deletion's validity. \textcolor{purple}{Io: I would add this footnote the first time you mention deletions, because that's when the reader will first wonder and it's part of the problem definition.}} The counter that key~$x$ hashes
+keys and cannot check a deletion's validity.} The counter that key~$x$ hashes
 to provides an estimate of~$x$'s count. Due to hash collisions, multiple keys
 can map to the same counter. Because of this, we may overestimate the count of
 a key~$x$. This error is at most~$\frac{N}{w}$ in expectation since a key
@@ -367,18 +365,17 @@ total count of keys different from~$x$ is at most~$N$. Increasing the array's
 size makes collisions less likely, thereby decreasing the error and improving
 \emph{Accuracy}. Even so, the error may deviate from its expectation. The
 probability that errors do not exceed the expectation ``too much'' is known as
-the sketch's \emph{Confidence}. \textcolor{purple}{Io: I would not say straight-forward but that's just on principle. Using Markov's inequality, one can show that...} A straight-forward application of Markov's
-inequality shows that the error does not exceed~$\frac{eN}{w}$ with a
-confidence of at least~$1-e^{-1}$, i.e., $\Pr\left( |\hat{f}(x)-f(x)| \leq
-\frac{eN}{w} \right) \geq 1-e^{-1}$ for any key~$x$. \textcolor{purple}{Io: you can put this in a footnote.}Here, we use Euler's
-constant~$e$ due to convention. Any other constant would also work and would
-replace~$e$ in both the accuracy bound and the confidence. This implies that
-the smaller the constant becomes, i.e., the more accurate we expect the sketch
-to be, the lower confidence drops.
+the sketch's \emph{Confidence}. An application of Markov's inequality shows
+that the error does not exceed~$\frac{eN}{w}$ with a confidence of at
+least~$1-e^{-1}$, i.e., $\Pr\left( |\hat{f}(x)-f(x)| \leq \frac{eN}{w} \right)
+\geq 1-e^{-1}$ for any key~$x$. Here, we use Euler's constant~$e$ due to
+convention. Any other constant would also work and would replace~$e$ in both
+the accuracy bound and the confidence. This implies that the smaller the
+constant becomes, i.e., the more accurate we expect the sketch to be, the lower
+confidence drops.
 
-\textcolor{purple}{Io: the pargrapg below can be shortened. There's intuition but I'm not exactly sure it adds much technical depth: we get the error because we can only apply Markov, because we don't have upper bounds on the frequencies. I would mention that using more arrays is a way of boosting the success probability.- or probability amplification- this is an established technique. and I wouldn't say the confidence is low as a major tragedy - you just repeat to increase confidence. So something like: "To increase the confidence of the sketch, one can employ multiple arrays with independent randomness." Or if you really want to mention the limitation of Markov, you can say: "The reason is that having even one very frequent key is enough to inflate the estimate of other (perhaps low frequency) keys (due to hash collisions). }
 Yet, with a single array, confidence is low ($\approx 63\%$). The reason is
-that all keys sharing the same counter as a frequent key will suffer from
+that all keys hashing to the same counter as a frequent key will suffer from
 inflated estimates. Moreover, since there are many keys with low or moderate
 counts, there is a non-negligible chance that enough of them map to the same
 counter and inflate estimates beyond the error bound. CMS addresses these
@@ -390,9 +387,9 @@ the probability of collisions and overestimation~\cite{CountMin}.}
 \Cref{fig:cms_overview} shows an example of insertions and queries applied to
 three counter arrays. Returning the minimum for queries boosts confidence
 exponentially, since it only carries severe errors when all estimates err
-significantly. \textcolor{purple}{Io: I would move the pairwise footnote here and say that it is enough to use pairwise independence to acheve this. Earlier it's a detail that's not very important, but here, it lands the message that this is not a very complicated random process. }Thus, CMS \textcolor{purple}{with $d$ arrays of length $w$} guarantees an error of at most~$\frac{eN}{w}$ with a
-confidence of~$1-e^{-d}$, i.e., $\Pr\left( |\hat{f}(x)-f(x)| \leq \frac{eN}{w}
-\right) \geq 1-e^{-d}$ for any key~$x$.
+significantly. Thus, with $d$ arrays of length $w$, CMS guarantees an error of
+at most~$\frac{eN}{w}$ with a confidence of~$1-e^{-d}$, i.e., $\Pr\left(
+|\hat{f}(x)-f(x)| \leq \frac{eN}{w} \right) \geq 1-e^{-d}$ for any key~$x$.
 
 
 
@@ -651,43 +648,11 @@ as they decrease.
 
 \textbf{Comparison.}
 \Cref{fig:counter_sharing_deterioration} qualitatively compares counter sharing
-and counter merging to a CMS under the same memory budget to illustrate their
+and counter merging to a CMS with the same memory footprint to illustrate their
 error degradation with data growth. While these methods perform well for short
 streams, their error exceeds that of CMS as the stream grows. We empirically
 verify this behavior in Experiment~\hyperlink{experiment:expansion}{4} of
 \Cref{sec:evaluation}.
-
-
-\subsection{Challenge 2: Unbounded Growth}
-\textcolor{purple}{Io: this first paragraph feels a bit weak: what exactly is it trying to say? Just that N increases with time? Also, I think calling it "imperative" that we keep the count from the beginning is a bit too much - I mean, that's what normal streams look like so that's part of the definition. So I would suggest this: 1st paragraph: argue that in many applications, we do not have a good estimate of the stream length. Second paragraph: argue that this lack of information poses a significant issue (see my later comments).}
-In many streaming applications, the data stream grows continuously, and it is
-imperative to estimate the count of each key from the stream's beginning. For
-instance, query optimizers often track the number of times each key occurs in a
-table column to estimate the size of a join on that
-column~\cite{Compass,QueryOptimizationSketches,ConvolutionSketch}. As new data
-is inserted, the total number of keys~$N$ increases. Yet, the full count
-history of each key is still needed, since every occurrence contributes equally
-to the join size regardless of when it arrived. \textcolor{purple}{Io:not sure what this last sentence means? What is the full count history of a key?}
-
-Unbounded stream growth is also a challenge for applications that only require
-key counts over recent time windows. For example, network management systems
-detect anomalous or malicious activity by counting packets from each source
-within fixed time
-windows~\cite{SketchBasedChangeDetection,WhatsNew,TrafficManagementSurvey}.
-With bursty streams such as network traffic, the number of keys~$N$ in each
-window is unpredictable.
-
-
-\textcolor{purple}{Io: this is the strongest argument and should be higher up. Might also be a good chance to cite Lee Rhodes here again.}
-In existing frequency estimation sketches, the number of counters~$w$ is fixed
-at allocation time. \textcolor{purple}{Io: I would be a bit careful here, since we are talking about upper bounds on the error and not actual error. So I would say smth like: "as the stream grows, the error accumulates and indeed, existing bounds show that its expected value degrades linearly with the stream length (give example of CMS).  } Consequently, the error rate degrades linearly with~$N$
-(e.g., $N/w$ in the case of CMS). This forces practitioners to tune~$w$ without
-knowledge of the final stream length \textcolor{purple}{Io: argument doesn't make sense. What is "this"? It's not the fact that the error degrades linearly.}, hoping to balance accuracy and the memory
-footprint. Having too few counters leads to significant errors, while having
-too many wastes memory. Deletions make the problem more challenging by
-causing~$N$ to fluctuate over time. Worse yet, even if the ultimate stream
-length is known upfront, allocating a large CMS from the start wastes memory
-during the early stages when the stream is short. 
 
 \begin{figure}
     \centering
@@ -791,13 +756,42 @@ during the early stages when the stream is short.
         }
         \fi
     \end{tikzpicture}
-    \vspace*{-2mm}
+    %\vspace*{-2mm}
     \caption{Under the same memory budget as a CMS instance with~32-bit
     counters, counter sharing and counter merging can lead to lower accuracy
     when processing a growing stream.}
-    \vspace*{-5mm}
+    %\vspace*{-5mm}
     \label{fig:counter_sharing_deterioration}
 \end{figure}
+
+\subsection{Challenge 2: Unbounded Growth}
+In many streaming applications, the data stream grows continuously, and it is
+imperative to estimate the count of each key from the stream's beginning. For
+instance, query optimizers often track the number of times each key occurs in a
+table column to estimate the size of a join on that
+column~\cite{Compass,QueryOptimizationSketches,ConvolutionSketch}. As new data
+is inserted, the total number of keys~$N$ increases. Yet, the full count
+history of each key is still needed, since every occurrence contributes equally
+to the join size regardless of when it arrived.
+
+Unbounded stream growth is also a challenge for applications that only require
+key counts over recent time windows. For example, network management systems
+detect anomalous or malicious activity by counting packets from each source
+within fixed time
+windows~\cite{SketchBasedChangeDetection,WhatsNew,TrafficManagementSurvey}.
+With bursty streams such as network traffic, the number of keys~$N$ in each
+window is unpredictable.
+
+
+In existing frequency estimation sketches, the number of counters~$w$ is fixed
+at allocation time. Consequently, the expected error degrades linearly with~$N$
+(e.g., $N/w$ in the case of CMS). Hoping to balance accuracy and memory,
+practitioners tune~$w$ without knowledge of the final stream length~$N$. This
+tuning is non-trivial, however, as having too few counters leads to significant
+errors, while having too many wastes memory. Deletions make the problem more
+challenging by causing~$N$ to fluctuate over time. Worse yet, even if the
+ultimate stream length is known upfront, allocating a large CMS from the start
+wastes memory during the early stages when the stream is short. 
 
 \textbf{Summary.}
 An ideal frequency estimation sketch should: 1)~compactly encode counter values
@@ -998,21 +992,6 @@ Treating arbitrary variable-length data as counters allows
 \counterencodingabbrv\ to compactly encode them. Thus, it can be used in other
 applications operating on such data to improve memory efficiency.
 
-\textbf{Locating an Extension.}
-To decode an overflowing counter, \counterencodingabbrv\ must locate its
-extension. To this end, it keeps the extensions in the same order as that of
-the counters. It locates the~$i${\nobreakdash-}th counter's extension by
-counting the number of preceding bits set to~1s in the overflows bitmap. This
-is equivalent to the number of overflowing counters preceding
-the~$i${\nobreakdash-}th counter, denoted by~$m$. Skipping over the first~$m$
-extensions in the extension pool leads to the position of the target extension.
-
-\Cref{fig:extension_location_example} illustrates the process of identifying
-the 3rd counter's extension in a chunk. Here, since the 3rd bit in the
-overflows bitmap is~1, the 3rd counter has an extension. As there is one bit
-set to~1 preceding the 3rd bit in the overflows bitmap, we skip one extension
-to locate the 3rd counter's extension, shown in gray.
-
 \begin{figure}
     \centering
     \pgfdeclarelayer{background layer}
@@ -1140,12 +1119,27 @@ to locate the 3rd counter's extension, shown in gray.
         \node[inner sep=1pt,anchor=west] (select_value) at (\overflowbitmapw+\bitw+\partsep+\bitw,-6.25*\arrayh) {\small $\texttt{select}(1,$ Delimiters$)=9$};
         \draw[-stealth] ($(rank_value.south east)+(-3pt,0)$) |- (select_value.west);
     \end{tikzpicture}
-    \vspace*{-2mm}
+    %\vspace*{-2mm}
     \caption{\sketchcms applies rank and select operations to locate an
     overflowing counter's extension.}
-    \vspace*{-5mm}
+    %\vspace*{-5mm}
     \label{fig:extension_location_example}
 \end{figure}
+
+\textbf{Locating an Extension.}
+To decode an overflowing counter, \counterencodingabbrv\ must locate its
+extension. To this end, it keeps the extensions in the same order as that of
+the counters. It locates the~$i${\nobreakdash-}th counter's extension by
+counting the number of preceding bits set to~1s in the overflows bitmap. This
+is equivalent to the number of overflowing counters preceding
+the~$i${\nobreakdash-}th counter, denoted by~$m$. Skipping over the first~$m$
+extensions in the extension pool leads to the position of the target extension.
+
+\Cref{fig:extension_location_example} illustrates the process of identifying
+the 3rd counter's extension in a chunk. Here, since the 3rd bit in the
+overflows bitmap is~1, the 3rd counter has an extension. As there is one bit
+set to~1 preceding the 3rd bit in the overflows bitmap, we skip one extension
+to locate the 3rd counter's extension, shown in gray.
 
 \textbf{Fast Access Using Rank and Select.}
 \counterencodingabbrv\ quickly locates the extension of an overflowing counter
@@ -1281,7 +1275,7 @@ extension ends at the~9th bit.
     \caption{When a chunk's extensions outgrow its space, it stores a pointer
     to a dedicated external array of tails to store the counters' higher-order
     bits.}
-    \vspace*{-5mm}
+    %\vspace*{-5mm}
     \label{fig:counter_chunk_with_tails}
 \end{figure}
 
@@ -1570,26 +1564,26 @@ Recall from \Cref{sec:problem_analysis} that processing growing streams with
 existing frequency estimation sketches (e.g., CMS) yields an estimation error
 that increases at least linearly with the total key count~$N$. \sketch\
 addresses this issue by generalizing a sketch to increase its number of
-counters as the stream grows. \textcolor{purple}{Io: in the previous sentence, I wouldn't say it "generalizes" a sketch - I would just take it out. I would perhaps also mention that we do not increase the number of arrays, just the counter. }In the case of CMS, \sketchcms expands
-whenever~$N$ exceeds a tunable threshold.\textcolor{purple}{Io: I would merge the previous sentence with the one before it. "\sketch\ addresses this issue by increasing the number of counters as the stream exceeds some tunable thresholds (although this is a bit unclear). Then you can say, for CMS, an expansion doubles the size of each array in each expansion, and concatenates the current...} An expansion concatenates the current
+counters as the stream grows. In the case of CMS, \sketchcms expands
+whenever~$N$ exceeds a tunable threshold. An expansion concatenates the current
 sketch with a copy of itself, doubling the size of each array. This operation
-is inexpensive since it simply copies counters without \textcolor{purple}{io: without needing to rehash keys - cause you can't rehash them anyways} rehashing keys. These
-larger arrays reduce the collision probability of future insertions.
-\Cref{fig:sketchbook_chain} illustrates \sketchcms just after the second
-expansion took place (on the right), as well as its state just before the first
-expansion (left) and the second (middle). Each half of an array in the largest
-sketch is a copy of the corresponding array just before the second expansion.
-The counters in each array before this expansion sum to the expansion threshold
-of~16, plus the total value of the counters copied from the previous expansion,
-i.e., 4. Queries follow the same algorithm as CMS, targeting the newly
-expanded, largest sketch.
+is inexpensive since it simply copies counters without needing to rehash the
+keys. These larger arrays reduce the collision probability of future
+insertions. \Cref{fig:sketchbook_chain} illustrates \sketchcms just after the
+second expansion took place (on the right), as well as its state just before
+the first expansion (left) and the second (middle). Each half of an array in
+the largest sketch is a copy of the corresponding array just before the second
+expansion. The counters in each array before this expansion sum to the
+expansion threshold of~16, plus the total value of the counters copied from the
+previous expansion, i.e., 4. Queries follow the same algorithm as CMS,
+targeting the newly expanded, largest sketch. \sketchcms maintains~$d$ arrays
+across expansions to ensure a stable confidence bound on the estimation errors.
 
-\textbf{Consistent Hash Functions.} \textcolor{purple}{io: the first sentence of the paragraph has nothing to do with the rest of the paragraph, so I would take it out and move it before. Suggested start of the paragraph: "To maintain this consistency across expansions, \sketch\ uses the same hash function for each of these arrays across expansions - what you said.}
-\sketchcms maintains~$d$ arrays across expansions to ensure the same\textcolor{purple}{Io: high, not the same? I mean, the same as before?} confidence
-bound on the errors. It uses the same hash function for each of these arrays
-across expansions. It hashes a key to a counter within an array of size~$w$ by
-taking the~$\log_2 w$ lower-order bits of its hash. Doing so ensures that after
-an expansion, a key hashes to either the same counter it would have hashed to
+\textbf{Consistent Hash Functions.}
+\sketchcms uses the same hash function for each of its arrays across
+expansions. It hashes a key to a counter within an array of size~$w$ by taking
+the~$\log_2 w$ lower-order bits of its hash. This ensures that after an
+expansion, a key hashes to either the same counter it would have hashed to
 before, or its copy.\footnote{It also grants \sketchcms mergeability: the
 ability to merge sketches constructed on distinct streams to represent their
 union without needing to rescan them.} For example, the queried key~$q$ in
@@ -1608,21 +1602,27 @@ Thus, it avoids wasting memory from the onset in case the stream grows slowly.
 By default, \sketchcms expands whenever~$N$ quadruples. As shown at the bottom
 of \Cref{fig:sketchbook_chain}, expansions occur when the number of keys~$N$
 reaches 4, 16, and 64. These thresholds cause the number of counters in each
-array to grow as~$\sqrt{N}$, \textcolor{purple}{Io: the number of counters doubles whenever~$\sqrt{N}$ doubles }. As a consequence, we achieve a sublinear memory
-footprint and sublinear errors, \textcolor{purple}{ even when we don't know the stream length in advance. This is the most important part. We can't use the analysis from before to make this argument now, because it doesn't apply - so I would discard the calculation from below.  Instead, I would say: "Namely, if we knew the stream length in advance, we could set $w=\sqrt{N}$ and achieve an expected error of~$O(N/\sqrt{N})=O(\sqrt{N})$  by the end of the stream. In the absense of such an estimate, it becomes unclear if we could maintain such a bound. In section blah, we show that this is indeed possible at a slight increase in error". Something like this.  }
-
-
-To see why, recall from \Cref{sec:background}
-that a CMS allocated with arrays of~$w$ counters has an expected error
-of~$N/w$. By making~$w$ grow as~$\sqrt{N}$, \sketchcms instead attains an
-expected error of~$O(N/\sqrt{N})=O(\sqrt{N})$. Although keys inserted when the
-sketch was smaller contribute disproportionally to the error due to their
-counts duplicating with expansions, they are exponentially fewer in number. In
-\Cref{sec:theoretical_analysis}, we prove that they only increase the error by
-a small constant factor. In sum, compared to a standard CMS with linear errors
-and a fixed memory footprint, \sketchcms achieves significantly lower errors at
-a slightly higher space cost. As such, it is a better fit for applications that
-require maintaining low errors as the stream grows indefinitely. 
+array to grow as~$\sqrt{N}$. As a consequence, we achieve a sublinear memory
+footprint and sublinear errors, \textcolor{purple}{ even when we don't know the
+stream length in advance. This is the most important part. We can't use the
+analysis from before to make this argument now, because it doesn't apply - so I
+would discard the calculation from below.  Instead, I would say: "Namely, if we
+knew the stream length in advance, we could set $w=\sqrt{N}$ and achieve an
+expected error of~$O(N/\sqrt{N})=O(\sqrt{N})$  by the end of the stream. In the
+absense of such an estimate, it becomes unclear if we could maintain such a
+bound. In section blah, we show that this is indeed possible at a slight
+increase in error". Something like this.  } To see why, recall from
+\Cref{sec:background} that a CMS allocated with arrays of~$w$ counters has an
+expected error of~$N/w$. By making~$w$ grow as~$\sqrt{N}$, \sketchcms instead
+attains an expected error of~$O(N/\sqrt{N})=O(\sqrt{N})$. Although keys
+inserted when the sketch was smaller contribute disproportionally to the error
+due to their counts duplicating with expansions, they are exponentially fewer
+in number. In \Cref{sec:theoretical_analysis}, we prove that they only increase
+the error by a small constant factor. In sum, compared to a standard CMS with
+linear errors and a fixed memory footprint, \sketchcms achieves significantly
+lower errors at a slightly higher space cost. As such, it is a better fit for
+applications that require maintaining low errors as the stream grows
+indefinitely. 
 
 \begin{figure}
     \centering
@@ -1753,13 +1753,12 @@ sketch and its copy have changed. \sketchcms applies these deltas to the
 original counters in the earlier sketch. Finally, it discards the current
 sketch and uses the earlier sketch to handle future operations.
 
-\textcolor{purple}{Io: I don't really understand the sentence below, is there an easy example?}
-The contraction threshold is set to the mean of the last two expansion
+The contraction threshold is set to the average of the two previous expansion
 thresholds to avoid the problem of updates frequently resizing the sketch. As
 such, a contraction is triggered when the majority of the stream's keys are
 deleted. Therefore, \sketchcms always handles most of the stream using arrays
 that are at most twice as large as~$\sqrt{N}$. Thus, the expected error and the
-size of each array remains the same as before, despite the state of the sketch
+size of each array remain the same as before, despite the state of the sketch
 depending on the sequence of insertions and deletions.
 
 Maintaining the sketch record increases the memory footprint by at most a
@@ -1776,9 +1775,9 @@ the stream's keys accurately in exchange for a larger memory footprint. By
 default, the size function is set to~$W(N)=\sqrt{N}$. We generalize it to a
 \emph{Sub-Linear Power} of the form~$W(N)=N^\alpha/\epsilon$, with
 constants~$\alpha \in [0,1)$ and $\epsilon > 0$. This corresponds to
-having~$(1/\epsilon)\times$ more counters in each array at the beginning \textcolor{purple}{Io: I find this confusing?} and
-expanding when~$N$ grows by~$2^{1/\alpha}\times$, which is larger than two. We
-prove in \Cref{sec:theoretical_analysis} that such a size function
+having~$1/\epsilon$ chunks in each array at the beginning and expanding
+when~$N$ grows by~$2^{1/\alpha}\times$, which is larger than two. We prove in
+\Cref{sec:theoretical_analysis} that such a size function
 yields~$O(N/W(N))=O(\epsilon \cdot N^{1-\alpha})$ expected errors. Compared to
 a fixed-size CMS allocated upfront with arrays of~$W(N)$ counters, \sketchcms's
 error is only larger by a small constant factor\footnote{The constant factor in
@@ -2760,7 +2759,7 @@ contractions and can forgo storing a record of the sketch's state.
         $$ \Pr_r\left[ \mu(\mathbf{x}) \geq 64\delta/\log_2 n \right] \leq \frac{1}{4}, \;\;\;\; \Pr_r\left[ \eta(\mathbf{x}) \geq 64\delta/\log_2 n \right] \leq \frac{1}{4}. $$
         Thus, by a union bound, we have that 
         $$ \Pr_r\left[ \mu(\mathbf{x}) \geq 64\delta/\log_2 n \;\vee\; \eta(\mathbf{x}) \geq 64\delta/\log_2 n \right] \leq \frac{1}{2}. $$
-        Takin the complement of the above yields 
+        Taking the complement of the above yields 
         $$ \Pr_r\left[ \mu(\mathbf{x}) < 64\delta/\log_2 n \;\wedge\; \eta(\mathbf{x}) < 64\delta/\log_2 n \right] \geq \frac{1}{2}. $$
         That is, each~$\mathbf{x}$ satisfies~$\mu(\mathbf{x}) < 64\delta/\log_2
         n$ and $\eta(\mathbf{x}) < 64\delta/\log_2 n$ with a probability of at
