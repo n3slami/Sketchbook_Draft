@@ -141,8 +141,8 @@
 \newcommand{\counterencodingabbrv}{VALE}
 %added by Ioana
 \newcommand{\parentheses}[1]{\left(#1\right)}
-\newcommand{\expectation}[1]{\mathsf{E}\left[ #1 \right]}
-\newcommand{\variance}[1]{\textsf{Var}\left[ #1 \right]}
+\newcommand{\expectation}[1]{\mathbb{E}\left[ #1 \right]}
+\newcommand{\variance}[1]{\mathrm{Var}\left( #1 \right)}
 
 \graphicspath{{./figures/}}
 
@@ -1908,8 +1908,7 @@ error is only larger by a small constant factor\footnote{The constant factor in
 question is~$(1-2^{-1/\alpha}) \cdot \frac{(2-2^{1-1/\alpha})^{1/\alpha \cdot
 \log_2 N}-1}{(2-2^{1-1/\alpha})-1}$, which is at
 most~$\frac{1-2^{-1/\alpha}}{1-2^{1-1/\alpha}}$ and converges to~$\log_2 N$ as
-$\alpha$ tends to 1.}. We call this factor the ``\emph{Price of
-Expandability}.'' 
+$\alpha$ tends to 1.}.
 
 One may hope to achieve a constant (i.e., non-increasing) expected error by
 setting the number of counters to grow linearly with the data size, i.e.,
@@ -1918,8 +1917,7 @@ without knowing the ultimate length of the stream, the best expected error
 achievable by a sketch that maintains~$N/\epsilon$ counters per
 array\footnote{More precisely, we show this for any sketch using~$O\left(
 N/\epsilon \cdot \frac{\log\log N}{\log N} \right)$ bits of space.}
-is~$\Omega(\epsilon \cdot \log N)$, i.e., the price of expandability
-is~$\Omega(\log N)$. 
+is~$\Omega(\epsilon \cdot \log N)$.
 
 \sketchcms matches the expected error of a preallocated CMS of the same size
 when the size function~$W(N)$ is a sublinear power, which is
@@ -2131,45 +2129,62 @@ general streams of keys. We further show that \sketch\ gives rise to
 space-optimal sketches by proving a memory lower bound for frequency estimation
 sketches that do not know the stream's ultimate length.
 
-\textbf{Accuracy and Confidence.} We first show the different accuracy trade-offs we get depending on whether the size function grows linearly or sub-linearly with $N$. The goal is to compare the error guarantees of \sketch\ with those of a similar sketch that knows the size of the stream in advance. We get that:
-
-%Formally, this is captured by the notion of price of expendability, defined for each sketch as such:
-%
-%\begin{definition} Consider a stream with total frequency length $N=\sum_y f(y)$, and let $E_W(N)$  denote the expected error of \sketchcms  with size function $W$ and $d=1$. Similarly, let $E(N) = N/W(N)$ be the bound on the expected error that CS with $d=1$ makes on the stream. We define the \emph{price of expandability} for CS to be the ratio $$\textsc{PoE}_{W,CS}(N)= E_W(N)/E(N) \;.$$
-%\end{definition}
-
-\begin{theorem}\label{thm:cms-w} Let $E_W(N)$  denote the error of \sketchcms  with size function $W$ and one array of counters, on a stream of total frequencies $N = \sum_y f(y)$.  Similarly, let $E(N) = N/W(N)$ denote the bound on the expected error of a CountSketch that allocates one array of $w(N)$ counters upfront. Then:
-	$$\expectation{E_W(N)} \leq  \begin{cases}
-		\log_2(N)  \cdot E(N), & \text{if $W(N)=N/\epsilon$,}\\
-		\frac{1-2^{-1/\alpha}}{1-2^{1-1/\alpha}} \cdot E(N), & \text{if $W(N)=N^{\alpha}/\epsilon$, for $\alpha \in [0,1)$ \;. }
-	\end{cases}$$
+\textbf{Accuracy and Confidence.}
+We analyze the various accuracy-memory tradeoffs resulting from tuning the size
+function to grow sublinearly or linearly with the stream's length. To this end,
+we quantify how a key inserted earlier in the stream affects the expected error
+and variance of future estimates. By doing so for \sketchcms, we show in
+\Cref{sec:ommitted_proofs} that:
+\begin{theorem}
+    \label{thm:cms-w}
+    Letting~$\expectation{E(N)}$ denote the expected error of \sketchcms with
+    size function~$W(\cdot)$ and a single array on a stream with a total key
+    count~$N$. It holds that
+	$$
+    E(N) \leq  
+    \begin{cases}
+        \frac{1-2^{-1/\alpha}}{1-2^{1-1/\alpha}} \cdot \epsilon N^{1-\alpha} & \text{if $W(N)=N^{\alpha}/\epsilon$, for $\alpha \in [0,1)$,} \\
+		\log_2 N \cdot \epsilon & \text{if $W(N)=N/\epsilon$.}
+	\end{cases}
+    $$
+    Compared to a fixed-size CMS that, given knowledge of~$N$, is allocated
+    upfront with an array of~$W(N)$ counters, the expected error terms above
+    are higher by a factor of at
+    most~$\frac{1-2^{-1/\alpha}}{1-2^{1-1/\alpha}}$ and $\log_2 N$.
 \end{theorem}
+Applying Markov's inequality to the expectated error above yields the same
+confidence bounds as CMS. Moreover, through a similar analysis to that of CMS,
+one can show that employing~$d$ independent arrays in \sketchcms improves
+confidence exponentially. These confidence bounds remain stable as the stream
+grows.\footnote{One can also expand the number of arrays to improve confidence
+over time. We omit this from our exposition due to its similarity to the
+approach of expanding the number of counters in each array.}
 
-We note that the bound on the accuracy of \sketchcms\ with one array counter translates directly into high confidence bounds when we employ multiple arrays. The analysis proceeds similarly as for CS (apply Markov's inequality, and use $d$ arrays to boost the confidence). Specifically in the case in which $W$ is sublinear in $N$, we get exactly the same accuracy and confidence bounds as CS without varying the number of arrays.  One can also expand the number
-of arrays to improve confidence over time. We omit this from our exposition due
-to its similarity to the approach of expanding the number of counters in each
-array.
-
-In the case of CMS, we witness a similar phenomenon, but this time, when $W$ is a function of the $\ell_2$ norm of the stream $F=\sum_y (f(y))^2$ and the error is determined by the variance of the returned estimator:
-
-
-\begin{theorem}\label{thm:cs-w} 	 Let $V_W(F)$  denote the error of \sketchcs  with size function $W$ and one array of counters, on a stream with squared $\ell_2$ norm $F = \sum_y f(y)^2$. Similarly, let $V(N) = F/W(F)$ denote the bound on the variance of the  error of a CountSketch that allocates one array of $w(F)$ counters upfront. Then:
-	$$\variance{V_{W}(F)} \leq  \begin{cases}
-		\log_2(F) \cdot V(F) & \text{if $W(F)=F/\epsilon$,}\\
-	\frac{1-2^{-1/\alpha}}{1-2^{1-1/\alpha}} \cdot V(F), & \text{if $W(F)=F^{\alpha}/\epsilon$, for $\alpha \in [0,1)$ \;. }
-	\end{cases}$$
+A similar phenomenon occurs for the variance of the error in the case of CS,
+but this time, $W(\cdot)$ is a function of the squared~$\ell_2$-norm of the
+stream~$F=\sum_y (f(y))^2$:
+\begin{theorem}
+    \label{thm:cs-w}
+    Let~$V(F)$ denote the error of \sketchcs with size function~$W(\cdot)$ and
+    a single array of counters, on a stream with squared~$\ell_2$-norm $F =
+    \sum_y f(y)^2$. It holds that
+	$$
+    V(F) \leq  
+    \begin{cases}
+        \frac{1-2^{-1/\alpha}}{1-2^{1-1/\alpha}} \cdot \epsilon F^{1-\alpha} & \text{if $W(F)=F^{\alpha}/\epsilon$, for $\alpha \in [0,1)$, } \\
+        \log_2(F) \cdot \epsilon & \text{if $W(F)=F/\epsilon$.}
+	\end{cases}
+    $$
+    Compared to a fixed-size CS that, with knowledge of~$F$, is allocated
+    upfront with an array of $W(N)$ counters, the variance terms above are
+    higher by a factor of at most~$\frac{1-2^{-1/\alpha}}{1-2^{1-1/\alpha}}$
+    and $\log_2 N$.
 \end{theorem}
+As in the case of \sketchcms, applying Chebyshev's inequality and employing $d$
+independent arrays yields stable confidence bounds that match that of CS.
 
-Finally, in the case of Misra-Gries, we show that similar bounds as in~\Cref{thm:cms-w} hold (except they are deterministic rather than in expectation).
-\iffalse
-We prove in~\Cref{sec:theoretical_analysis} that \sketch\ maintains its
-confidence without varying the number of arrays. One can also expand the number
-of arrays to improve confidence over time. We omit this from our exposition due
-to its similarity to the approach of expanding the number of counters in each
-array.
-\fi
-
-
+In \Cref{sec:ommitted_proofs} we show that similar bounds as in
+\Cref{thm:cms-w} hold for \sketch\ when applied to Misra-Gries.
 
 \textbf{Memory Footprint.}
 Since \counterencodingabbrv's adaptive tuning ensures few bits are unused per
@@ -2213,8 +2228,8 @@ Applying \Cref{lemma:single_counter_space} to all counters yields:
     into the first expression in the proof yields~$m \leq O(w \cdot (\log_2
     (k/w) + 1))$. 
 
-    By a similar analysis to that of Theorem~??, the number of increments and
-    decrements~$k$ to each array in \sketch, when accounting for the copied
+    By a similar analysis to that of \Cref{thm:cms-w}, the number of increments
+    and decrements~$k$ to each array in \sketch, when accounting for the copied
     counters, is~$O(N)$. Similarly, one can show that~$k=O(N \log N)$ when the
     size function is linear. Plugging these values into the formula above and
     multiplying by the number of arrays~$d$ proves the result.
@@ -2241,7 +2256,7 @@ Applying \Cref{lemma:single_counter_space} to all counters yields:
             2 & \hspace*{1.5mm}- & - & \hspace*{1.5mm}50 & 7\hspace*{0.75mm} & \hspace*{0.75mm}64 & 5 \\ 
             4 & \hspace*{1.5mm}- & - & \hspace*{1.5mm}70 & 5\hspace*{0.75mm} & \hspace*{0.75mm}75 & 4 \\ 
             \bottomrule 
-            \vspace{2cm}
+            \vspace{1.95cm}
         \end{tabular} 
     \end{tabular}
     \caption{\sketchcms achieves the highest accuracy under real-world
@@ -2439,7 +2454,7 @@ sketch by~$2.38\times$, as shown by the dotted curve.
     \begin{tabular}{cc}
         \includegraphics[width=0.77\textwidth]{accuracy_unbiased.pdf}
         \hspace{4pt}
-        \def\arraystretch{0.82}%  1 is the default, change whatever you need
+        \def\arraystretch{0.85}%  1 is the default, change whatever you need
         \small
         \begin{tabular}[b]{ccc} 
             \toprule 
@@ -2452,7 +2467,7 @@ sketch by~$2.38\times$, as shown by the dotted curve.
             2 & 64 & 5 \\ 
             4 & 75 & 4 \\ 
             \bottomrule 
-            \vspace{0.58cm}
+            \vspace{0.59cm}
         \end{tabular} 
     \end{tabular}
     \caption{\sketchcs has the lowest errors and fastest insertions compared to
@@ -2700,18 +2715,19 @@ separate array that mirrors the ordering of the keys within the slots before
 applying \counterencodingabbrv.
 
 \textbf{Accommodating Unbounded Data Growth.}
-\sketchmg controls the error growing streams by expanding as the estimation
-error grows, similarly to \sketchcms and \sketchcs. As MG's estimation error
-is~$N/w$ (or $\min_{1 \leq i \leq w} N^{\text{res}(i)}/(w-i+1)$ in the tail
-case), mirroring that of CMS, \sketchmg expands based on the growth of the
-total number of keys~$N$. Since MG does not hash keys can place them in any
-slot within the array, \sketchmg expands on a slot-by-slot basis. This is in
-contrast to \sketchcms and \sketchcs, which must double the size of their
-arrays to enable consistent hashing. As such, \sketchmg smoothly increases its
-number of slots while ensuring that it doubles every time~$N$ more than
-doubles. This ensures that the number of counters in the array matches the size
-function~$W(N)$ encoding the expansion policy at all times. Moreover, it allows
-for a lower price of expandability. 
+As MG's estimation error is~$N/w$ (or $\min_{1 \leq i \leq w}
+N^{\text{res}(i)}/(w-i+1)$ in the tail case), which mirrors that of CMS,
+\sketchmg expands based on the growth of the total number of keys~$N$. Since MG
+does not hash keys and can place them in any slot within the array, \sketchmg
+expands on a slot-by-slot basis. This is in contrast to \sketchcms and
+\sketchcs, which must double the size of their arrays to enable consistent
+hashing. As such, \sketchmg smoothly increases its number of slots while
+ensuring that it doubles every time~$N$ more than doubles. This approach
+ensures that the number of counters in the array matches the size
+function~$W(N)$ encoding the expansion policy at all times. Moreover, this
+incremental approach always maintains at least as many counters as doubling the
+number of counters in one go. Therefore, it allows for attaining errors that
+grow at a slower rate{\textemdash}by a constant factor.
 
 Because MG does not support deletions, \sketchmg does not need to support
 contractions and can forgo storing a record of the sketch's state.
