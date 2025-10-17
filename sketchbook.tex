@@ -292,14 +292,10 @@ data in high-speed, massive data streams. Because these streams can grow
 indefinitely, storing them in full (for instance, all packets sent in a
 network) is often impractical. Even with enough storage, scanning the data to
 compute the statistics (for example, the rows of a SQL table) is expensive. As
-a result, many applications compute and maintain the required statistics
-incrementally as new data arrives or old data is removed. Examples include
-network traffic
-monitoring~\cite{WhatsNew,SketchingStreamsNet,RandomizedAdmissionEstimation,Blink,LOFT},
-streaming SQL engines~\cite{Flink}, sensor data
-mining~\cite{SensorDataAnalytics,RobustAggregationSensorNetworks}, and
-financial time-series data
-forecasting~\cite{AssociationRules,TimeSeriesModeling}.
+a result, many applications compute and incrementally maintain statistics as
+new data arrives or old data is removed. Although this approach is suitable for
+computing some statistics, such as the sum or the mean, it entails a
+prohibitive memory footprint for others.
 
 \textbf{Frequency Estimation.}
 One of the most fundamental statistics in data stream analysis is
@@ -315,8 +311,10 @@ footprint, though they introduce estimation errors, since multiple keys may map
 to the same counter. Sketches have become key components across many systems
 including query
 optimizers~\cite{Compass,QueryOptimizationSketches,ConvolutionSketch}, network
-monitors~\cite{SketchBasedChangeDetection,WhatsNew,TrafficManagementSurvey},
-and genome analysis pipelines~\cite{CMSkmer,SetMinSketch}.
+monitors~\cite{SketchBasedChangeDetection,WhatsNew,SketchingStreamsNet,TrafficManagementSurvey,RandomizedAdmissionEstimation,Blink,LOFT},
+streaming SQL engines~\cite{Flink}, sensor data
+analyzers~\cite{SensorDataAnalytics,RobustAggregationSensorNetworks}, and
+genome analysis pipelines~\cite{CMSkmer,SetMinSketch}.
 
 \textbf{Different Types of Error.}
 Frequency estimation sketches differ in the nature of the errors they
@@ -2194,7 +2192,7 @@ approach of expanding the number of counters in each array.}
     performance. We use the optimal tuning of the baselines at each point of
     the curves. The table on the right details the number of counters per
     chunk~$c$ and the stub length~$s$ used by \sketchcms in each point.}
-    \vspace*{-2mm}
+    %\vspace*{-2mm}
     \label{fig:accuracy_bench}
 \end{figure*}
 
@@ -2387,8 +2385,8 @@ Tailored sketch~\cite{TailoredSketch} employs the classic hierarchy but
 probabilistically increments each counter during insertions, thereby shortening
 the counters' length in exchange for introducing two-sided errors. Among these
 six baselines, only Coding sketch is tunable, though its tuning is manual and
-complex. This is because the compression algorithm obscures the level of skew
-in the workload to which one should adapt the tuning. We implement \sketch\ in
+complex. This is because its compression algorithm obscures the level of skew
+in the workload to which the tuning should be adapted. We implement \sketch\ in
 \texttt{C++} and use the open-source \texttt{C++} implementations of the
 baselines. We construct all sketches with~$d=3$ arrays.
 
@@ -2489,34 +2487,34 @@ as~$3\times$ and $2.4\times$, respectively. This performance improvement is due
 to \sketchcms's use of rank and select primitives, as well as
 Optimizations~\hyperlink{optimization:rank_and_select}{1} to
 \hyperlink{optimization:hash_splicing}{4} described in
-\Cref{sec:accommodating_skew}. The curves of Coding sketch are shifted to the
-right since it allocates additional memory to decompress the counters. When the
-memory budget is low under the \textsc{CAIDA} dataset, Tailored sketch is more
-accurate than \sketchcms due to its probabilistic incrementation strategy
-enabling it to store shorter counters in exchange for introducing
-underestimations. Applying the same technique to \sketchcms yields lower errors
-than Tailored sketch by~$2.38\times$, as shown by the dotted curve.
+\Cref{sec:accommodating_skew}. Coding sketch exhibits slower insertion and
+query performance by~2 and 7 orders of magnitude compared to the other
+baselines due to its decompression overheads. As such, we henceforth exclude it
+from the experiments that evaluate \sketchcms. When the memory budget is low
+under the \textsc{CAIDA} dataset, Tailored sketch is more accurate than
+\sketchcms due to its probabilistic incrementation strategy enabling it to
+store shorter counters in exchange for introducing underestimations. Applying
+the same technique to \sketchcms yields lower errors than Tailored sketch
+by~$2.38\times$, as shown by the dotted curve.
+%and its curve is shifted to the right since we report its memory consumption after decompression when the sketch is queryable. 
 
 \hypertarget{experiment:skew}{\textbf{Experiment 2: Accuracy under Varying Levels of Skew.}}
-\Cref{fig:skew_vale_tuning_bench}-A) compares the estimation errors of all
+\Cref{fig:skew_vale_tuning_bench}-A) compares the estimation errors of the
 baselines under the same memory budget as the amount of skew in the data
 varies. Here, we generate streams of 100M keys from a \textsc{Zipfian}
 distribution over 100K distinct keys. We vary the exponent parameter, i.e., the
 skewness, on the~$x${\nobreakdash-}axis from~0.0 to 3.2, which correspond to a
-uniform and a highly skewed dataset, respectively. We tune Coding sketch to
-each workload's skew to minimize its error while allowing \sketchcms to adapt
-its tuning automatically.
+uniform and a highly skewed dataset, respectively. Recall that, aside from
+Coding sketch (which we have excluded from the experiment due to its poor
+performance), \sketchcms is the only sketch that is tunable. Thus, we allow it
+to automatically adapt \counterencodingabbrv's tuning to the workload's skew.
 
 \Cref{fig:skew_vale_tuning_bench}-A) shows that \sketchcms provides the lowest
-error under all degrees of skew. It outperforms most baselines by an order of
-magnitude for more uniform workloads and by~$3\times$ for more skewed
-workloads. Moreover, it has~$3\times$ lower errors than Coding sketch across
-the board. This is because it exposes a tuning space that allows
+error under all degrees of skew. It outperforms all other baselines by an order
+of magnitude for more uniform workloads and by~$3\times$ for more skewed
+workloads. This is because it exposes a tuning space that allows
 \counterencodingabbrv\ to save memory by employing longer and shorter stubs for
-more uniform and skewed workloads, respectively. In comparison, Coding sketch's
-tuning space is more rigid, keeping it from optimally accommodating the
-workload's skew. Furthermore, unlike \sketchcms, Coding sketch cannot
-automatically adapt its tuning to the workload and is far less performant.
+more uniform and skewed workloads, respectively. 
 
 \hypertarget{experiment:vale_tuning}{\textbf{Experiment 3: Memory Savings of Adaptively Tuning \counterencodingabbrv.}}
 We demonstrate the need for adapting \counterencodingabbrv's tuning as the
@@ -2544,9 +2542,7 @@ form~$W(N)=N^\alpha/\epsilon$ with $\alpha=0.5$ and $\epsilon=1$, as introduced
 in \Cref{sec:accommodating_unknown_stream_lengths}. We also compare versions of
 \sketchcms with the exponent~$\alpha$ of the size function set to~$0.75$ and
 $1.0$. \Cref{fig:expansion_bench} differentiates these versions by annotating
-each curve with the value of~$\alpha$ used. Coding sketch is excluded from this
-experiment as its implementation disallows inserting keys after the sketch has
-been decompressed during a query.
+each curve with the value of~$\alpha$ used. 
 
 \Cref{fig:expansion_bench} shows that \sketchcms is the only sketch to exhibit
 sublinearly scaling estimation errors. It achieves this by expanding its number
@@ -2566,11 +2562,11 @@ deletion API.
 
 As shown, \sketchcms maintains lower errors than a CMS of the same size by as
 much as two orders of magnitude. This is because \counterencodingabbrv\ encodes
-the counter values in far less space, allowing the storage of more counters. As
+the counter values in less space, allowing the storage of more counters. As
 keys are deleted, \sketchcms contracts to save memory, while CMS wastes memory
 by remaining at the same size. This enables achieving a lower memory footprint
 than CMS by 2-3 orders of magnitude while still being more accurate, despite
-the reduced number of counters slightly increasing~the~error.
+the reduced number of counters slightly increasing the error.
 
 \hypertarget{experiment:accuracy_unbiased}{\textbf{Experiment 6: Unbiased Accuracy and Speed vs. Memory.}}
 We now showcase \sketchcs to demonstrate the applicability of \sketch\ beyond
