@@ -470,12 +470,10 @@ In the case of the MG sketch, we consider a slightly more general division of ti
 	We begin by first defining some notation. Let $C_i$ denote the total count of frequencies stored in the sketch at the end of epoch $i$ (with $C_{-1}=0$). Note that $C_i \geq 0$ always, since we only delete from the sketch when all the counters are nonzero. Let $d_i$ also denote the number of deletions we make to the sketch during epoch $i$. By design, note the following relationship for $i\geq 1$:
 	$$ C_i = C_{i-1} + N_i - N_{i-1} - d_i \cdot (W_i+1) \;.$$
 	
-	For simplicity, consider the case in which $i=1$. At the beginning of epoch $i$, the frequencies stored in the sketch add up to $C_{0}$. During the epoch, we see $N_1-N_0$ fresh insertions, which either increase the frequencies stored in the sketch by $1$, or delete $W_i$ frequencies from the sketch. The number of elements in $N_1-N_0$ that issue these $W_i$ deletes is exactly $d_i$. In other words, there are $N_1-N_0-d_i$ elements that increase the sketch counts by $1$, and $d_i$ elements that decrease the sketch count by $W_i$. The total changes are therefore $N_1-N_0-d_i - d_i \cdot W_i$, which is how we got the first expression. 
-	
-	From the above, we get that:
+	For simplicity, consider the case in which $i=1$. At the beginning of epoch $i$, the frequencies stored in the sketch add up to $C_{i-1}$. During the epoch, we see $N_1-N_0$ fresh insertions, each of which either increases the frequencies stored in the sketch by $1$, or deletes $W_i$ frequencies from the sketch. The number of elements in $N_1-N_0$ that each issue these $W_i$ deletes is exactly $d_i$. In other words, there are $N_1-N_0-d_i$ elements that each increases the sketch counts by $1$, and $d_i$ elements that each decreases the sketch count by $W_i$. The total changes are therefore $N_1-N_0-d_i - d_i \cdot W_i$, which is how we get the first expression. From this, we get that:
 	$$d_i = \frac{N_i - N_{i-1} + C_{i-1}-C_i}{W_i+1} \;.$$
 	
-	Now, for any specific key $x$, the maximum error that we can make in its frequency is if we delete one from its frequency every time we delete something from the sketch (i.e., this worst-case is achieved when the sketch stores all occurences of $x$ from the beginning and then keeps deleting one from its count every time it seems an element). Formally, if we are at the end of epoch $i$, then the error is bounded as:
+	Now, for any specific key $x$, the maximum error that we can make in its frequency is if we delete one from its frequency every time we delete something from the sketch (i.e., this worst-case is achieved when the sketch stores all occurences of $x$ from the beginning and then keeps deleting one from its count every time it seems an unstored element). Formally, if we are at the end of epoch $i$, then the error is bounded as:
 	
 	$$ E(N_i) \leq f(x)  -  \hat{f}(x) \leq \sum_{j=0}^i d_j \;.$$
 	
@@ -516,12 +514,49 @@ If, on the other hand, we would choose $W(N) = N^{\alpha}/\epsilon$ and we would
 	
 	In the previous bound, we can claim that:
 	$$ C_i - C_{i-1} \geq  N^{(k)}_i - N^{(k)}_{i-1} - dk \;,$$
-where $N^{(k)}_i $ denotes the frequncies of the top $k$ elements at the end of epoch $i$ (the top $k$ with respect to the whole stream).
+where $N^{(k)}_i $ denotes the frequencies of the top $k$ elements at the end of epoch $i$ (the top $k$ with respect to the whole stream).
 In other words, the change in the sketch frequencies is at least the change in the sketch frequencies restricted to the top $k$ elements. Then you get that:
 
-	$$d_i \leq  \frac{N_i - N_{i-1} -N^{(k)}_i + N^{(k)}_{i-1}}{W_i+1-k} = \sum_{j=0}^i  \frac{N^{\text{res}(k)}_j- N^{\text{res}(k)}_{j-1}}{W_j+1-k}  \;.$$
+	$$d_i \leq  \frac{N_i - N_{i-1} -N^{(k)}_i + N^{(k)}_{i-1}}{W_i+1-k} =  \frac{N^{\text{res}(k)}_i- N^{\text{res}(k)}_{i-1}}{W_i+1-k}  \;.$$
 	
 
+\end{proof}
+
+
+\begin{lemma}\label{lemma:mg-res-w}
+	Let $E(N)$  denote the error of \sketchmg with size function $W$ on a stream of total key count $N$. Then, at the end of epoch $i$, we have the following:
+	$$E(N_i)\leq \sum_{j=0}^i  \frac{N_j - N_{j-1}}{W_j+1-k}  - \frac{N^{(k)}_i}{W_i+1-k}  \;,$$
+	where $N^{(k)}_j$ for $j\geq 0$ denotes the frequencies of the top $k$ elements at the end of epoch $i$ (the top $k$ with respect to the whole stream).
+\end{lemma}
+\begin{proof}
+	\textcolor{red}{Proof sketch}
+	
+	In the previous bound, we can claim that:
+	$$ C_i - C_{i-1} \geq  N^{(k)}_i - N^{(k)}_{i-1} - d_ik \;.$$
+	In other words, the change in the sketch frequencies is at least the change in the sketch frequencies restricted to the top $k$ elements. Then you get that:
+	
+	$$d_i \leq  \frac{N_i - N_{i-1} -N^{(k)}_i + N^{(k)}_{i-1}}{W_i+1-k}  \;.$$
+	
+\noindent
+Summing up over all $j$, we have that:
+
+\begin{align*}
+	\sum_{j=0}^{i} d_j &\leq \sum_{j=0}^i  \frac{N_j - N_{j-1} -N^{(k)}_j + N^{(k)}_{j-1}}{W_j+1-k} \\
+	&= \sum_{j=0}^i  \frac{N_j- N_{j-1}}{W_j+1-k} + \sum_{j=0}^i  \frac{ -N^{(k)}_j+ N^{(k)}_{j-1}}{W_j+1-k} \;.
+\end{align*}	
+
+In order to get our main claim, we must show that:
+
+$$  \sum_{j=0}^i  \frac{ -N^{(k)}_j+ N^{(k)}_{j-1}}{W_j+1-k} \leq -\frac{N^{(k)}_i}{w_i+1-k} \;,$$
+or alternatively, that
+
+$$  \sum_{j=0}^i  \frac{ N^{(k)}_j- N^{(k)}_{j-1}}{W_j+1-k} \geq \frac{N^{(k)}_i}{w_i+1-k} \;.$$
+
+We show that this holds as such:
+\begin{align*}
+	\sum_{j=0}^i  \frac{ N^{(k)}_j- N^{(k)}_{j-1}}{W_j+1-k} &= 	\frac{ N^{(k)}_0}{W_0+1-k} +  \frac{ N^{(k)}_1- N^{(k)}_{0}}{W_1+1-k}+\ldots  +\frac{ N^{(k)}_i- N^{(k)}_{i-1}}{W_i+1-k}  \\
+	&= \sum_{j=0}^{i-1} N^{(k)}_j \cdot \parentheses{\frac{1}{W_{j}+1-k} - \frac{1}{W_{j+1}+1-k}} + \frac{N^{(k)}_i}{W_i+1-k}
+\end{align*}
 \end{proof}
 
 
