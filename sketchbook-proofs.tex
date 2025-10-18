@@ -93,8 +93,8 @@
 %%
 %% \BibTeX command to typeset BibTeX logo in the docs
 \AtBeginDocument{%
-  \providecommand\BibTeX{{%
-    Bib\TeX}}}
+\providecommand\BibTeX{{%
+Bib\TeX}}}
 
 %% Rights management information.  This information is sent to you
 %% when you complete the rights form.  These commands have SAMPLE
@@ -180,7 +180,7 @@
 %% The abstract is a short summary of the work to be presented in the
 %% article.
 \begin{abstract}
-  
+
 \end{abstract}
 
 %%
@@ -189,17 +189,17 @@
 %%
 \begin{CCSXML}
 <ccs2012>
-   <concept>
-       <concept_id>10003752.10003809.10010055.10010056</concept_id>
-       <concept_desc>Theory of computation~Bloom filters and hashing</concept_desc>
-       <concept_significance>500</concept_significance>
-   </concept>
-   <concept>
-       <concept_id>10002951.10002952.10002971.10003450.10010830</concept_id>
-       <concept_desc>Information systems~Unidimensional range search</concept_desc>
-       <concept_significance>500</concept_significance>
-   </concept>
- </ccs2012>
+<concept>
+   <concept_id>10003752.10003809.10010055.10010056</concept_id>
+   <concept_desc>Theory of computation~Bloom filters and hashing</concept_desc>
+   <concept_significance>500</concept_significance>
+</concept>
+<concept>
+   <concept_id>10002951.10002952.10002971.10003450.10010830</concept_id>
+   <concept_desc>Information systems~Unidimensional range search</concept_desc>
+   <concept_significance>500</concept_significance>
+</concept>
+</ccs2012>
 \end{CCSXML}
 
 \ccsdesc[500]{Theory of computation~Bloom filters and hashing}
@@ -249,9 +249,9 @@ Formally, let $(x,1)$ be an update that occured in some epoch $0\leq j < i$ befo
 \textbf{Agreggating counters from previous epochs.} Let $\mathcal{I}$ be a counter in some epoch $i$. This counter ingests the following operations:
 
 \begin{itemize}
-	\item updates $(x,1)$ from epoch $i$ and for which $h(x) = \mathcal{I}$. This event occurs with probability $1/W_i$ since there are $W_i$ counters in the array during that epoch. For ease of analysis, we define $\mathcal{C}_{i,\mathcal{I}}(x)$ to be the indicator random variable that is $1$ if this event occurs, and $0$ otherwise. Then $\Pr{\mathcal{C}_{i,\mathcal{I}}(x) =1}= 1/W_i$.
-	\item updates $(x,1)$ from epoch $i-1$ that, during epoch $i-1$, hashed into a counter that matches the rightmost $\log W_i - 1$ bits of $\mathcal{I}$ in its binary representation. This event occurs with probability $2/W_i$. The factor $2$ accounts for the mistakes that the aggregation step makes, i.e., processing updates from previous epoch that would not have hashed into $\mathcal{I}$ in the current epoch.
-	\item  in general, updates $(x,1)$ from epoch $j <i $ and for which $h(x)$ matches $\mathcal{I}$ in the rightmost $j$ bits of its binary representation. This event occurs with probability $2^{i-j}/W_i$. Similarly as before, we define $\mathcal{C}_{j,\mathcal{I}}(x)$ to be the indicator random variable that is $1$ if this event occurs, and $0$ otherwise. Then  $\Pr{\mathcal{C}_{j,\mathcal{I}}(x) =1}=  2^{i-j}/W_i$.
+\item updates $(x,1)$ from epoch $i$ and for which $h(x) = \mathcal{I}$. This event occurs with probability $1/W_i$ since there are $W_i$ counters in the array during that epoch. For ease of analysis, we define $\mathcal{C}_{i,\mathcal{I}}(x)$ to be the indicator random variable that is $1$ if this event occurs, and $0$ otherwise. Then $\Pr{\mathcal{C}_{i,\mathcal{I}}(x) =1}= 1/W_i$.
+\item updates $(x,1)$ from epoch $i-1$ that, during epoch $i-1$, hashed into a counter that matches the rightmost $\log W_i - 1$ bits of $\mathcal{I}$ in its binary representation. This event occurs with probability $2/W_i$. The factor $2$ accounts for the mistakes that the aggregation step makes, i.e., processing updates from previous epoch that would not have hashed into $\mathcal{I}$ in the current epoch.
+\item  in general, updates $(x,1)$ from epoch $j <i $ and for which $h(x)$ matches $\mathcal{I}$ in the rightmost $j$ bits of its binary representation. This event occurs with probability $2^{i-j}/W_i$. Similarly as before, we define $\mathcal{C}_{j,\mathcal{I}}(x)$ to be the indicator random variable that is $1$ if this event occurs, and $0$ otherwise. Then  $\Pr{\mathcal{C}_{j,\mathcal{I}}(x) =1}=  2^{i-j}/W_i$.
 \end{itemize}
 
 While updates from previous epochs have a higher chance of hashing into $\mathcal{I}$ than updates in epoch $i$, we can nevertheless bound the influence they have on the total error of the estimate returned by CMS, CS and Misra Gries.
@@ -267,23 +267,23 @@ In the case of CMS, each counter gathers the sum of frequencies of elements that
 
 \begin{lemma}\label{lemma:cms-w}
 Let $E_W(N)$  denote the estimate of \sketchcms  with size function $W$ and one array of counters, on a stream of $\ell_1$ norm $N$. Then, at the end of epoch $i$, we have the following:
-	$$\expectation{E_W(N_{i+1})} \leq  \frac{1}{W_i} \cdot 	\sum_{j=0}^i  2^{i-j} \cdot  (N_{j+1} - N_j) \;,$$
-	where $N_{j}$ for $j\geq 0$ denotes the $\ell_1$ norm of the stream at the start of epoch $j$. 
+$$\expectation{E_W(N_{i+1})} \leq  \frac{1}{W_i} \cdot 	\sum_{j=0}^i  2^{i-j} \cdot  (N_{j+1} - N_j) \;,$$
+where $N_{j}$ for $j\geq 0$ denotes the $\ell_1$ norm of the stream at the start of epoch $j$. 
 \end{lemma}
 
 \begin{proof}
-	During epoch $i$, we have $N_{i+1}-N_{i}$ fresh insertions (i.e., that have not been cancelled out by deletions). We group all these insertions that occur during a given epoch into one big insertion per element. Formally, let $f_i(x)$ increase in the frequency of $x$ during epoch $i$.  Note that $\sum_x f_j(x) = N_{j+1}-N_j$ for all $j\geq 0$. Note that, in our previous notation, $E_W(N_{i+1}) \leq \mathcal{I}$ and can be expressed as:
+During epoch $i$, we have $N_{i+1}-N_{i}$ fresh insertions (i.e., that have not been cancelled out by deletions). We group all these insertions that occur during a given epoch into one big insertion per element. Formally, let $f_i(x)$ increase in the frequency of $x$ during epoch $i$.  Note that $\sum_x f_j(x) = N_{j+1}-N_j$ for all $j\geq 0$. Note that, in our previous notation, $E_W(N_{i+1}) \leq \mathcal{I}$ and can be expressed as:
 
-	
-	$$ \mathcal{I} =\sum_{j=0}^i   \sum_x \mathcal{C}_{j,\mathcal{I}}(x) \cdot f_j(x)   \;.$$
-	
-	\noindent
-	In other words, the counter $\mathcal{I}$ gets the frequency $f_j(x)$ added to it if and only if the event $\mathcal{C}_{j,\mathcal{I}}(x)$ occurs. We also have that $\expectation{\mathcal{C}_{j,\mathcal{I}}(x)} = 2^{i-j}/W_i$. By linearity of expectation, we then get that:
-	
-	\begin{align*}
-		E[\mathcal{I}] &= \sum_{j=0}^i   \sum_x \frac{2^{i-j}}{W_i} \cdot f_j(x) = \frac{1}{W_i} \cdot  \sum_{j=0}^i   \sum_x 2^{i-j} \cdot f_j(x)\\
-		&=	\frac{1}{W_i} \cdot  \sum_{j=0}^i   2^{i-j}  \sum_x f_j(x) = \frac{1}{W_i} \cdot  \sum_{j=0}^i  2^{i-j} \cdot  (N_{j+1} - N_j) \;.
-	\end{align*}
+
+$$ \mathcal{I} =\sum_{j=0}^i   \sum_x \mathcal{C}_{j,\mathcal{I}}(x) \cdot f_j(x)   \;.$$
+
+\noindent
+In other words, the counter $\mathcal{I}$ gets the frequency $f_j(x)$ added to it if and only if the event $\mathcal{C}_{j,\mathcal{I}}(x)$ occurs. We also have that $\expectation{\mathcal{C}_{j,\mathcal{I}}(x)} = 2^{i-j}/W_i$. By linearity of expectation, we then get that:
+
+\begin{align*}
+	E[\mathcal{I}] &= \sum_{j=0}^i   \sum_x \frac{2^{i-j}}{W_i} \cdot f_j(x) = \frac{1}{W_i} \cdot  \sum_{j=0}^i   \sum_x 2^{i-j} \cdot f_j(x)\\
+	&=	\frac{1}{W_i} \cdot  \sum_{j=0}^i   2^{i-j}  \sum_x f_j(x) = \frac{1}{W_i} \cdot  \sum_{j=0}^i  2^{i-j} \cdot  (N_{j+1} - N_j) \;.
+\end{align*}
 
 The claim follows.
 \end{proof}
@@ -293,19 +293,19 @@ The claim follows.
 In other words, the increase in error we get because of aggregating the sketches is dominated by the term $\sum_{j=0}^i  2^{i-j} \cdot  (N_{j+1} - N_j)$. This is where the specific size function $W$ we employ has an effect, since it translates into bounds on $N_j$ (and specifically their relative sizes). We now consider various special cases and discuss their respective behavior:
 
 \begin{theorem}\label{thm:cms-w} Let $E_W(N)$  denote the estimate of \sketchcms  with size function $W$ and one array of counters, on a stream of $\ell_1$ norm $N = \sum_y f(y)$. Then:
-	$$\expectation{E_W(N)} \leq  \begin{cases}
-		\log_2(N) \cdot \frac{N}{W(N)}, & \text{if $W(N)=N/\epsilon$,}\\
-	\frac{N}{W(N)}, & \text{if $W(N)=N^{1-\alpha}/\epsilon$, for $0<\alpha < 1$ \;. }
-	\end{cases}$$
+$$\expectation{E_W(N)} \leq  \begin{cases}
+	\log_2(N) \cdot \frac{N}{W(N)}, & \text{if $W(N)=N/\epsilon$,}\\
+\frac{N}{W(N)}, & \text{if $W(N)=N^{1-\alpha}/\epsilon$, for $0<\alpha < 1$ \;. }
+\end{cases}$$
 \end{theorem}
 \begin{proof}
-	
 
- In the case in which  $W(N) =  N/\epsilon$ , the size function doubles whenever the number of elements doubles, i.e.,  $N_{j+1} = 2 \cdot N_j$ for all $j\geq 0$ and, in general, $N_j = 2^j \cdot N_0$ for all $j\geq 0$. The additional error term then becomes:
+
+In the case in which  $W(N) =  N/\epsilon$ , the size function doubles whenever the number of elements doubles, i.e.,  $N_{j+1} = 2 \cdot N_j$ for all $j\geq 0$ and, in general, $N_j = 2^j \cdot N_0$ for all $j\geq 0$. The additional error term then becomes:
 \begin{align*}
-	\sum_{j=0}^i  2^{i-j} \cdot  (N_{j+1} - N_j) & =	\sum_{j=0}^i  2^{i-j} \cdot  (2^{j+1}\cdot N_0 - 2^{j}\cdot N_0)\\
-	&=  \sum_{j=0}^i  2^{i-j} \cdot  2^j \cdot N_0 = (i+1) \cdot 2^i \cdot N_0\\
-	&= (i+1) \cdot N_i\;.
+\sum_{j=0}^i  2^{i-j} \cdot  (N_{j+1} - N_j) & =	\sum_{j=0}^i  2^{i-j} \cdot  (2^{j+1}\cdot N_0 - 2^{j}\cdot N_0)\\
+&=  \sum_{j=0}^i  2^{i-j} \cdot  2^j \cdot N_0 = (i+1) \cdot 2^i \cdot N_0\\
+&= (i+1) \cdot N_i\;.
 \end{align*}	
 
 Plugging in this bound in the formula from~\Cref{lemma:cms-w} (i.e., dividing by $W(N_i)=W_i$), we get the main claim for $W(N)=N/\epsilon$. 
@@ -315,9 +315,9 @@ Plugging in this bound in the formula from~\Cref{lemma:cms-w} (i.e., dividing by
 \textbf{The case in which $W(N) =  N^{\alpha}/\epsilon$, for some $0< \alpha<1$.} In this case, the size function doubles more rarely, whenever $N_{i+1} = 2^{1/\alpha} \cdot N_i$. Since $0<\alpha<1$, note that this implies that $N_{i+1}$ is bigger than $2\cdot N_i$. This difference is why we avoid the extra dependency on $i$ in the error term. Formally, we have that $N_i = 2^{i/\alpha} \cdot N_0$ and thus:
 
 \begin{align*}
-	\sum_{j=0}^i  2^{i-j} \cdot  (N_{j+1} - N_j) & =	\sum_{j=0}^i  2^{i-j} \cdot  (2^{(j+1)/\alpha}\cdot N_0 - 2^{j/\alpha}\cdot N_0)\\
-	&=  \sum_{j=0}^i  2^{i-j} \cdot  2^{j/\alpha} \cdot N_0 \cdot (2^{1/\alpha} -1) \\
-	&= 2^i \cdot N_0 \cdot (2^{1/\alpha} -1) \cdot   \sum_{j=0}^i   2^{j/\alpha- j}  \;.
+\sum_{j=0}^i  2^{i-j} \cdot  (N_{j+1} - N_j) & =	\sum_{j=0}^i  2^{i-j} \cdot  (2^{(j+1)/\alpha}\cdot N_0 - 2^{j/\alpha}\cdot N_0)\\
+&=  \sum_{j=0}^i  2^{i-j} \cdot  2^{j/\alpha} \cdot N_0 \cdot (2^{1/\alpha} -1) \\
+&= 2^i \cdot N_0 \cdot (2^{1/\alpha} -1) \cdot   \sum_{j=0}^i   2^{j/\alpha- j}  \;.
 \end{align*}	
 
 \noindent
@@ -328,7 +328,7 @@ $$ \sum_{j=0}^i   2^{j/\alpha - j}   =  \sum_{j=0}^i   a^j =  (a^{i+1}-1)/(a-1) 
 Moreover, we have that $2a = 2^{1/\alpha}$ and we can rewrite the error term as:
 
 \begin{align*}
-	\sum_{j=0}^i  2^{i-j} \cdot  (N_{j+1} - N_j) & = 2^i \cdot N_0 \cdot (2^{1/\alpha} -1) \cdot   \sum_{j=0}^i   2^{j/\alpha- j}  \\
+\sum_{j=0}^i  2^{i-j} \cdot  (N_{j+1} - N_j) & = 2^i \cdot N_0 \cdot (2^{1/\alpha} -1) \cdot   \sum_{j=0}^i   2^{j/\alpha- j}  \\
 &= 2^i \cdot N_0 \cdot (2a -1) \cdot (a^{i+1}-1)/(a-1)  \\
 &\leq  2^{i+1} \cdot N_0 \cdot  a^{i+2}/(a-1) \;,
 \end{align*}	
@@ -338,7 +338,7 @@ where in the last step, we used the bounds $2a-1 \leq 2a$ and $a^{i+1}-1\leq a^{
 
 
 \begin{align*}
-	\sum_{j=0}^i  2^{i-j} \cdot  (N_{j+1} - N_j) &\leq  N_{i+1} \cdot a/(a-1)  \;.
+\sum_{j=0}^i  2^{i-j} \cdot  (N_{j+1} - N_j) &\leq  N_{i+1} \cdot a/(a-1)  \;.
 \end{align*}
 The claim follows by plugging this bound in the expected error from ~\Cref{lemma:cms-w}.
 
@@ -347,16 +347,16 @@ The claim follows by plugging this bound in the expected error from ~\Cref{lemma
 
 \subsection{Bounds for CS}
 
- In the case of CS,  we obtain a similar claim to that of~\Cref{lemma:cms-w}, except as a function of the squared $\ell_2$ norm of the stream.
- 
- 
- \begin{lemma}\label{lemma:cs-w}
- Let $V_W(F)$  denote the estimate of \sketchcs  with size function $W$ and one array of counters, on a stream with squared $\ell_2$ norm $F = \sum_y f(y)^2$. Then, at the end of epoch $i$, we have the following:
- 	$$\variance{V_W(F_{i+1})} \leq  \frac{1}{W_i} \cdot 	\sum_{j=0}^i  2^{i-j} \cdot  (F_{j+1} - F_j) \;,$$
- 	where $F_j$ denotes the squared  $\ell_2$ norm of the stream at the start of epoch $j$. 
- \end{lemma}
- \begin{proof}
- We are interested in describing the behavior of the random variable $\hat{f}(z) = \mathcal{I} \cdot \sigma(z)$ for any query $z$, where $\sigma(z)$ is the associated sign function (for simplicity, we again assume that $d=1$) and $\mathcal{I}$ is the counter that $z$ hashes into. Using the notation we introduced before, this counter $\mathcal{I}$ can be expressed as:
+In the case of CS,  we obtain a similar claim to that of~\Cref{lemma:cms-w}, except as a function of the squared $\ell_2$ norm of the stream.
+
+
+\begin{lemma}\label{lemma:cs-w}
+Let $V_W(F)$  denote the estimate of \sketchcs  with size function $W$ and one array of counters, on a stream with squared $\ell_2$ norm $F = \sum_y f(y)^2$. Then, at the end of epoch $i$, we have the following:
+	$$\variance{V_W(F_{i+1})} \leq  \frac{1}{W_i} \cdot 	\sum_{j=0}^i  2^{i-j} \cdot  (F_{j+1} - F_j) \;,$$
+	where $F_j$ denotes the squared  $\ell_2$ norm of the stream at the start of epoch $j$. 
+\end{lemma}
+\begin{proof}
+We are interested in describing the behavior of the random variable $\hat{f}(z) = \mathcal{I} \cdot \sigma(z)$ for any query $z$, where $\sigma(z)$ is the associated sign function (for simplicity, we again assume that $d=1$) and $\mathcal{I}$ is the counter that $z$ hashes into. Using the notation we introduced before, this counter $\mathcal{I}$ can be expressed as:
 
 $$ \mathcal{I} =\sum_{j=0}^i   \sum_x \mathcal{C}_{j,\mathcal{I}}(x) \cdot f_j(x) \cdot \sigma(x)  = \sum_x \mathcal{C}(x)  \;,$$
 
@@ -369,18 +369,18 @@ $$	\textsf{E}[\hat{f}(z)] =  \sum_{x \neq z}\expectation{\mathcal{C}(x) \cdot \s
 where the last step uses the fact that $\expectation{\sigma(x) \cdot \sigma(z) } =0$ for any $x \neq z$ and that $\Pr{ \mathcal{C}_{j,\mathcal{I}}(z)}=1$ since $h(z)=\mathcal{I}$. We will now bound the variance of this estimator, and in particular, we will be interested in how much bigger it becomes when compared to $\sqrt{F_i/W_i}$.  We get that:
 
 \begin{align*}
-	\variance{\hat{f}(z)} &= \expectation{\parentheses{\sum_x \mathcal{C}(x) \sigma(z)}^2}  - (f(z))^2 \\
-	& = \sum_x \expectation{\parentheses{\mathcal{C}(x)}^2} + \sum_x \sum_{y \neq x}\expectation{ \mathcal{C}(x) \mathcal{C}(y)} -  (f(z))^2 \\
-	&=\sum_x \expectation{\parentheses{\mathcal{C}(x)}^2} - (f(z))^2 \;,
+\variance{\hat{f}(z)} &= \expectation{\parentheses{\sum_x \mathcal{C}(x) \sigma(z)}^2}  - (f(z))^2 \\
+& = \sum_x \expectation{\parentheses{\mathcal{C}(x)}^2} + \sum_x \sum_{y \neq x}\expectation{ \mathcal{C}(x) \mathcal{C}(y)} -  (f(z))^2 \\
+&=\sum_x \expectation{\parentheses{\mathcal{C}(x)}^2} - (f(z))^2 \;,
 \end{align*}
 where we  use the fact that $\expectation{\sigma(x) \cdot \sigma(y) } =0$  for any $x\neq y$ to establish that $\expectation{ \mathcal{C}(x) \mathcal{C}(y)}=0$. We now bound $\expectation{\parentheses{\mathcal{C}(x)}^2}$. Recall that we defined $\mathcal{C}(x) =  \sum_{j=0}^i   \mathcal{C}_{j,\mathcal{I}}(x) \cdot f_j(x) \cdot \sigma(x)$. Then:
 
 \begin{align*}
-	\expectation{\parentheses{\mathcal{C}(x)}^2} &= \expectation{\parentheses{ \sum_{j=0}^i   \mathcal{C}_{j,\mathcal{I}}(x) \cdot f_j(x)    }^2}\\
-	&=\sum_{j=0}^i   \expectation{ \parentheses{ \mathcal{C}_{j,\mathcal{I}}(x) \cdot f_j(x) }^2} +\\
-	&+ 2\cdot \sum_{j=0}^{i-1}  \sum_{k=j+1}^i   \expectation{ \mathcal{C}_{j,\mathcal{I}}(x) \cdot f_j(x) \cdot  \mathcal{C}_{k,\mathcal{I}}(x) \cdot f_k(x) } \\
-	&= \sum_{j=0}^i    {f_j(x) }^2 \cdot \expectation{ \mathcal{C}_{j,\mathcal{I}}(x)} +\\
-	&+  2\cdot \sum_{j=0}^{i-1}  \sum_{k=j+1}^i   f_j(x)  \cdot f_k(x) \cdot   \expectation{ \mathcal{C}_{j,\mathcal{I}}(x) \cdot   \mathcal{C}_{k,\mathcal{I}}(x) } \;.
+\expectation{\parentheses{\mathcal{C}(x)}^2} &= \expectation{\parentheses{ \sum_{j=0}^i   \mathcal{C}_{j,\mathcal{I}}(x) \cdot f_j(x)    }^2}\\
+&=\sum_{j=0}^i   \expectation{ \parentheses{ \mathcal{C}_{j,\mathcal{I}}(x) \cdot f_j(x) }^2} +\\
+&+ 2\cdot \sum_{j=0}^{i-1}  \sum_{k=j+1}^i   \expectation{ \mathcal{C}_{j,\mathcal{I}}(x) \cdot f_j(x) \cdot  \mathcal{C}_{k,\mathcal{I}}(x) \cdot f_k(x) } \\
+&= \sum_{j=0}^i    {f_j(x) }^2 \cdot \expectation{ \mathcal{C}_{j,\mathcal{I}}(x)} +\\
+&+  2\cdot \sum_{j=0}^{i-1}  \sum_{k=j+1}^i   f_j(x)  \cdot f_k(x) \cdot   \expectation{ \mathcal{C}_{j,\mathcal{I}}(x) \cdot   \mathcal{C}_{k,\mathcal{I}}(x) } \;.
 \end{align*}
 
 For bounding the $\expectation{ \mathcal{C}_{j,\mathcal{I}}(x)}$, we can use the fact that $\expectation{ \mathcal{C}_{j,\mathcal{I}}(x)}  \leq 2^{i-j}/W_i$. For   $\expectation{ \mathcal{C}_{j,\mathcal{I}}(x) \cdot   \mathcal{C}_{k,\mathcal{I}}(x) }$, we note that the product of the two indicator random variables is $1$ only when both of them are $1$. Having said that, the two random variables are not independent: if $\mathcal{C}_{k,\mathcal{I}}(x) =1$, then $ \mathcal{C}_{j,\mathcal{I}}(x)=1$ for any $k\geq j$. Namely, if during epoch $k$, $x$ hashed into a counter that was a prefix of $\mathcal{I}$, then the same would have happened during epoch $j \leq k$.  We get that:
@@ -391,16 +391,16 @@ $$\expectation{ \mathcal{C}_{j,\mathcal{I}}(x) \cdot   \mathcal{C}_{k,\mathcal{I
 The whole sums becomes:
 
 \begin{align*}
-	\sum_{j=0}^{i-1}  \sum_{k=j+1}^i   f_j(x)  \cdot f_k(x) \cdot   \expectation{ \mathcal{C}_{k,\mathcal{I}}(x) } &= \sum_{k=1}^i \sum_{j=0}^{k-1}  f_j(x)  \cdot f_k(x) \cdot   \expectation{ \mathcal{C}_{k,\mathcal{I}}(x) }\\
-	&= \sum_{k=1}^i   f_k(x) \cdot   \expectation{ \mathcal{C}_{k,\mathcal{I}}(x) } \cdot \sum_{j=0}^{k-1}  f_j(x)\\
-	&=  \sum_{k=1}^i   f_k(x) \cdot   \expectation{ \mathcal{C}_{k,\mathcal{I}}(x) } \cdot f_{\leq k-1}(x)
+\sum_{j=0}^{i-1}  \sum_{k=j+1}^i   f_j(x)  \cdot f_k(x) \cdot   \expectation{ \mathcal{C}_{k,\mathcal{I}}(x) } &= \sum_{k=1}^i \sum_{j=0}^{k-1}  f_j(x)  \cdot f_k(x) \cdot   \expectation{ \mathcal{C}_{k,\mathcal{I}}(x) }\\
+&= \sum_{k=1}^i   f_k(x) \cdot   \expectation{ \mathcal{C}_{k,\mathcal{I}}(x) } \cdot \sum_{j=0}^{k-1}  f_j(x)\\
+&=  \sum_{k=1}^i   f_k(x) \cdot   \expectation{ \mathcal{C}_{k,\mathcal{I}}(x) } \cdot f_{\leq k-1}(x)
 \end{align*}
 
 where, for simplicity, we denoted $f_{\leq {i}}(x) =  \sum_{j=0}^{i}  f_i(x)$ the sum of frequencies accumulated by $x$ through epochs $0$ to $i$ and set $f_{\leq -1}(x)=0$. Then:
 
 \begin{align*}
-	\expectation{\parentheses{\mathcal{C}(x)}^2} &= \sum_{j=0}^i   \parentheses{{f_j(x) }^2  + 2 f_j(x) \cdot f_{\leq j-1}(x)} \cdot \expectation{ \mathcal{C}_{j,\mathcal{I}}(x)}  \\
-	&=  \sum_{j=0}^i   \parentheses{{f_{\leq j}(x) }^2  - {f_{\leq j-1}(x) }^2} \cdot \expectation{ \mathcal{C}_{j,\mathcal{I}}(x)}\;.
+\expectation{\parentheses{\mathcal{C}(x)}^2} &= \sum_{j=0}^i   \parentheses{{f_j(x) }^2  + 2 f_j(x) \cdot f_{\leq j-1}(x)} \cdot \expectation{ \mathcal{C}_{j,\mathcal{I}}(x)}  \\
+&=  \sum_{j=0}^i   \parentheses{{f_{\leq j}(x) }^2  - {f_{\leq j-1}(x) }^2} \cdot \expectation{ \mathcal{C}_{j,\mathcal{I}}(x)}\;.
 \end{align*}
 
 
@@ -408,9 +408,9 @@ While the term ${f_{\leq j}(x) }^2  - {f_{\leq j-1}(x) }^2$ might seem curious, 
 
 
 \begin{align*}
-		\variance{\hat{f}(z)} &= \sum_x \expectation{\parentheses{\mathcal{C}(x)}^2} - (f(z))^2\\
-		&= \sum_x \sum_{j=0}^i   \parentheses{{f_{\leq j}(x) }^2  - {f_{\leq j-1}(x) }^2} \cdot \expectation{ \mathcal{C}_{j,\mathcal{I}}(x)} -  (f(z))^2\\
-		&\leq  \sum_{j=0}^{i}  \parentheses{F_{j} - F_{j-1}} \cdot \frac{2^{i-j}}{W_i}\;.
+	\variance{\hat{f}(z)} &= \sum_x \expectation{\parentheses{\mathcal{C}(x)}^2} - (f(z))^2\\
+	&= \sum_x \sum_{j=0}^i   \parentheses{{f_{\leq j}(x) }^2  - {f_{\leq j-1}(x) }^2} \cdot \expectation{ \mathcal{C}_{j,\mathcal{I}}(x)} -  (f(z))^2\\
+	&\leq  \sum_{j=0}^{i}  \parentheses{F_{j} - F_{j-1}} \cdot \frac{2^{i-j}}{W_i}\;.
 \end{align*}
 
 The claim follows.
@@ -420,24 +420,24 @@ The claim follows.
 At this point, it becomes perhaps more natural to understand why we defined the size function to depend on the squared $\ell_2$ norm of the stream vector. We now discuss different bounds we get on the variance depending on the size function.
 
 \begin{theorem}\label{thm:cs-w} 	 Let $V_W(F)$  denote the estimate of \sketchcs  with size function $W$ and one array of counters, on a stream with squared $\ell_2$ norm $F = \sum_y f(y)^2$. Then:
-	$$\variance{V_{W}(F)} \leq  \begin{cases}
-		\log_2(F) \cdot \frac{F}{W(F)}, & \text{if $W(F)=F/\epsilon$,}\\
-		\frac{1-2^{-1/\alpha}}{1-2^{1-1/\alpha}}\frac{F}{W(F)}, & \text{if $W(F)=F^{1-\alpha}/\epsilon$, for $0<\alpha < 1$ \;. }
-	\end{cases}$$
+$$\variance{V_{W}(F)} \leq  \begin{cases}
+	\log_2(F) \cdot \frac{F}{W(F)}, & \text{if $W(F)=F/\epsilon$,}\\
+	\frac{1-2^{-1/\alpha}}{1-2^{1-1/\alpha}}\frac{F}{W(F)}, & \text{if $W(F)=F^{1-\alpha}/\epsilon$, for $0<\alpha < 1$ \;. }
+\end{cases}$$
 \end{theorem}
 
 We note that the calculations from the above are highly similar to those of \sketchcms\ from~\Cref{thm:cms-w}, with the difference that we now see a dependency on $F$ rather than $N$. We include them for completeness:
 \begin{proof}
- In the case in which $W(F) =  F/\epsilon$, we start with the original sketch $\mathcal{S}_0$ that allows streams for which their squared $\ell_2$ norm is at most some $F_0$. The size function doubles whenever the squared $\ell_2$ norm doubles. In this case $F_{j+1} = 2 \cdot F_j$ for all $j\geq 0$ and, in general, $F_j = 2^j \cdot F_0$ for all $j\geq 0$. In this case, we get that:
+In the case in which $W(F) =  F/\epsilon$, we start with the original sketch $\mathcal{S}_0$ that allows streams for which their squared $\ell_2$ norm is at most some $F_0$. The size function doubles whenever the squared $\ell_2$ norm doubles. In this case $F_{j+1} = 2 \cdot F_j$ for all $j\geq 0$ and, in general, $F_j = 2^j \cdot F_0$ for all $j\geq 0$. In this case, we get that:
 
-	
+
 
 \begin{align*}
-	\variance{V_W} &\leq  \sum_{j=0}^{i}  \parentheses{F_{j} - F_{j-1}} \cdot \frac{2^{i-j}}{W_i} \\
-	&\leq \frac{1}{W_i} \cdot \parentheses{  F_0\cdot 2^{i}+ \sum_{j=1}^{i}  \parentheses{2^{j} - 2^{j-1}} \cdot F_0 \cdot 2^{i-j}}\\
-	&\leq \frac{1}{W_i} \cdot  \parentheses{  F_0\cdot 2^{i}+  \sum_{j=1}^{i}  2^{j-1} \cdot F_0 \cdot 2^{i-j}} \\
-		&\leq \frac{1}{W_i} \cdot  \parentheses{  F_0\cdot 2^{i}+  \sum_{j=1}^{i}  F_0 \cdot 2^{i-1}}\\
-		&\leq  \frac{1}{W_i} \cdot  \parentheses{  F_i+  (i-1)\cdot F_i/2} =   \frac{F_i}{W_i} \cdot  \frac{i+1}{2} \;.
+\variance{V_W} &\leq  \sum_{j=0}^{i}  \parentheses{F_{j} - F_{j-1}} \cdot \frac{2^{i-j}}{W_i} \\
+&\leq \frac{1}{W_i} \cdot \parentheses{  F_0\cdot 2^{i}+ \sum_{j=1}^{i}  \parentheses{2^{j} - 2^{j-1}} \cdot F_0 \cdot 2^{i-j}}\\
+&\leq \frac{1}{W_i} \cdot  \parentheses{  F_0\cdot 2^{i}+  \sum_{j=1}^{i}  2^{j-1} \cdot F_0 \cdot 2^{i-j}} \\
+	&\leq \frac{1}{W_i} \cdot  \parentheses{  F_0\cdot 2^{i}+  \sum_{j=1}^{i}  F_0 \cdot 2^{i-1}}\\
+	&\leq  \frac{1}{W_i} \cdot  \parentheses{  F_i+  (i-1)\cdot F_i/2} =   \frac{F_i}{W_i} \cdot  \frac{i+1}{2} \;.
 \end{align*}
 
 
@@ -446,9 +446,9 @@ We note that the calculations from the above are highly similar to those of \ske
 \textbf{Setting $W(F) =  F^{\alpha}/\epsilon$ in CS, for some $0<\alpha<1$.} In this case, the size function doubles more rarely, whenever $F_{i+1} = 2^{1/\alpha} \cdot F_i$. Since $0<\alpha<1$, note that this implies that $F_{i+1}$ is bigger than $2F_i$. This difference is why we avoid the extra dependency on $i$ in the error term. Plugging this into the statement of~\Cref{lemma:cs-w}, we have that $F_i = 2^{i/(1-\alpha)} \cdot F_0$ and thus:
 
 \begin{align*}
-	\sum_{j=0}^i  2^{i-j} \cdot  (F_{j+1} - F_j) & =	\sum_{j=0}^i  2^{i-j} \cdot  (2^{(j+1)/(1-\alpha)}\cdot T_0 - 2^{j/(1-\alpha)}\cdot T_0)\\
-	&=  \sum_{j=0}^i  2^{i-j} \cdot  2^{j/(1-\alpha)} \cdot T_0 \cdot (2^{1/(1-\alpha)} -1) \\
-	&= 2^i \cdot T_0 \cdot (2^{1/(1-\alpha)} -1) \cdot   \sum_{j=0}^i   2^{j/(1-\alpha) - j}   \;.
+\sum_{j=0}^i  2^{i-j} \cdot  (F_{j+1} - F_j) & =	\sum_{j=0}^i  2^{i-j} \cdot  (2^{(j+1)/(1-\alpha)}\cdot T_0 - 2^{j/(1-\alpha)}\cdot T_0)\\
+&=  \sum_{j=0}^i  2^{i-j} \cdot  2^{j/(1-\alpha)} \cdot T_0 \cdot (2^{1/(1-\alpha)} -1) \\
+&= 2^i \cdot T_0 \cdot (2^{1/(1-\alpha)} -1) \cdot   \sum_{j=0}^i   2^{j/(1-\alpha) - j}   \;.
 \end{align*}	
 
 
@@ -459,105 +459,271 @@ We note that the calculations from the above are highly similar to those of \ske
 
 \subsection{Bounds for Misra Gries}
 
-In the case of the MG sketch, we consider a slightly more general division of time into epochs. We start with a sketch that uses $W_0$ counters until the stream length reaches $N_0$. At this point in time, the sketch increases the number of counters to $W_1$. We leave the relationship between $W_0$ and $W_1$ undefined for now. The sketch uses $W_1$ counters until the stream length reaches $N_1$, and we call this period of time epoch $i$.  Once $N_2$ is reached, the sketch switches to $W_2$ counters (starting epoch $2$) and so on. We then prove the following:
+In the case of the MG sketch, we consider a slightly more general division of time into epochs. We start with a sketch that uses $W(N_0)$ counters until the stream length reaches $N_0$. At this point in time, the sketch sets the number of counters to $W(N_1)$. We leave the relationship between $W(N_0)$ and $W(N_1)$ undefined for now. The sketch uses $W(N_1)$ counters until the stream length reaches $N_1$, and we call this period of time epoch $1$.  Once $N_2$ is reached, the sketch switches to $W(N_2)$ counters (starting epoch $2$) and so on. We then prove the following:
 
 \begin{lemma}\label{lemma:mg-w}
-	Let $E(N)$  denote the error of \sketchmg with size function $W$ on a stream of total key count $N$. Then, at the end of epoch $i$, we have the following:
-	$$E(N_i)\leq \sum_{j=0}^i  \frac{N_j - N_{j-1}}{W_j+1}   \;,$$
-	where $N_{j}$ for $j\geq 0$ denotes the total key length of the stream at the end of epoch $j$. 
+Let $E(N)$  denote the error of \sketchmg with size function $W$ on a stream of total key count $N$. Then, at the end of epoch $i$, we have the following:
+$$E(N_i)\leq \sum_{j=0}^i  \frac{N_j - N_{j-1}}{W(N_j)+1}   \;,$$
+where $N_{j}$ for $j\geq 0$ denotes the total key length of the stream at the end of epoch $j$. 
 \end{lemma}
 \begin{proof}
-	We begin by first defining some notation. Let $C_i$ denote the total count of frequencies stored in the sketch at the end of epoch $i$ (with $C_{-1}=0$). Note that $C_i \geq 0$ always, since we only delete from the sketch when all the counters are nonzero. Let $d_i$ also denote the number of deletions we make to the sketch during epoch $i$. By design, note the following relationship for $i\geq 1$:
-	$$ C_i = C_{i-1} + N_i - N_{i-1} - d_i \cdot (W_i+1) \;.$$
-	
-	For simplicity, consider the case in which $i=1$. At the beginning of epoch $i$, the frequencies stored in the sketch add up to $C_{i-1}$. During the epoch, we see $N_1-N_0$ fresh insertions, each of which either increases the frequencies stored in the sketch by $1$, or deletes $W_i$ frequencies from the sketch. The number of elements in $N_1-N_0$ that each issue these $W_i$ deletes is exactly $d_i$. In other words, there are $N_1-N_0-d_i$ elements that each increases the sketch counts by $1$, and $d_i$ elements that each decreases the sketch count by $W_i$. The total changes are therefore $N_1-N_0-d_i - d_i \cdot W_i$, which is how we get the first expression. From this, we get that:
-	$$d_i = \frac{N_i - N_{i-1} + C_{i-1}-C_i}{W_i+1} \;.$$
-	
-	Now, for any specific key $x$, the maximum error that we can make in its frequency is if we delete one from its frequency every time we delete something from the sketch (i.e., this worst-case is achieved when the sketch stores all occurences of $x$ from the beginning and then keeps deleting one from its count every time it seems an unstored element). Formally, if we are at the end of epoch $i$, then the error is bounded as:
-	
-	$$ E(N_i) \leq f(x)  -  \hat{f}(x) \leq \sum_{j=0}^i d_j \;.$$
-	
-	
+We begin by first defining some notation. Let $C_i$ denote the total count of frequencies stored in the sketch at the end of epoch $i$ (with $C_{-1}=0$). Note that $C_i \geq 0$ always, since we only delete from the sketch when all the counters are nonzero. Let $d_i$ also denote the number of deletions we make to the sketch during epoch $i$. By design, note the following relationship for $i\geq 1$:
+$$ C_i = C_{i-1} + N_i - N_{i-1} - d_i \cdot (W(N_i)+1) \;.$$
+
+For simplicity, consider the case in which $i=1$. At the beginning of epoch $i$, the frequencies stored in the sketch add up to $C_{i-1}$. During the epoch, we see $N_1-N_0$ fresh insertions, each of which either increases the frequencies stored in the sketch by $1$, or deletes $W(N_i)$ frequencies from the sketch. The number of elements in $N_1-N_0$ that each issue these $W(N_i)$ deletes is exactly $d_i$. In other words, there are $N_1-N_0-d_i$ elements that each increases the sketch counts by $1$, and $d_i$ elements that each decreases the sketch count by $W(N_i)$. The total changes are therefore $N_1-N_0-d_i - d_i \cdot W(N_i)$, which is how we get the first expression. From this, we get that:
+$$d_i = \frac{N_i - N_{i-1} + C_{i-1}-C_i}{W(N_i)+1} \;.$$
+
+Now, for any specific key $x$, the maximum error that we can make in its frequency is if we delete one from its frequency every time we delete something from the sketch (i.e., this worst-case is achieved when the sketch stores all occurences of $x$ from the beginning and then keeps deleting one from its count every time it seems an unstored element). Formally, if we are at the end of epoch $i$, then the error is bounded as:
+
+$$ E(N_i) \leq f(x)  -  \hat{f}(x) \leq \sum_{j=0}^i d_j \;.$$
+
+
 \noindent
-	We now plug in our expression for $d_j$ and get that:
+We now plug in our expression for $d_j$ and  use $W_j=W(N_j)$ for ease of notation: 
 
 \begin{align*}
-	 \sum_{j=0}^i d_j  &= \sum_{j=0}^i  \frac{N_j - N_{j-1} + C_{j-1}-C_j}{W_j+1} \\
-	 &= \sum_{j=0}^i  \frac{N_j - N_{j-1}}{W_j+1} + \sum_{j=0}^i \frac{C_{j-1}-C_j}{W_j+1} \\
-	 &=\sum_{j=0}^i  \frac{N_j - N_{j-1}}{W_j+1} + \sum_{j=0}^{i-1} C_j \cdot \parentheses{-\frac{1}{W_j+1}+\frac{1}{W_{j+1}+1}} - \frac{C_i}{W_i+1}\\
-	 &=\sum_{j=0}^i  \frac{N_j - N_{j-1}}{W_j+1} - \sum_{j=0}^{i-1} C_j \cdot \frac{W_{j+1} - W_j}{(W_j+1)(W_{j+1}+1)} - \frac{C_i}{W_i+1}\\
-	 &\leq \sum_{j=0}^i  \frac{N_j - N_{j-1}}{W_j+1}  \;,
+\sum_{j=0}^i d_j  &= \sum_{j=0}^i  \frac{N_j - N_{j-1} + C_{j-1}-C_j}{W_j+1} \\
+&= \sum_{j=0}^i  \frac{N_j - N_{j-1}}{W_j+1} + \sum_{j=0}^i \frac{C_{j-1}-C_j}{W_j+1} \\
+&=\sum_{j=0}^i  \frac{N_j - N_{j-1}}{W_j+1} + \sum_{j=0}^{i-1} C_j \cdot \parentheses{-\frac{1}{W_j+1}+\frac{1}{W_{j+1}+1}} - \frac{C_i}{W_j+1}\\
+&=\sum_{j=0}^i  \frac{N_j - N_{j-1}}{W_j+1} - \sum_{j=0}^{i-1} C_j \cdot \frac{W_{j+1} - W_j}{(W_j+1)(W_{j+1}+1)} - \frac{C_i}{W_i+1}\\
+&\leq \sum_{j=0}^i  \frac{N_j - N_{j-1}}{W_j+1}  \;,
 \end{align*}
-where the last inequality holds because we are ignoring negative factors in the sum.
+where the last inequality holds because $W_{j_1}>W_j$, so we are ignoring negative factors in the sum.
 \end{proof}
 
+Before we prove our main lemma for this section, we require the following technical claim:
 
-\textcolor{red}{Haven't written the theorem yet}
-Now, if $W(N) = N/\epsilon-1$ (so that the erorr becomes upper bounded by $\epsilon$) and we would increase counters by one at a time, we would get that $W(N_{i+1}) = W(N_i) + 1$ when $N_{i+1}= N_i + \epsilon$ and the error term would become
+\begin{claim}\label{claim:technical} For any constant $\alpha<1$, the following holds:
 
-	$$E(N_i)\leq \sum_{j=0}^i  \frac{\epsilon}{W_0+j} \leq \epsilon \cdot \log(1+j/W_0)   \;.$$
-	
-If, on the other hand, we would choose $W(N) = N^{\alpha}/\epsilon$ and we would double the counters every time the size function doubles, then $N_{j+1}=2^{1/\alpha}\cdot N_j$ and it would be BLAH.\textcolor{purple}{slight nonsense! - it's true that we could get write the upper bound over $W_j$ instead of $W_j+1$ and then it would be easier - choose your own adventure}
+$$ \sum_{j=0}^i \frac{2^{j/\alpha} - 2^{(j-1)/\alpha}}{2^{j}} = O(1) \cdot \frac{2^{i/\alpha}}{2^i}\;.$$
+\end{claim}
+\begin{proof} Note that:
+\begin{align*}
+	\frac{2^{j/\alpha} - 2^{(j-1)/\alpha} } {2^j} &= (1-2^{-1/\alpha}) \cdot \frac{2^{j/\alpha} } {2^j } \\
+	&= (1-2^{-1/\alpha}) \cdot  \frac{2^{i/\alpha}}{2^i } \cdot \frac{2^{(j-i)/\alpha}}{2^{j-i}}\\
+	&=  (1-2^{-1/\alpha}) \cdot \frac{1}{2^{(i-j)\cdot (1/\alpha-1)}} \cdot \frac{2^{i/\alpha}}{2^i }  \;.
+\end{align*}
 
+Summing everything up, we get that:
+\begin{align*}
+	\sum_{j=0}^i  	 \frac{2^{j/\alpha} - 2^{(j-1)/\alpha} } {2^j} &\leq (1-2^{-1/\alpha}) \cdot  \sum_{j=0}^i \frac{1}{2^{(i-j)\cdot (1/\alpha-1)}} \cdot \frac{2^{i/\alpha}}{2^i }\\
+	&= O(1) \cdot \frac{2^{i/\alpha}}{2^i }\;,
+\end{align*}
+since $1/\alpha >1$ and the sum $\sum_{j=0}^i \frac{1}{2^{(i-j)\cdot (1/\alpha-1)}}$ converges to a constant.
+\end{proof}
+
+\noindent
+We are now ready to prove the main bounds on \sketchmg\:
+\begin{theorem}
+\label{thm:mg-normal}
+Letting~$E(N)$ denote the error of \sketchmg\ with size function~$W(\cdot)$ on a stream with a total key count~$N$, it holds that
+$$
+E(N) \leq  
+\begin{cases}
+	O(1) \cdot \epsilon N^{1-\alpha} & \text{if $W(N)=N^{\alpha}/\epsilon$, for $\alpha \in [0,1)$,} \\
+	\log_2 N \cdot \epsilon & \text{if $W(N)=N/\epsilon$.}
+\end{cases}
+$$
+Compared to a fixed-size MG allocated upfront with an array of~$W(N)$
+counters with knowledge of~$N$, the expected error terms above are higher
+by at most a constant and a logarithmic factor.
+\end{theorem}
+
+\begin{proof}
+In the case in which $W(N)=N/\epsilon$, we use the fact that in \sketchmg\, we increase the counters one by one (rather than double them). In other words, we consider divisions into epochs for which $W(N_{i+1})=W(N_i)+1$ and hence $N_{i+1}=N_i+\epsilon$, and so, plugging this into~\Cref{lemma:mg-w}, we would have that, at the end of some epoch $i$:
+	\begin{align*}
+		E(N_i)&\leq \sum_{j=0}^i  \frac{N_j - N_{j-1}}{W(N_j)+1} = \frac{N_0}{W(N_0)} + \sum_{j=1}^i  \frac{\epsilon}{W(N_0)+j} \\
+		&= \epsilon + \epsilon \cdot \sum_{j=1}^i  \frac{1}{W(N_0)+j} \leq \epsilon + \epsilon \cdot \int_{W(N_0)+1}^{W(N_0)+i} \frac{1}{x} \,dx\\
+		& \leq \epsilon + \epsilon \cdot \ln\parentheses{\frac{W(N_0)+i}{W(N_0)+1}} \leq \epsilon \cdot (1+\ln i) \leq \epsilon \cdot \log_2 N\;,
+	\end{align*}
+since $i$ is now defined as the number of times we expand by one counter until we reach a stream length of $N$, and so $i \leq N/\epsilon+1$. 
 
 
 \medskip\noindent
-\textcolor{red}{We can prove the following but I have no clue how to use it. There is this slight possible way to tighten it: what if the frequencies don't add by too much in a particular epoch, then what? Alternatively, it could be that the residual doesn't change by much either, but I guess that's only good for us, because then we spend more time with higher counters, and so our error is lower?}
-
-\begin{lemma}\label{lemma:mg-res-w}
-	Let $E(N)$  denote the error of \sketchmg with size function $W$ on a stream of total key count $N$. Then, at the end of epoch $i$, we have the following:
-	$$E(N_i)\leq \sum_{j=0}^i  \frac{N^{\text{res}(k)}_j- N^{\text{res}(k)}_{j-1}}{W_j+1-k}   \;,$$
-	where $N^{\text{res}(k)}_j$ for $j\geq 0$ denotes the total key length of the stream at the end of epoch $j$ minus the top $k$ elements in the stream by the end of epoch $i$.
-\end{lemma}
-\begin{proof}
-	\textcolor{red}{Proof sketch}
-	
-	In the previous bound, we can claim that:
-	$$ C_i - C_{i-1} \geq  N^{(k)}_i - N^{(k)}_{i-1} - dk \;,$$
-where $N^{(k)}_i $ denotes the frequencies of the top $k$ elements at the end of epoch $i$ (the top $k$ with respect to the whole stream).
-In other words, the change in the sketch frequencies is at least the change in the sketch frequencies restricted to the top $k$ elements. Then you get that:
-
-	$$d_i \leq  \frac{N_i - N_{i-1} -N^{(k)}_i + N^{(k)}_{i-1}}{W_i+1-k} =  \frac{N^{\text{res}(k)}_i- N^{\text{res}(k)}_{i-1}}{W_i+1-k}  \;.$$
-	
-
-\end{proof}
+\textbf{The case in which $w(N)=N^{\alpha}/\epsilon$.} In this case, it is easier to think of divisions into time in which we just double the number of counters. Namely, we define the epochs such that $W(N_{i+1}) = 2\cdot W(N_i)$ and hence $N_{i+1} = 2^{1/\alpha} \cdot N_i$ (notice that the statement of~\Cref{lemma:mg-w} does not depend on how specifically the epochs are defined). Then we have that the sum satisfies:
 
 
-\begin{lemma}\label{lemma:mg-res-w}
-	Let $E(N)$  denote the error of \sketchmg with size function $W$ on a stream of total key count $N$. Then, at the end of epoch $i$, we have the following:
-	$$E(N_i)\leq \sum_{j=0}^i  \frac{N_j - N_{j-1}}{W_j+1-k}  - \frac{N^{(k)}_i}{W_i+1-k}  \;,$$
-	where $N^{(k)}_j$ for $j\geq 0$ denotes the frequencies of the top $k$ elements at the end of epoch $i$ (the top $k$ with respect to the whole stream).
-\end{lemma}
-\begin{proof}
-	\textcolor{red}{Proof sketch}
-	
-	In the previous bound, we can claim that:
-	$$ C_i - C_{i-1} \geq  N^{(k)}_i - N^{(k)}_{i-1} - d_ik \;.$$
-	In other words, the change in the sketch frequencies is at least the change in the sketch frequencies restricted to the top $k$ elements. Then you get that:
-	
-	$$d_i \leq  \frac{N_i - N_{i-1} -N^{(k)}_i + N^{(k)}_{i-1}}{W_i+1-k}  \;.$$
-	
-\noindent
-Summing up over all $j$, we have that:
+
+%\begin{align*}
+%	\frac{N_j - N_{j-1}}{W(N_j)+1} &= \frac{2^{j/\alpha} \cdot N_0 - 2^{(j-1)/\alpha} \cdot N_0} {2^j \cdot W(N_0)} = (1-2^{-1/\alpha}) \cdot \frac{2^{j/\alpha} \cdot N_0} {2^j \cdot W(N_0)} \\
+%	&= (1-2^{-1/\alpha}) \cdot  \frac{2^{i/\alpha} \cdot N_0}{2^i \cdot W(N_0)} \cdot \frac{2^{(j-i)/\alpha}}{2^{j-i}}\\
+%	&=  (1-2^{-1/\alpha}) \cdot  \frac{N_i}{W(N_i)} \cdot \frac{1}{2^{(i-j)\cdot (1/\alpha-1)}} \;.
+%\end{align*}
+%
+%Summing everything up, we would get that:
 
 \begin{align*}
-	\sum_{j=0}^{i} d_j &\leq \sum_{j=0}^i  \frac{N_j - N_{j-1} -N^{(k)}_j + N^{(k)}_{j-1}}{W_j+1-k} \\
-	&= \sum_{j=0}^i  \frac{N_j- N_{j-1}}{W_j+1-k} + \sum_{j=0}^i  \frac{ -N^{(k)}_j+ N^{(k)}_{j-1}}{W_j+1-k} \;.
-\end{align*}	
-
-In order to get our main claim, we must show that:
-
-$$  \sum_{j=0}^i  \frac{ -N^{(k)}_j+ N^{(k)}_{j-1}}{W_j+1-k} \leq -\frac{N^{(k)}_i}{w_i+1-k} \;,$$
-or alternatively, that
-
-$$  \sum_{j=0}^i  \frac{ N^{(k)}_j- N^{(k)}_{j-1}}{W_j+1-k} \geq \frac{N^{(k)}_i}{w_i+1-k} \;.$$
-
-We show that this holds as such:
-\begin{align*}
-	\sum_{j=0}^i  \frac{ N^{(k)}_j- N^{(k)}_{j-1}}{W_j+1-k} &= 	\frac{ N^{(k)}_0}{W_0+1-k} +  \frac{ N^{(k)}_1- N^{(k)}_{0}}{W_1+1-k}+\ldots  +\frac{ N^{(k)}_i- N^{(k)}_{i-1}}{W_i+1-k}  \\
-	&= \sum_{j=0}^{i-1} N^{(k)}_j \cdot \parentheses{\frac{1}{W_{j}+1-k} - \frac{1}{W_{j+1}+1-k}} + \frac{N^{(k)}_i}{W_i+1-k}
+\sum_{j=0}^i  \frac{N_j - N_{j-1}}{W(N_j)+1} & = \frac{2^{j/\alpha} \cdot N_0 - 2^{(j-1)/\alpha} \cdot N_0} {2^j \cdot W(N_0)} \\
+&=  \sum_{j=0}^i  \frac{2^{j/\alpha}- 2^{(j-1)/\alpha}} {2^j} \cdot \frac{N_0}{W(N_0)}\;.
 \end{align*}
+We now apply~\Cref{claim:technical} and get that:
+\begin{align*}
+\sum_{j=0}^i  \frac{N_j - N_{j-1}}{W(N_j)+1} & \leq  O(1) \cdot \frac{2^{i/\alpha}}{2^i} \cdot \frac{N_0}{W(N_0)} = O(1) \cdot \frac{N_i}{W(N_i)} \;.
+\end{align*}
+The main claim follows.
 \end{proof}
+
+
+
+\subsection{Misra Gries with residuals}
+
+
+
+
+
+\begin{lemma}\label{lemma:mg-res-w}
+Let $E(N)$  denote the error of \sketchmg with size function $W$ on a stream of total key count $N$. Then, at the end of epoch $i$, we have the following:
+$$E(N_i)\leq \sum_{j=0}^i  \frac{N^{\text{res}(k)}_j- N^{\text{res}(k)}_{j-1}}{W(N_j)+1-k}   \;,$$
+where $N^{\text{res}(k)}_j$ for $j\geq 0$ denotes the total key length of the stream at the end of epoch $j$ minus the frequencies of the top $k$ elements in the stream by the end of epoch $i$.
+\end{lemma}
+\begin{proof}
+We start similarly as in the proof of~\Cref{lemma:mg-w} and get that, if $d_i$ is the number of deletions to the sketch that occur during some epoch $i \geq 0$, then:
+
+$$ C_i = C_{i-1} + N_i - N_{i-1} - d_i \cdot (W(N_i)+1) \;,$$
+
+where $C_i$ denotes the total count of frequencies stored in the sketch at the end of epoch $i$ (with $C_{-1}=0$). 
+We further can claim that:
+$$ C_i - C_{i-1} \geq  N^{(k)}_i - N^{(k)}_{i-1} - dk \;,$$
+where $N^{(k)}_i $ denotes the frequencies of the top $k$ elements at the end of epoch $i$ (the top $k$ with respect to the whole stream).
+In other words, the change in the sketch frequencies is at least the change in the sketch frequencies restricted to the top $k$ elements: the total frequency restriced to these $k$ elements increases by $N^{(k)}_i - N^{(k)}_{i-1}$ and each of these $k$ elements gets its frequency reduced at most $d_i$ times. We then you get that:
+
+$$d_i \leq  \frac{N_i - N_{i-1} -N^{(k)}_i + N^{(k)}_{i-1}}{W(N_i)+1-k} =  \frac{N^{\text{res}(k)}_i- N^{\text{res}(k)}_{i-1}}{W(N_i)+1-k}  \;.$$
+
+Adding up, we get the claim.
+
+\end{proof}
+
+
+We now proceed to show a similar bound as before. Namely:
+
+\begin{theorem}
+\label{thm:mg-res}
+Letting~$E(N)$ denote the error of \sketchmg\ with size function~$W(\cdot)$ on a stream with a total key count~$N$, it holds that
+$$
+E(N) \leq  
+\begin{cases}
+	O(1) \cdot   \epsilon \parentheses{N^{\text{res}(k)}}^{1-\alpha} & \text{if $W(N)=N^{\alpha}/\epsilon$, for $\alpha \in [0,1)$,} \\
+ \epsilon \cdot \log_2 N^{\text{res}(k)}  & \text{if $W(N)=N/\epsilon$,}
+\end{cases}
+$$
+where $N^{res(k)}$ denotes the total key length of the stream minus the frequencies of the top $k$ elements in the stream.
+\end{theorem}
+
+\begin{proof}
+
+In the case in which $W(N)=N/\epsilon$, we have that $W(N_{i+1})=W(N_i)+1$ and $N_{i+1}=N_i + \epsilon$. Fix an epoch $i$. Define $i_1$ as the largest index such that $$\sum_{j=1}^{i_1} \parentheses{N^{\text{res}(k)}_j- N^{\text{res}(k)}_{j-1}} \leq \epsilon \;.$$  In other words, we group consecutive terms of the form $N^{\text{res}(k)}_j- N^{\text{res}(k)}_{j-1}$ until we are about to reach $\epsilon$. Note that
+$$\sum_{j=1}^{i_1+1} \parentheses{N^{\text{res}(k)}_j- N^{\text{res}(k)}_{j-1}} \geq  \epsilon \;,$$
+since the extra term $N^{\text{res}(k)}_{i_1+1}- N^{\text{res}(k)}_{i_1} \leq \epsilon$.
+Similarly, we define $i_2 > i_1$ to be the largest index such that $$\sum_{j=i_1+1}^{i_2} \parentheses{N^{\text{res}(k)}_j- N^{\text{res}(k)}_{j-1}} \leq \epsilon \;.$$
+
+Similarly as before, we stop right before we gather a sum of $\epsilon$, and thus:
+
+$$\sum_{j=i_{1}+1}^{i_2+1} \parentheses{N^{\text{res}(k)}_j- N^{\text{res}(k)}_{j-1}} \geq  \epsilon \;,$$
+We continue as such for $\ell$ steps until we have that:
+$$\sum_{j=i_{\ell+1}}^{i} \parentheses{N^{\text{res}(k)}_j- N^{\text{res}(k)}_{j-1}} \leq \epsilon \;.$$
+
+We now define $i_0=0$ and get $\ell$ can be upper bounded as such:
+
+\begin{align*}
+	N^{\text{res}(k)}_i  & \geq \sum_{j=1}^{i_{\ell}} \parentheses{N^{\text{res}(k)}_j- N^{\text{res}(k)}_{j-1}}\\
+	&\geq \frac{1}{2} \cdot \sum_{s=0}^{\ell=1} \sum_{j=i_{s}+1}^{i_{s+1}+1} \parentheses{N^{\text{res}(k)}_j- N^{\text{res}(k)}_{j-1}} \\
+	&\geq \frac{1}{2} \cdot \sum_{s=0}^{\ell=1}  \epsilon = \epsilon \cdot \ell/2 \;.
+\end{align*}
+
+In other words, $\ell \leq 2	N^{\text{res}(k)}_i  /\epsilon$. Now we also notice that for every $0 \leq s \leq \ell$ with $i_{\ell+1}=i$, it holds that
+\begin{align*}
+	\sum_{j=i_s+1}^{i_{s+1}}\frac{N^{\text{res}(k)}_j- N^{\text{res}(k)}_{j-1}}{W(N_j)+1-k} &\leq \sum_{j=i_s+1}^{i_{s+1}} \frac{N^{\text{res}(k)}_j- N^{\text{res}(k)}_{j-1}}{W(N_0)+s+1-k} \\
+	&= \frac{\epsilon}{W(N_0)+s+1-k} \;.
+\end{align*}
+
+This is because $W(N_j)+1-k = W(N_0)+j+1-k \geq W(N_0)+s+1-k$, since $j \geq i_s+1 \geq s$. We thus get that:
+
+
+\begin{align*}
+	\sum_{j=0}^i  \frac{N^{\text{res}(k)}_j- N^{\text{res}(k)}_{j-1}}{W(N_j)+1-k} &\leq \frac{N^{\text{res}(k)}_0} {W(N_0)+1-k} + \sum_{s=0}^{\ell}  \frac{\epsilon}{W(N_0)+s+1-k} \\
+	&\leq \epsilon + \epsilon \cdot \sum_{s=0}^{\ell}  \frac{1}{W(N_0)+s+1-k} \\
+	&\leq \epsilon + \epsilon \cdot \int_{W(N_0)+1-k}^{W(N_0)+\ell+1-k}  \frac{1}{x} dx \\
+	&\leq \epsilon + \epsilon \cdot \ln \ell \leq \epsilon \cdot \log_2 N^{\text{res}(k)}_i \;.
+\end{align*}
+
+\medskip\noindent
+\textbf{The case in which $w(N)=N^{\alpha}/\epsilon$.}   In this case, it is easier to think of divisions into time in which we just double the number of counters. Namely, we define the epochs such that $W(N_{i+1}) = 2\cdot W(N_i)$ and hence $N_{i+1} = 2^{1/\alpha} \cdot N_i$. We also define:
+
+$$ E'_i = \sum_{\ell=0}^{f(i)} \frac{2^{\ell/\alpha} \cdot N^{\text{res}(k)}_0 - 2^{(\ell-1)/\alpha} \cdot N^{\text{res}(k)}_0}{2^{\ell} \cdot W\parentheses{N^{\text{res}(k)}_0 }-k+1}\;,$$
+
+where $f(i)$ is defined as the smallest integer such that $2^{f(i)/\alpha}\cdot N^{\text{res}(k)}_0 \geq N^{\text{res}(k)}_i$. We thus also have that 
+$$2^{f(i)/\alpha}\cdot N^{\text{res}(k)}_0 \leq 2^{1/\alpha} \cdot N^{\text{res}(k)}_i\;.$$
+
+Note that $f(0)=0$ and that, in spirit, $E'$ represents an upper bound on the error we would incur if we were to double our counters as a function of $N^{\text{res}(k)}$ rather than $N$. We then claim that for all $i\geq 0$:
+
+\begin{claim}\label{claim:ms-major}	$$ \sum_{j=0}^i  \frac{N^{\text{res}(k)}_j- N^{\text{res}(k)}_{j-1}}{W(N_j)+1-k} \leq 4\cdot E'_i$$
+\end{claim}	
+
+Before we prove~\Cref{claim:ms-major}, we would first like to discuss how it implies our bounds. Namely, we first note that each denominator can be substituted by $2^{\ell} \cdot W\parentheses{N^{\text{res}(k)}_0}$. Then:
+
+\begin{align*}
+E'_i &\leq  \sum_{\ell=0}^{f(i)} \frac{2^{\ell/\alpha} \cdot N^{\text{res}(k)}_0 - 2^{(\ell-1)/\alpha} \cdot N^{\text{res}(k)}_0}{2^{\ell} \cdot W\parentheses{N^{\text{res}(k)}_0 }} \\
+&=  \sum_{\ell=0}^{f(i)} \frac{2^{\ell/\alpha} - 2^{(\ell-1)/\alpha} }{2^{\ell}}  \cdot \frac{N^{\text{res}(k)}_0}{W\parentheses{N^{\text{res}(k)}_0 }}\\
+&= O(1) \cdot  \frac{2^{f(i)/\alpha} \cdot N^{\text{res}(k)}_0}{2^{f(i)} \cdot W\parentheses{N^{\text{res}(k)}_0 }} \;,\\
+%	&\leq O(1) \cdot  \frac{2^{1/\alpha} \cdot N^{\text{res}(k)}_i}{2^{f(i)} \cdot W\parentheses{N^{\text{res}(k)}_0 }}
+\end{align*}
+where the last equality holds by~\Cref{claim:technical}. We now note that, by definition, the numerator $2^{f(i)/\alpha} \cdot N^{\text{res}(k)}_0 \leq 2^{1/\alpha} \cdot N^{\text{res}(k)}_i $ and the denominator satisfies:
+
+\begin{align*}
+2^{f(i)} \cdot W\parentheses{N^{\text{res}(k)}_0 } &= 	\parentheses{2^{f(i)/\alpha} \cdot N^{\text{res}(k)}_0}^\alpha /\epsilon \\
+&\geq \parentheses{N^{\text{res}(k)}_i}^\alpha /\epsilon=W\parentheses{N^{\text{res}(k)}_i} \;.
+\end{align*}
+Therefore:
+$$ E'_i = O(1) \cdot \frac{ N^{\text{res}(k)}_i}{ W\parentheses{N^{\text{res}(k)}_i }}  \;.$$
+In conjunction with~\Cref{lemma:mg-res-w}, we get the main claim for $W(N)=N/\epsilon$. We now prove the remaining claim.
+\begin{proof}[Proof of~\Cref{claim:ms-major}]
+For $i=0$, note that $f(0)=0$ and so:
+$$ \frac{N^{\text{res}(k)}_0}{W(N_0)+1-k} = E'_0$$
+
+\noindent
+For every $i \geq 1$, we will prove that:
+
+$$ \frac{N^{\text{res}(k)}_{i}- N^{\text{res}(k)}_{i-1}}{W(N_i)+1-k} \leq 2 \cdot  \sum_{\ell=f(i-1)}^{f(i)} \frac{2^{\ell/\alpha} \cdot N^{\text{res}(k)}_0 - 2^{(\ell-1)/\alpha} \cdot N^{\text{res}(k)}_0}{2^{\ell} \cdot W\parentheses{N^{\text{res}(k)}_0 }-k+1} \;.$$
+
+\noindent
+We first upper bound the denominators on the righthand side as:
+
+$$2^{f(i)} \cdot W\parentheses{N^{\text{res}(k)}_0 }-k+1 \leq 2 \cdot \parentheses{{W(N_i)+1-k}} \;.$$
+
+\noindent
+This is because:
+\begin{align*}
+2^{f(i)} \cdot W\parentheses{N^{\text{res}(k)}_0 } &=	2^{f(i)} \cdot \parentheses{N^{\text{res}(k)}_0 }^{\alpha} /\epsilon = \parentheses{2^{f(i)/\alpha} \cdot N^{\text{res}(k)}_0}^\alpha /\epsilon\\
+&\leq \parentheses{2^{1/\alpha} \cdot N^{\text{res}(k)}_i}^\alpha /\epsilon\\
+&\leq \parentheses{2^{1/\alpha} \cdot N_i}^\alpha /\epsilon= 2  \cdot W(N_i) \;.
+\end{align*}
+
+\noindent
+For the numerators, we notice that:
+
+\begin{align*}
+\sum_{\ell=f(i-1)}^{f(i)} 2^{\ell/\alpha}  - 2^{(\ell-1)/\alpha} 
+&= \parentheses{2^{f(i)/\alpha} - 2^{(f(i-1)-1)/\alpha} }  \;.
+\end{align*}
+
+Now we get that, by definition of $f(i)$, we have that
+$2^{f(i)/\alpha}\cdot N^{\text{res}(k)}_0 \leq 2^{1/\alpha} \cdot N^{\text{res}(k)}_i$ and $2^{(f(i-1)-1)/\alpha}\cdot N^{\text{res}(k)}_0 \geq N^{\text{res}(k)}_{i-1}$, and so the numerators satisfy:
+
+$$ \sum_{\ell=f(i-1)}^{f(i)} \parentheses{2^{\ell/\alpha} \cdot N^{\text{res}(k)}_0 - 2^{(\ell-1)/\alpha} \cdot N^{\text{res}(k)}_0} \geq N^{\text{res}(k)}_{i}- N^{\text{res}(k)}_{i-1} \;.$$ 
+
+Putting everything together, we have that:
+
+\begin{align*}
+\frac{N^{\text{res}(k)}_{i}- N^{\text{res}(k)}_{i-1}}{W(N_i)+1-k} & \leq 
+\sum_{\ell=f(i-1)}^{f(i)} \frac{2^{\ell/\alpha} \cdot N^{\text{res}(k)}_0 - 2^{(\ell-1)/\alpha} \cdot N^{\text{res}(k)}_0}{W(N_i)+1-k}\\
+&\leq 2 \cdot  \sum_{\ell=f(i-1)}^{f(i)} \frac{2^{\ell/\alpha} \cdot N^{\text{res}(k)}_0 - 2^{(\ell-1)/\alpha} \cdot N^{\text{res}(k)}_0}{2^{\ell} \cdot W\parentheses{N^{\text{res}(k)}_0 }-k+1} \;,
+\end{align*}
+which is what we wanted to prove for every specific epoch $i$. Summing things up over all epochs, and noting that some terms get doublecounted, we get the main claim.
+
+\end{proof}	
+\end{proof}
+
+
 
 
 \end{document}
