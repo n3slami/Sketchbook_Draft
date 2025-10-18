@@ -62,7 +62,7 @@
 \acmDOI{XXXXXXX.XXXXXXX}
 %% These commands are for a PROCEEDINGS abstract or paper.
 \acmConference[SIGMOD '26]{Make sure to enter the correct
-  conference title from your rights confirmation email}{June 03--05,
+  conference title from your rights confirmation email}{May 31--June 05,
   2026}{Bangalore, India}
 %%
 %%  Uncomment \acmBooktitle if the title of the proceedings is different
@@ -2140,7 +2140,7 @@ in \Cref{sec:upper_bounds_cms} that:
 \begin{restatable}{theorem}{thmcms}
     \label{thm:cms-w}
     When using a size function~$W(\cdot)$ and a single array on a stream with a
-    total key count~$N$, \sketchcms provides an estimation error~$E(N)$
+    total key count of~$N$, \sketchcms provides an estimation error~$E(N)$
     satisfying
 	$$
     \expectation{E(N)} \leq  
@@ -2200,8 +2200,8 @@ for the variance of the error in \sketchcs, but this time, $W(\cdot)$ is a
 function of the squared~$\ell_2$-norm of the stream~$F=\sum_y (f(y))^2$:
 \begin{restatable}{theorem}{thmcs}
     \label{thm:cs-w}
-    When using a size function~$W(\cdot)$ and a single array on a stream with
-    squared~$\ell_2$-norm $F = \sum_y f(y)^2$, \sketchcs provides unbiased
+    When using a size function~$W(\cdot)$ and a single array on a stream with a
+    squared~$\ell_2$-norm of $F = \sum_y f(y)^2$, \sketchcs provides unbiased
     estimates with a variance~$V(F)$ satisfying
 	$$
     V(F) \leq  
@@ -2736,6 +2736,53 @@ grow at a slower rate{\textemdash}by a constant factor.
 Because MG does not support deletions, \sketchmg does not need to support
 contractions and can forgo storing a record of the sketch's state.
 
+\textbf{Theoretical Analysis.} 
+Following a similar argument as that for \sketchcms, we analyze the interaction
+of the number of times the count of each is decremented in \sketchmg with the
+size function to bound its estimation error:
+\begin{restatable}{theorem}{thmmgnormal}
+    \label{thm:mg-normal}
+    When using a size function~$W(\cdot)$ on a stream with a total key count
+    of~$N$, \sketchmg provides an estimation error~$E(N)$ satisfying
+    $$
+    E(N) \leq  
+    \begin{cases}
+        O(1) \cdot \epsilon N^{1-\alpha} & \text{if $W(N)=N^{\alpha}/\epsilon$, for $\alpha \in [0,1)$,} \\
+        \ln N \cdot \epsilon & \text{if $W(N)=N/\epsilon$.}
+    \end{cases}
+    $$
+    Compared to a fixed-size MG allocated upfront with an array of~$W(N)$
+    counters with knowledge of~$N$, the error terms above are higher by at most
+    a constant and a logarithmic factor.
+\end{restatable}
+Compared to the bounds from Theorems~\ref{thm:cms-w} and \ref{thm:cs-w}, the
+logarithmic term in the linear case of~$W(N)$ is a natural logarithmic, which
+is smaller by a constant factor. Note that setting~$\epsilon \leq 1$ in the
+linear case trivially yields an error bound of~0, as \sketchmg will always grow
+enough to store the exact counts of the keys without ever decrementing
+counters. Interestingly, setting~$\epsilon$ to be even slightly larger than~1
+creates the logarithmic overhead of \Cref{thm:mg-normal}.
+
+In addition, MG's tail guarantee generalized to \sketchmg with the same
+sublinearity property as that of \Cref{thm:mg-normal}:
+\begin{restatable}{theorem}{thmmgres}
+    \label{thm:mg-res}
+    When using a size function~$W(\cdot)$ on a stream with a total key count
+    of~$N$, \sketchmg provides an estimation error~$E(N)$ satisfying
+    $$
+    E(N) \leq  
+    \begin{cases}
+        O(1) \cdot \epsilon \parentheses{N^{\text{res}(k)}}^{1-\alpha} + O(k^{1/\alpha-1}) & \text{if $W(N)=N^{\alpha}/\epsilon$} \\
+        \ln N^{\text{res}(k)} \cdot \epsilon + \log_2 k  & \text{if $W(N)=N/\epsilon$,}
+    \end{cases}
+    $$
+    where~$N^{res(k)}$ is the total count of the keys not among the top~$k$.
+\end{restatable}
+The additive terms in the error bounds above come from the possibility of
+\sketchmg not having $k$ counters from the onset. This forces it to ``wait
+out'' the stream until the array grows enough to contain at least~$k$ counters,
+introducing these additive error. These additive terms vanish if \sketchmg is
+allocated~$k$ counters from the start.
 
 \section{Upper bounds: \sketchcms, \sketchcs, and \sketchmg}\label{sec:ommitted_proofs_upper}
 For simplicity, we will first discuss the analysis for the case in which we
@@ -2867,8 +2914,6 @@ the following:
 	\end{align*}
 	The claim follows.
 \end{proof}
-
-
 
 In other words, the increase in error we get due to copying the counters is
 dominated by the term~$\sum_{j=0}^i  2^{i-j} \cdot (N_{j+1} - N_j)$. This is
@@ -3079,6 +3124,307 @@ than the total key count~$N$. We include these derivations for~completeness:
         & = O(F_{i+1}/W_i).
     \end{align*}	
 \end{proof}
+
+\subsection{Upper Bounds for \sketchmg}\label{sec:upper_bounds_mg_normal}
+In the case of \sketchmg, we consider a slightly more general division of time
+into epochs. We start with a sketch that uses~$W(N_0)$ counters until the
+stream length reaches~$N_0$. At this point in time, the sketch sets the number
+of counters to~$W(N_1)$. We leave the relationship between~$W(N_0)$ and
+$W(N_1)$ undefined for now. The sketch uses~$W(N_1)$ counters until the stream
+length reaches~$N_1$, and we call this period of time epoch~1. Once~$N_2$ is
+reached, the sketch switches to~$W(N_2)$ counters (starting epoch~2) and so on.
+We then prove the following lemma:
+
+\begin{lemma}
+    \label{lemma:mg-w}
+    Letting~$E(N)$ denote the estimation error of \sketchmg when using a size
+    function~$W(\cdot)$ on a stream with a total of~$N$ keys, we have at the
+    end of epoch $i$ that
+    $$ E(N_i) \leq \sum_{j=0}^i \frac{N_j - N_{j-1}}{W(N_j)+1},$$
+    where~$N_{j}$ for $j\geq 0$ denotes the total number of keys in the stream
+    at the end of epoch~$j$.
+\end{lemma}
+\begin{proof}
+    We begin by first defining some notation. Let~$C_i$ denote the sum of the
+    counter stored in the sketch at the end of epoch~$i$ (with $C_{-1}=0$).
+    Note that $C_i \geq 0$, since we only decrement counters when they are all
+    nonzero. We also denote by~$d_i$ the total number of keys that decrement
+    the sketch's counts during epoch~$i$. By design, the following relationship
+    holds for each~$i\geq 1$:
+    $$ C_i = C_{i-1} + N_i - N_{i-1} - d_i \cdot (W(N_i)+1). $$
+
+    To see why this is true, consider the case in which~$i=1$. At the beginning
+    of the first epoch, the counts stored in the sketch add up to~$C_0$. During
+    the epoch, we see~$N_1-N_0$ fresh insertions, each of which either
+    increases the total count of the sketch by~1, or decrements~$W(N_1)$
+    counts. The number of keys among these~$N_1-N_0$ that make such decrements
+    is exactly~$d_1$. In other words, there are~$N_1-N_0-d_1$ keys that
+    increase the sketch counts by~1, and $d_1$ keys that decrease the sketch
+    count by~$W(N_1)$. The total changes are therefore~$N_1-N_0-d_1 - d_1 \cdot
+    W(N_1)$, which is how we get the first expression. It follows from the
+    general expression that 
+    $$ d_i = \frac{N_i - N_{i-1} + C_i - C_{i-1}}{W(N_i)+1}. $$
+
+    Now, for any specific key~$x$, the maximum error that we can make in its
+    count is if we decrement its count every time we a key decrements the
+    sketch's counts (i.e., this worst-case is achieved when the sketch stores
+    all occurences of~$x$ from the beginning and then keeps decrementing one
+    from its count every time it seems an unstored key). Formally, if we are at
+    the end of epoch~$i$, then the error is bounded as
+    $$ E(N_i) \leq f(x) - \hat{f}(x) \leq \sum_{j=0}^i d_j.$$
+    \noindent
+    Plugging in our expression for~$d_j$ and using $W_j=W(N_j)$ for ease of
+    notation yields 
+    \begin{align*}
+        \sum_{j=0}^i d_j & = \sum_{j=0}^i  \frac{N_j - N_{j-1} + C_{j-1}-C_j}{W_j+1} \\
+        &= \sum_{j=0}^i \frac{N_j - N_{j-1}}{W_j+1} + \sum_{j=0}^i \frac{C_{j-1}-C_j}{W_j+1} \\
+        &=\sum_{j=0}^i \frac{N_j - N_{j-1}}{W_j+1} + \sum_{j=0}^{i-1} C_j \cdot \parentheses{-\frac{1}{W_j+1}+\frac{1}{W_{j+1}+1}} - \frac{C_i}{W_j+1}\\
+        &=\sum_{j=0}^i \frac{N_j - N_{j-1}}{W_j+1} - \sum_{j=0}^{i-1} C_j \cdot \frac{W_{j+1} - W_j}{(W_j+1)(W_{j+1}+1)} - \frac{C_i}{W_i+1}\\
+        &\leq \sum_{j=0}^i  \frac{N_j - N_{j-1}}{W_j+1}  \;,
+    \end{align*}
+    where the last inequality holds because~$W_{j+1}>W_j$, so we are ignoring
+    negative factors in the sum.
+\end{proof}
+
+In addition to~\Cref{lemma:mg-w}, we require the following technical claim to
+prove \Cref{thm:mg-normal}:
+\begin{claim}
+    \label{claim:technical}
+    For any constant~$\alpha<1$, it holds that 
+    $$ \sum_{j=0}^i \frac{2^{j/\alpha} - 2^{(j-1)/\alpha}}{2^{j}} = O(1) \cdot \frac{2^{i/\alpha}}{2^i}. $$
+\end{claim}
+\begin{proof} 
+    We note that
+    \begin{align*}
+        \frac{2^{j/\alpha} - 2^{(j-1)/\alpha} } {2^j} &= (1-2^{-1/\alpha}) \cdot \frac{2^{j/\alpha} } {2^j} \\
+        & = (1-2^{-1/\alpha}) \cdot  \frac{2^{i/\alpha}}{2^i } \cdot \frac{2^{(j-i)/\alpha}}{2^{j-i}} \\
+        & =  (1-2^{-1/\alpha}) \cdot \frac{1}{2^{(i-j)\cdot (1/\alpha-1)}} \cdot \frac{2^{i/\alpha}}{2^i }.
+    \end{align*}
+    Summing these terms yields
+    \begin{align*}
+        \sum_{j=0}^i \frac{2^{j/\alpha} - 2^{(j-1)/\alpha} } {2^j} & \leq (1-2^{-1/\alpha}) \cdot \frac{2^{i/\alpha}}{2^i} \cdot \sum_{j=0}^i \frac{1}{2^{(i-j)\cdot (1/\alpha-1)}} \\
+        &= O(1) \cdot \frac{2^{i/\alpha}}{2^i},
+    \end{align*}
+    since~$1/\alpha \geq 1$ and the sum~$\sum_{j=0}^i \frac{1}{2^{(i-j) \cdot
+    (1/\alpha-1)}}$ converges to a constant.
+\end{proof}
+
+\noindent
+We are now ready to prove \Cref{thm:mg-normal}:
+\thmmgnormal*
+\begin{proof} ‌\\
+    \textbf{The Linear Case of~$W(N)=N/\epsilon$.} 
+    In this case, we use the fact that in \sketchmg we increase the counters
+    one by one as opposed to doubling them. In other words, we consider
+    divisions into epochs for which~$W(N_{i+1})=W(N_i)+1$ and hence
+    $N_{i+1}=N_i+\epsilon$. Plugging this into~\Cref{lemma:mg-w}, we get
+    at the end of epoch~$i$ that 
+	\begin{align*}
+		E(N_i)&\leq \sum_{j=0}^i  \frac{N_j - N_{j-1}}{W(N_j)+1} = \frac{N_0}{W(N_0)} + \sum_{j=1}^i  \frac{\epsilon}{W(N_0)+j} \\
+		&= \epsilon + \epsilon \cdot \sum_{j=1}^i  \frac{1}{W(N_0)+j} \leq \epsilon + \epsilon \cdot \int_{W(N_0)+1}^{W(N_0)+i} \frac{1}{x} \,dx\\
+		& \leq \epsilon + \epsilon \cdot \ln\parentheses{\frac{W(N_0)+i}{W(N_0)+1}} \leq \epsilon \cdot (1+\ln i) \leq \epsilon \cdot \ln N.
+	\end{align*}
+    Here, the last line follows from~$i$ being the number of times we expand by
+    one counter until we reach a stream length of~$N$, implying that~$i \leq
+    N/\epsilon+1$. 
+
+    \medskip\noindent
+    \textbf{The Sublinear Case of~$W(N)=N^{\alpha}/\epsilon$.}
+    In this case, it is easier to think of divisions into time in which we
+    double the number of counters instead of increasing them one by one. That
+    is, we define the epochs such that~$W(N_{i+1}) = 2\cdot W(N_i)$ and hence
+    $N_{i+1} = 2^{1/\alpha} \cdot N_i$. Noting that~\Cref{lemma:mg-w} holds
+    irrespective of the specific definition of the epochs then yields
+    \begin{align*}
+        \sum_{j=0}^i \frac{N_j - N_{j-1}}{W(N_j)+1} & = \sum_{j=0}^i \frac{2^{j/\alpha} \cdot N_0 - 2^{(j-1)/\alpha} \cdot N_0} {2^j \cdot W(N_0)} \\
+        & = \sum_{j=0}^i  \frac{2^{j/\alpha}- 2^{(j-1)/\alpha}} {2^j} \cdot \frac{N_0}{W(N_0)}.
+    \end{align*}
+    Finally, by applying Claim~\ref{claim:technical}, we get
+    \begin{align*}
+        \sum_{j=0}^i \frac{N_j - N_{j-1}}{W(N_j)+1} & \leq  O(1) \cdot \frac{2^{i/\alpha}}{2^i} \cdot \frac{N_0}{W(N_0)} = O(1) \cdot \frac{N_i}{W(N_i)}.
+    \end{align*}
+    proving the desired result.
+\end{proof}
+
+\subsection{Tail Bounds for \sketchmg}\label{sec:upper_bounds_mg_res}
+We prove the tail error guarantees for \sketchmg following the same general
+argument structure of \Cref{sec:upper_bounds_mg_normal}.
+
+\begin{lemma}\label{lemma:mg-res-w}
+    Letting~$E(N)$ denote the error of \sketchmg when using a size
+    function~$W(\cdot)$ on a stream of total of~$N$ keys, we have at the end of
+    epoch~$i$ that
+    $$ E(N_i) \leq \sum_{j=0}^i \frac{N^{\text{res}(k)}_j-N^{\text{res}(k)}_{j-1}}{W(N_j)+1-k}, $$
+    where~$N^{\text{res}(k)}_j$ for $j\geq 0$ is the total count of the keys
+    not among the top~$k$ at the end of epoch~$j$.
+\end{lemma}
+\begin{proof}
+    We start similarly as in the proof of~\Cref{lemma:mg-w} and get that, if
+    $d_i$ is the number of deletions to the sketch that occur during some epoch
+    $i \geq 0$, then it holds that
+    $$ C_i = C_{i-1} + N_i - N_{i-1} - d_i \cdot (W(N_i)+1). $$
+    Here, $C_i$ denotes the sum of the sketch's at the end of epoch~$i$ (with
+    $C_{-1}=0$). We generalize the above to
+    $$ C_i - C_{i-1} \geq  N^{(k)}_i - N^{(k)}_{i-1} - d_i \cdot k,$$
+    where~$N^{(k)}_i $ denotes total count of the top~$k$ keys at the end of
+    epoch~$i$ (the top $k$ with respect to the whole stream). In other words,
+    the change in the sketch counts is at least the change in the sketch counts
+    restricted to the top~$k$ keys. This is because the total count restriced
+    to these~$k$ keys increases by~$N^{(k)}_i - N^{(k)}_{i-1}$ and each of
+    these~$k$ keys gets its counter decremented at most~$d_i$ times.
+    Combining the equation and the inequality above and rearranging, we get
+    that
+    $$ d_i \leq \frac{N_i - N_{i-1} -N^{(k)}_i + N^{(k)}_{i-1}}{W(N_i)+1-k} =  \frac{N^{\text{res}(k)}_i- N^{\text{res}(k)}_{i-1}}{W(N_i)+1-k}. $$
+    Summing these terms proves the desired result.
+\end{proof}
+
+We now proceed to prove the full tail bound of \Cref{thm:mg-res} following the
+same proof structure as that of \Cref{thm:mg-normal}:
+\thmmgres*
+\begin{proof}
+    Note that the additive terms in the bounds of \Cref{thm:mg-res} come from
+    the application of \Cref{thm:mg-normal} to the portion of the stream that
+    must be ``waited out'' by \sketchmg to create the~$k${\nobreakdash-}th
+    counter for the first time. We therefore focus on deriving the remaining
+    part of the error bound, which corresponds to the error resulting from
+    processing the stream with an instance of \sketchmg initialized with at
+    least~$k$ counters.
+
+    \textbf{The Linear Case of~$W(N)=N/\epsilon$.} 
+    In this case, $W(N_{i+1})=W(N_i)+1$ and $N_{i+1}=N_i +
+    \epsilon$. We consider an epoch~$i$ and define a series of
+    integers~$i_\ell$ as follows. We start by defining~$i_1$ as the largest
+    integer such that
+    $$ \sum_{j=1}^{i_1} \parentheses{N^{\text{res}(k)}_j- N^{\text{res}(k)}_{j-1}} \leq \epsilon. $$
+    In words, we group consecutive terms of the form~$N^{\text{res}(k)}_j-
+    N^{\text{res}(k)}_{j-1}$ until we are about to reach~$\epsilon$. Note that
+    $$ \sum_{j=1}^{i_1+1} \parentheses{N^{\text{res}(k)}_j- N^{\text{res}(k)}_{j-1}} \geq \epsilon, $$
+    as the maximality of~$i_1$ implies that the extra
+    term~$N^{\text{res}(k)}_{i_1+1}- N^{\text{res}(k)}_{i_1}$ causes the sum to
+    grow beyond~$\epsilon$. We also define~$i_2 > i_1$ in a similar fashion as
+    the largest index such that 
+    $$ \sum_{j=i_1+1}^{i_2} \parentheses{N^{\text{res}(k)}_j - N^{\text{res}(k)}_{j-1}} \leq \epsilon. $$
+    Like before, we stop right before we gather a sum of~$\epsilon$.
+    Moreover, as before, including the extra
+    term~$N_{i_2+1}^{\text{res}(k)}-N_{i_2}^{\text{res}(k)}$ yields
+    $$ \sum_{j=i_{1}+1}^{i_2+1} \parentheses{N^{\text{res}(k)}_j- N^{\text{res}(k)}_{j-1}} \geq \epsilon. $$
+    We continue as such for~$\ell$ steps until we have that:
+    $$ \sum_{j=i_{\ell+1}}^{i} \parentheses{N^{\text{res}(k)}_j- N^{\text{res}(k)}_{j-1}} \leq \epsilon. $$
+
+    We now define~$i_0=0$ and upper bound~$\ell$ as
+    \begin{align*}
+        N^{\text{res}(k)}_i  & \geq \sum_{j=1}^{i_{\ell}} \parentheses{N^{\text{res}(k)}_j- N^{\text{res}(k)}_{j-1}}\\
+        &\geq \frac{1}{2} \cdot \sum_{s=0}^{\ell} \sum_{j=i_{s}+1}^{i_{s+1}+1} \parentheses{N^{\text{res}(k)}_j- N^{\text{res}(k)}_{j-1}} \\
+        &\geq \frac{1}{2} \cdot \sum_{s=0}^{\ell}  \epsilon = \epsilon \cdot \ell/2,
+    \end{align*}
+    i.e., $\ell \leq 2 N^{\text{res}(k)}_i/\epsilon$. Now we also observe that
+    for every~$0 \leq s \leq \ell$ it holds that
+    \begin{align*}
+        \sum_{j=i_s+1}^{i_{s+1}}\frac{N^{\text{res}(k)}_j- N^{\text{res}(k)}_{j-1}}{W(N_j)+1-k} &\leq \sum_{j=i_s+1}^{i_{s+1}} \frac{N^{\text{res}(k)}_j- N^{\text{res}(k)}_{j-1}}{W(N_0)+s+1-k} \\
+        & \leq \frac{\epsilon}{W(N_0)+s+1-k}.
+    \end{align*}
+    This is because~$W(N_j)+1-k = W(N_0)+j+1-k \geq W(N_0)+s+1-k$, since $j
+    \geq i_s+1$ by the bounds of the summation and~$i_s+1 \geq s$ by the way we
+    parametrize the~$i_s$ while defining them. Putting everything together
+    yields
+    \begin{align*}
+        \sum_{j=0}^i  \frac{N^{\text{res}(k)}_j- N^{\text{res}(k)}_{j-1}}{W(N_j)+1-k} &\leq \frac{N^{\text{res}(k)}_0} {W(N_0)+1-k} + \sum_{s=0}^{\ell}  \frac{\epsilon}{W(N_0)+s+1-k} \\
+        & \leq \epsilon + \epsilon \cdot \sum_{s=0}^{\ell}  \frac{1}{W(N_0)+s+1-k} \\
+        & \leq \epsilon + \epsilon \cdot \int_{W(N_0)+1-k}^{W(N_0)+\ell+1-k}  \frac{1}{x} dx \\
+        & \leq \epsilon + \epsilon \cdot \ln \ell \leq 2 \epsilon + \epsilon \cdot \ln N^{\text{res}(k)}_i.
+    \end{align*}
+
+    \medskip\noindent
+    \textbf{The Sublinear Case of~$W(N)=N^{\alpha}/\epsilon$.}
+    In this case, we switch to the notion of epochs where the number of
+    counters doubles as opposed to increasing by one. That is, we define the
+    epochs such that~$W(N_{i+1}) = 2\cdot W(N_i)$ and hence~$N_{i+1} =
+    2^{1/\alpha} \cdot N_i$. We further define~$\gamma(i)$ as the smallest
+    integer such that~$2^{\gamma(i)/\alpha}\cdot N^{\text{res}(k)}_0 \geq
+    N^{\text{res}(k)}_i$, with~$\gamma(0)=0$. It immediately follows that
+    $$ 2^{\gamma(i)/\alpha}\cdot N^{\text{res}(k)}_0 \leq 2^{1/\alpha} \cdot N^{\text{res}(k)}_i. $$
+    We use $\gamma(i)$ to define a hypothetical upper bound on the error
+    incurred if we were to double our counters as a function
+    of~$N^{\text{res}(k)}$ rather than $N$, which is strictly worse for
+    accuracy, yet creates a similar scenario to the proof of
+    \Cref{thm:mg-normal} and yields the bounds \Cref{thm:mg-res}. We express
+    this upper bound as
+    $$ E'_i = \sum_{\ell=0}^{\gamma(i)} \frac{2^{\ell/\alpha} \cdot N^{\text{res}(k)}_0 - 2^{(\ell-1)/\alpha} \cdot N^{\text{res}(k)}_0}{2^{\ell} \cdot W\parentheses{N^{\text{res}(k)}_0 }-k+1}. $$
+    We will relate the actual error of \sketchmg to~$E'$ to prove the desired
+    upper bound. To this end, we make the following claim that for all~$i \geq
+    0$:
+    \begin{claim}
+        \label{claim:ms-major}
+        $$ \sum_{j=0}^i  \frac{N^{\text{res}(k)}_j- N^{\text{res}(k)}_{j-1}}{W(N_j)+1-k} \leq 4\cdot E'_i. $$
+    \end{claim}	
+
+    Before we prove Claim~\ref{claim:ms-major}, we would first like to discuss
+    in more detail how it implies our bounds. Namely, we first note that each
+    denominator can be substituted by~$2^{\ell} \cdot
+    W\parentheses{N^{\text{res}(k)}_0}$. Then:
+    \begin{align*}
+        E'_i &\leq  \sum_{\ell=0}^{\gamma(i)} \frac{2^{\ell/\alpha} \cdot N^{\text{res}(k)}_0 - 2^{(\ell-1)/\alpha} \cdot N^{\text{res}(k)}_0}{2^{\ell} \cdot W\parentheses{N^{\text{res}(k)}_0 }} \\
+        & =  \sum_{\ell=0}^{\gamma(i)} \frac{2^{\ell/\alpha} - 2^{(\ell-1)/\alpha} }{2^{\ell}}  \cdot \frac{N^{\text{res}(k)}_0}{W\parentheses{N^{\text{res}(k)}_0 }}\\
+        & = O(1) \cdot  \frac{2^{\gamma(i)/\alpha} \cdot N^{\text{res}(k)}_0}{2^{\gamma(i)} \cdot W\parentheses{N^{\text{res}(k)}_0 }}, \\
+        %	&\leq O(1) \cdot  \frac{2^{1/\alpha} \cdot N^{\text{res}(k)}_i}{2^{\gamma(i)} \cdot W\parentheses{N^{\text{res}(k)}_0 }}
+    \end{align*}
+    where the last equality holds by Claim~\ref{claim:technical}. We now note
+    that, by definition, the numerator is at most~$2^{1/\alpha} \cdot
+    N^{\text{res}(k)}_i$, and the denominator satisfies the following
+    inequality:
+    \begin{align*}
+        2^{\gamma(i)} \cdot W\parentheses{N^{\text{res}(k)}_0 } &= 	\parentheses{2^{\gamma(i)/\alpha} \cdot N^{\text{res}(k)}_0}^\alpha /\epsilon \\
+        & \geq \parentheses{N^{\text{res}(k)}_i}^\alpha /\epsilon=W\parentheses{N^{\text{res}(k)}_i}.
+    \end{align*}
+    Therefore, we have that
+    $$ E'_i = O(1) \cdot \frac{ N^{\text{res}(k)}_i}{ W\parentheses{N^{\text{res}(k)}_i }}. $$
+    In conjunction with~\Cref{lemma:mg-res-w}, we get the desired result. We
+    now prove Claim~\ref{claim:ms-major}:
+    \begin{proof}[Proof of Claim~\ref{claim:ms-major}]
+        For $i=0$, note that $\gamma(0)=0$ and so:
+        $$ \frac{N^{\text{res}(k)}_0}{W(N_0)+1-k} = E'_0$$
+
+        \noindent
+        For every $i \geq 1$, we prove that
+        $$ \frac{N^{\text{res}(k)}_{i}- N^{\text{res}(k)}_{i-1}}{W(N_i)+1-k} \leq 2 \cdot  \sum_{\ell=\gamma(i-1)}^{\gamma(i)} \frac{2^{\ell/\alpha} \cdot N^{\text{res}(k)}_0 - 2^{(\ell-1)/\alpha} \cdot N^{\text{res}(k)}_0}{2^{\ell} \cdot W\parentheses{N^{\text{res}(k)}_0 }-k+1}. $$
+        \noindent
+        To this end, we first upper bound the denominators on the right-hand
+        side as
+        $$ 2^{\gamma(i)} \cdot W\parentheses{N^{\text{res}(k)}_0 }-k+1 \leq 2 \cdot \parentheses{{W(N_i)+1-k}}. $$
+        \noindent
+        This is because:
+        \begin{align*}
+            2^{\gamma(i)} \cdot W\parentheses{N^{\text{res}(k)}_0 } &=	2^{\gamma(i)} \cdot \parentheses{N^{\text{res}(k)}_0 }^{\alpha} /\epsilon = \parentheses{2^{\gamma(i)/\alpha} \cdot N^{\text{res}(k)}_0}^\alpha /\epsilon\\
+            & \leq \parentheses{2^{1/\alpha} \cdot N^{\text{res}(k)}_i}^\alpha /\epsilon\\
+            & \leq \parentheses{2^{1/\alpha} \cdot N_i}^\alpha /\epsilon= 2  \cdot W(N_i).
+        \end{align*}
+        \noindent
+        For the numerators of the right-hand side, we observe that
+        \begin{align*}
+            \sum_{\ell=\gamma(i-1)}^{\gamma(i)} 2^{\ell/\alpha}  - 2^{(\ell-1)/\alpha} 
+            & = \parentheses{2^{\gamma(i)/\alpha} - 2^{(\gamma(i-1)-1)/\alpha} }.
+        \end{align*}
+
+        Since, by the definition of~$\gamma(i)$, we have
+        that~$2^{\gamma(i)/\alpha}\cdot N^{\text{res}(k)}_0 \leq 2^{1/\alpha}
+        \cdot N^{\text{res}(k)}_i$ and $2^{(\gamma(i-1)-1)/\alpha}\cdot
+        N^{\text{res}(k)}_0 \geq N^{\text{res}(k)}_{i-1}$, the
+        numerators must satisfy:
+        $$ \sum_{\ell=\gamma(i-1)}^{\gamma(i)} \parentheses{2^{\ell/\alpha} \cdot N^{\text{res}(k)}_0 - 2^{(\ell-1)/\alpha} \cdot N^{\text{res}(k)}_0} \geq N^{\text{res}(k)}_{i}- N^{\text{res}(k)}_{i-1}. $$ 
+
+        Putting everything together yields
+        \begin{align*}
+            \frac{N^{\text{res}(k)}_{i}- N^{\text{res}(k)}_{i-1}}{W(N_i)+1-k} & \leq 
+            \sum_{\ell=\gamma(i-1)}^{\gamma(i)} \frac{2^{\ell/\alpha} \cdot N^{\text{res}(k)}_0 - 2^{(\ell-1)/\alpha} \cdot N^{\text{res}(k)}_0}{W(N_i)+1-k}\\
+            &\leq 2 \cdot  \sum_{\ell=\gamma(i-1)}^{\gamma(i)} \frac{2^{\ell/\alpha} \cdot N^{\text{res}(k)}_0 - 2^{(\ell-1)/\alpha} \cdot N^{\text{res}(k)}_0}{2^{\ell} \cdot W\parentheses{N^{\text{res}(k)}_0 }-k+1} \;,
+        \end{align*}
+        which is what we wanted to prove for every specific epoch~$i$. Summing
+        these terms over all epochs and taking the double-counted terms into
+        account then proves the claim.
+    \end{proof}	
+    As such, the theorem follows.
+\end{proof}
+
 
 \section{Lower Bound: Proof of Theorem~\ref{thm:sketch_expandability}}\label{sec:ommitted_proofs_lower}
 \thmsketchexpandabilitylabel*
