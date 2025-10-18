@@ -2819,7 +2819,7 @@ In order to account for deletions, we relate the state of \sketch\ in a stream
 with deletions to the state of a different \sketch\ with higher errors on an
 insertion-only stream. To begin with, notice that, due to the way we perform
 contractions, we can pretend that all previous epochs have only insertions in
-them (the state of counters in \sketch\ is exactly the same as if we only had
+them (the state of counters in \sketch\ is smaller than if we only had
 insertions previously). We now argue about deletions~$(x,-1)$ that only occur
 during the current epoch~$i$ and that have not triggered a contraction. If,
 during the same epoch~$i$, there is also an insertion~$(x,1)$, then we can act
