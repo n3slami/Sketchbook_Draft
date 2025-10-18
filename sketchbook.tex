@@ -2136,11 +2136,12 @@ We analyze the various accuracy vs. memory tradeoffs resulting from tuning the
 size function to grow sublinearly or linearly with the stream's length. To this
 end, we quantify how a key inserted earlier in the stream affects the expected
 error and variance of future estimates. For \sketchcms, this allows us to show
-in \Cref{sec:ommitted_proofs_upper} that:
+in \Cref{sec:upper_bounds_cms} that:
 \begin{restatable}{theorem}{thmcms}
     \label{thm:cms-w}
-    Letting~$E(N)$ denote the error of \sketchcms with size function~$W(\cdot)$
-    and a single array on a stream with a total key count~$N$, it holds that
+    When using a size function~$W(\cdot)$ and a single array on a stream with a
+    total key count~$N$, \sketchcms provides an estimation error~$E(N)$
+    satisfying
 	$$
     \expectation{E(N)} \leq  
     \begin{cases}
@@ -2194,14 +2195,14 @@ approach of expanding the number of counters in each array.}
     \label{fig:accuracy_bench}
 \end{figure*}
 
-We show in \Cref{sec:ommitted_proofs_upper} that a similar phenomenon occurs
+We show in \Cref{sec:upper_bounds_cs} that a similar phenomenon occurs
 for the variance of the error in \sketchcs, but this time, $W(\cdot)$ is a
 function of the squared~$\ell_2$-norm of the stream~$F=\sum_y (f(y))^2$:
 \begin{restatable}{theorem}{thmcs}
     \label{thm:cs-w}
-    Letting~$V(F)$ denote the error variance of \sketchcs when using the size
-    function~$W(\cdot)$ and a single array on a stream with
-    squared~$\ell_2$-norm $F = \sum_y f(y)^2$, it holds that
+    When using a size function~$W(\cdot)$ and a single array on a stream with
+    squared~$\ell_2$-norm $F = \sum_y f(y)^2$, \sketchcs provides unbiased
+    estimates with a variance~$V(F)$ satisfying
 	$$
     V(F) \leq  
     \begin{cases}
@@ -2834,7 +2835,7 @@ insertions of~$x$ from epochs $j<i$ that would not have hashed to it during
 epoch~$i$ (i.e., the event~$\mathcal{C}_{j,\mathcal{I}}(x)$ still holds and we
 cannot undo it since we do not know when the last insertion of~$x$ occured).
 
-\subsection{Bounds for \sketchcms}\label{sec:upper_bounds_cms}
+\subsection{Upper Bounds for \sketchcms}\label{sec:upper_bounds_cms}
 In the case of \sketchcms, each counter gathers the sum of frequencies of keys
 that hash into it or counters that copied into it. Recall that the total key
 count~$N$ in a stream is the total sum of frequencies of that stream. We show
@@ -2925,10 +2926,9 @@ various special cases and discuss their respective behavior:
     \Cref{lemma:cms-w}.
 \end{proof}
 
-\subsection{Bounds for \sketchcs}\label{sec:upper_bounds_cs}
-In the case of \sketchcs, we obtain a similar claim to that
-of~\Cref{lemma:cms-w}, except as a function of the
-squared~$\ell_2${\nobreakdash-}norm of the stream:
+\subsection{Upper Bounds for \sketchcs}\label{sec:upper_bounds_cs}
+For \sketchcs, we obtain a similar bound to that of~\Cref{lemma:cms-w}, except
+as a function of the squared~$\ell_2${\nobreakdash-}norm of the stream:
 \begin{lemma}
     \label{lemma:cs-w} 
     Like CS, \sketchcms provides unbiased estimates. Moreover, letting~$V(F)$
@@ -2979,90 +2979,108 @@ squared~$\ell_2${\nobreakdash-}norm of the stream:
     f_j(x) \cdot \sigma(x)$. Then:
 
     \begin{align*}
-        \expectation{\parentheses{\mathcal{C}(x)}^2} &= \expectation{\parentheses{ \sum_{j=0}^i   \mathcal{C}_{j,\mathcal{I}}(x) \cdot f_j(x)    }^2}\\
+        \expectation{\parentheses{\mathcal{C}(x)}^2} &= \expectation{\parentheses{ \sum_{j=0}^i \mathcal{C}_{j,\mathcal{I}}(x) \cdot f_j(x) }^2}\\
+    \end{align*}
+    \begin{align}
+        & = \sum_{j=0}^i \expectation{ \parentheses{ \mathcal{C}_{j,\mathcal{I}}(x) \cdot f_j(x) }^2} \notag \\
+        & \;\; + 2\cdot \sum_{j=0}^{i-1}  \sum_{k=j+1}^i   \expectation{ \mathcal{C}_{j,\mathcal{I}}(x) \cdot f_j(x) \cdot  \mathcal{C}_{k,\mathcal{I}}(x) \cdot f_k(x) } \notag \\
+        & = \sum_{j=0}^i (f_j(x))^2 \cdot \expectation{ \mathcal{C}_{j,\mathcal{I}}(x)} \notag \\
+        & \;\; +  2\cdot \sum_{j=0}^{i-1}  \sum_{k=j+1}^i   f_j(x)  \cdot f_k(x) \cdot   \expectation{ \mathcal{C}_{j,\mathcal{I}}(x) \cdot   \mathcal{C}_{k,\mathcal{I}}(x) }. \label{eq:sketchcs_var}
+    \end{align}
+    Here, we have used the property~$(\mathcal{C}_{j,\mathcal{I}}(x))^2 =
+    \mathcal{C}_{j,\mathcal{I}}(x)$ (which follows
+    from~$\mathcal{C}_{j,\mathcal{I}}(x)$ being an indicator random variable)
+    to simplify the second line. 
+
+    To bound~$\expectation{ \mathcal{C}_{j,\mathcal{I}}(x)}$, we use the
+    definition of the epochs to conclude that~$\expectation{ 
+    \mathcal{C}_{j,\mathcal{I}}(x)}  \leq 2^{i-j}/W_i$. For $\expectation{ 
+    \mathcal{C}_{j,\mathcal{I}}(x) \cdot \mathcal{C}_{k,\mathcal{I}}(x) }$,
+    we note that the product of the two indicator random variables is $1$ only
+    when both of them are $1$. Yet, the two random variables are not
+    independent: if $\mathcal{C}_{k,\mathcal{I}}(x) =1$, then $
+    \mathcal{C}_{j,\mathcal{I}}(x)=1$ for any $k\geq j$. Namely, if during
+    epoch $k$, $x$ hashed into a counter whose address was a prefix
+    of~$\mathcal{I}$'s address, then the same would have happened during
+    epoch~$j \leq k$. This implies that~$\mathcal{C}_{j,\mathcal{I}}(x) \cdot
+    \mathcal{C}_{k,\mathcal{I}}(x) = \mathcal{C}_{k,\mathcal{I}}(x)$, thereby
+    simplifying the sum to
+    \begin{align*}
+        \sum_{j=0}^{i-1}  \sum_{k=j+1}^i   f_j(x)  \cdot f_k(x) \cdot & \expectation{ \mathcal{C}_{j,\mathcal{I}}(x) \cdot \mathcal{C}_{k,\mathcal{I}}(x) }  \\ 
+        & = \sum_{k=1}^i \sum_{j=0}^{k-1}  f_j(x)  \cdot f_k(x) \cdot   \expectation{ \mathcal{C}_{k,\mathcal{I}}(x) }\\
+        & = \sum_{k=1}^i   f_k(x) \cdot   \expectation{ \mathcal{C}_{k,\mathcal{I}}(x) } \cdot \sum_{j=0}^{k-1}  f_j(x)\\
+        & = \sum_{k=1}^i   f_k(x) \cdot   \expectation{ \mathcal{C}_{k,\mathcal{I}}(x) } \cdot f_{\leq k-1}(x).
+    \end{align*}
+    Here, for simplicity, we have denoted~$\sum_{j=0}^{i} f_i(x)$, i.e., the
+    sum of frequencies accumulated by~$x$ through epochs~0 to $i$, as $f_{\leq
+    {i}}(x)$. Note that we set~$f_{\leq -1}(x)=0$. Plugging the above into
+    \Cref{eq:sketchcs_var} yields
+    \begin{align*}
+        \expectation{\parentheses{\mathcal{C}(x)}^2} &= \sum_{j=0}^i \parentheses{(f_j(x))^2  + 2 f_j(x) \cdot f_{\leq j-1}(x)} \cdot \expectation{ \mathcal{C}_{j,\mathcal{I}}(x)}  \\
+        & \mkern-18mu = \sum_{j=0}^i \parentheses{(f_{\leq j}(x) + f_{\leq j-1}(x))^2 - (f_{\leq j-1}(x))^2} \cdot \expectation{ \mathcal{C}_{j,\mathcal{I}}(x)}. \\
+        & \mkern-18mu = \sum_{j=0}^i \parentheses{(f_{\leq j}(x))^2  - (f_{\leq j-1}(x))^2} \cdot \expectation{ \mathcal{C}_{j,\mathcal{I}}(x)}.
+    \end{align*}
+    While the term~${f_{\leq j}(x) }^2  - {f_{\leq j-1}(x) }^2$ might seem
+    curious, we note that~$\sum_x{f_{\leq j}(x) }^2  - {f_{\leq j-1}(x) }^2 =
+    F_{j+1} - F_j$ denotes the increase in the
+    squared~$\ell_2${\nobreakdash-}norm of the stream vector as we move from
+    epoch~$j$ to epoch $j+1$. 
+
+    Putting everything together, we get that
+    \begin{align*}
+        \variance{\hat{f}(z)} &= \sum_x \expectation{\parentheses{\mathcal{C}(x)}^2} - (f(z))^2
     \end{align*}
     \begin{align*}
-        & = \sum_{j=0}^i   \expectation{ \parentheses{ \mathcal{C}_{j,\mathcal{I}}(x) \cdot f_j(x) }^2} \\
-        & \;\; + 2\cdot \sum_{j=0}^{i-1}  \sum_{k=j+1}^i   \expectation{ \mathcal{C}_{j,\mathcal{I}}(x) \cdot f_j(x) \cdot  \mathcal{C}_{k,\mathcal{I}}(x) \cdot f_k(x) } \\
-        & = \sum_{j=0}^i    {f_j(x) }^2 \cdot \expectation{ \mathcal{C}_{j,\mathcal{I}}(x)} \\
-        & \;\; +  2\cdot \sum_{j=0}^{i-1}  \sum_{k=j+1}^i   f_j(x)  \cdot f_k(x) \cdot   \expectation{ \mathcal{C}_{j,\mathcal{I}}(x) \cdot   \mathcal{C}_{k,\mathcal{I}}(x) }.
+        & = \sum_x \sum_{j=0}^i \parentheses{(f_{\leq j}(x))^2  - (f_{\leq j-1}(x))^2} \cdot \expectation{ \mathcal{C}_{j,\mathcal{I}}(x)} - (f(z))^2 \\
+        & \leq \sum_{j=0}^{i} \parentheses{F_{j+1} - F_j} \cdot \frac{2^{i-j}}{W_i},
     \end{align*}
-
-    For bounding the $\expectation{ \mathcal{C}_{j,\mathcal{I}}(x)}$, we can use the fact that $\expectation{ \mathcal{C}_{j,\mathcal{I}}(x)}  \leq 2^{i-j}/W_i$. For   $\expectation{ \mathcal{C}_{j,\mathcal{I}}(x) \cdot   \mathcal{C}_{k,\mathcal{I}}(x) }$, we note that the product of the two indicator random variables is $1$ only when both of them are $1$. Having said that, the two random variables are not independent: if $\mathcal{C}_{k,\mathcal{I}}(x) =1$, then $ \mathcal{C}_{j,\mathcal{I}}(x)=1$ for any $k\geq j$. Namely, if during epoch $k$, $x$ hashed into a counter that was a prefix of $\mathcal{I}$, then the same would have happened during epoch $j \leq k$.  We get that:
-
-    $$\expectation{ \mathcal{C}_{j,\mathcal{I}}(x) \cdot   \mathcal{C}_{k,\mathcal{I}}(x) } = \expectation{  \mathcal{C}_{k,\mathcal{I}}(x) }.$$
-
-    \noindent
-    The whole sums becomes:
-
-    \begin{align*}
-        \sum_{j=0}^{i-1}  \sum_{k=j+1}^i   f_j(x)  \cdot f_k(x) \cdot   \expectation{ \mathcal{C}_{k,\mathcal{I}}(x) } &= \sum_{k=1}^i \sum_{j=0}^{k-1}  f_j(x)  \cdot f_k(x) \cdot   \expectation{ \mathcal{C}_{k,\mathcal{I}}(x) }\\
-        &= \sum_{k=1}^i   f_k(x) \cdot   \expectation{ \mathcal{C}_{k,\mathcal{I}}(x) } \cdot \sum_{j=0}^{k-1}  f_j(x)\\
-        &=  \sum_{k=1}^i   f_k(x) \cdot   \expectation{ \mathcal{C}_{k,\mathcal{I}}(x) } \cdot f_{\leq k-1}(x)
-    \end{align*}
-
-    where, for simplicity, we denoted $f_{\leq {i}}(x) =  \sum_{j=0}^{i}  f_i(x)$ the sum of frequencies accumulated by $x$ through epochs $0$ to $i$ and set $f_{\leq -1}(x)=0$. Then:
-
-    \begin{align*}
-        \expectation{\parentheses{\mathcal{C}(x)}^2} &= \sum_{j=0}^i   \parentheses{{f_j(x) }^2  + 2 f_j(x) \cdot f_{\leq j-1}(x)} \cdot \expectation{ \mathcal{C}_{j,\mathcal{I}}(x)}  \\
-        &=  \sum_{j=0}^i   \parentheses{{f_{\leq j}(x) }^2  - {f_{\leq j-1}(x) }^2} \cdot \expectation{ \mathcal{C}_{j,\mathcal{I}}(x)}.
-    \end{align*}
-
-
-    While the term ${f_{\leq j}(x) }^2  - {f_{\leq j-1}(x) }^2$ might seem curious, we note that $\sum_x{f_{\leq j}(x) }^2  - {f_{\leq j-1}(x) }^2 = F_{j} - F_{j-1}$ denotes the increase in the squared $\ell_2$ norm of the stream vector as we move from epoch $j-1$ to epoch $j$. We thus get that:
-
-
-    \begin{align*}
-        \variance{\hat{f}(z)} &= \sum_x \expectation{\parentheses{\mathcal{C}(x)}^2} - (f(z))^2\\
-        &= \sum_x \sum_{j=0}^i   \parentheses{{f_{\leq j}(x) }^2  - {f_{\leq j-1}(x) }^2} \cdot \expectation{ \mathcal{C}_{j,\mathcal{I}}(x)} -  (f(z))^2\\
-        &\leq  \sum_{j=0}^{i}  \parentheses{F_{j} - F_{j-1}} \cdot \frac{2^{i-j}}{W_i}.
-    \end{align*}
-
-    The claim follows.
+    proving the claim.
 \end{proof}
 
-
-At this point, it becomes perhaps more natural to understand why we defined the size function to depend on the squared $\ell_2$ norm of the stream vector. We now discuss different bounds we get on the variance depending on the size function.
-
-\begin{theorem}\label{thm:cs-w} 	 Let $V_W(F)$  denote the estimate of \sketchcs  with size function $W$ and one array of counters, on a stream with squared $\ell_2$ norm $F = \sum_y f(y)^2$. Then:
-	$$\variance{V_{W}(F)} \leq  \begin{cases}
-		\log_2(F) \cdot \frac{F}{W(F)}, & \text{if $W(F)=F/\epsilon$,}\\
-		\frac{1-2^{-1/\alpha}}{1-2^{1-1/\alpha}}\frac{F}{W(F)}, & \text{if $W(F)=F^{1-\alpha}/\epsilon$, for $0<\alpha < 1$. }
-	\end{cases}$$
-\end{theorem}
-
-We note that the calculations from the above are highly similar to those of \sketchcms\ from~\Cref{thm:cms-w}, with the difference that we now see a dependency on $F$ rather than $N$. We include them for completeness:
+At this point, the reasoning behind defining the size function to based on the
+squared~$\ell_2${\nobreakdash-}norm of the stream becomes more clear. We now
+apply \Cref{lemma:cs-w} to derive bounds on the variance depending on the size
+function:
+\thmcs*
+We note that the calculations for proving \Cref{thm:cs-w} are very similar to
+those carried out for \sketchcms in \Cref{thm:cms-w}, with the difference that
+we now see a dependency on the squared~$\ell_2${\nobreakdash-}norm~$F$ rather
+than the total key count~$N$. We include these derivations for~completeness:
 \begin{proof}
- In the case in which $W(F) =  F/\epsilon$, we start with the original sketch $\mathcal{S}_0$ that allows streams for which their squared $\ell_2$ norm is at most some $F_0$. The size function doubles whenever the squared $\ell_2$ norm doubles. In this case $F_{j+1} = 2 \cdot F_j$ for all $j\geq 0$ and, in general, $F_j = 2^j \cdot F_0$ for all $j\geq 0$. In this case, we get that:
+    We start with the original sketch~$\mathcal{S}_0$, which is used to process
+    the stream until its squared~$\ell_2${\nobreakdash-}norm reaches at most
+    some~$F_0$.
 
-	
-
-\begin{align*}
-	\variance{V_W} &\leq  \sum_{j=0}^{i}  \parentheses{F_{j} - F_{j-1}} \cdot \frac{2^{i-j}}{W_i} \\
-	&\leq \frac{1}{W_i} \cdot \parentheses{  F_0\cdot 2^{i}+ \sum_{j=1}^{i}  \parentheses{2^{j} - 2^{j-1}} \cdot F_0 \cdot 2^{i-j}}\\
-	&\leq \frac{1}{W_i} \cdot  \parentheses{  F_0\cdot 2^{i}+  \sum_{j=1}^{i}  2^{j-1} \cdot F_0 \cdot 2^{i-j}} \\
-		&\leq \frac{1}{W_i} \cdot  \parentheses{  F_0\cdot 2^{i}+  \sum_{j=1}^{i}  F_0 \cdot 2^{i-1}}\\
-		&\leq  \frac{1}{W_i} \cdot  \parentheses{  F_i+  (i-1)\cdot F_i/2} =   \frac{F_i}{W_i} \cdot  \frac{i+1}{2}.
-\end{align*}
-
-
+    \textbf{The Linear Case of~$W(F)=F/\epsilon$.}
+    In this case, the size function doubles whenever the
+    squared~$\ell_2${\nobreakdash-}norm doubles, i.e., $F_{j+1} = 2
+    \cdot F_j$ for all $j\geq 0$ and, in general, $F_j = 2^j \cdot F_0$ for all
+    $j\geq 0$. We therefore get that
+    \begin{align*}
+        V(F) &\leq  \sum_{j=0}^{i}  \parentheses{F_{j+1} - F_j} \cdot \frac{2^{i-j}}{W_i} \\
+        & \leq \frac{1}{W_i} \cdot \parentheses{ F_0 \cdot 2^{i} + \sum_{j=1}^{i}  \parentheses{2^{j+1} - 2^j} \cdot F_0 \cdot 2^{i-j}} \\
+        & \leq \frac{1}{W_i} \cdot  \parentheses{ F_0 \cdot 2^{i} +  \sum_{j=1}^{i}  2^j \cdot F_0 \cdot 2^{i-j}} \\
+        & \leq \frac{1}{W_i} \cdot  \parentheses{ F_0 \cdot 2^{i} +  \sum_{j=1}^{i}  F_0 \cdot 2^i} \\
+        & \leq (i+1) \cdot \frac{F_i}{W_i}.
+    \end{align*}
 
 \medskip\noindent
-\textbf{Setting $W(F) =  F^{\alpha}/\epsilon$ in CS, for some $0<\alpha<1$.} In this case, the size function doubles more rarely, whenever $F_{i+1} = 2^{1/\alpha} \cdot F_i$. Since $0<\alpha<1$, note that this implies that $F_{i+1}$ is bigger than $2F_i$. This difference is why we avoid the extra dependency on $i$ in the error term. Plugging this into the statement of~\Cref{lemma:cs-w}, we have that $F_i = 2^{i/(1-\alpha)} \cdot F_0$ and thus:
-
-\begin{align*}
-	\sum_{j=0}^i  2^{i-j} \cdot  (F_{j+1} - F_j) & =	\sum_{j=0}^i  2^{i-j} \cdot  (2^{(j+1)/(1-\alpha)}\cdot T_0 - 2^{j/(1-\alpha)}\cdot T_0)\\
-	&=  \sum_{j=0}^i  2^{i-j} \cdot  2^{j/(1-\alpha)} \cdot T_0 \cdot (2^{1/(1-\alpha)} -1) \\
-	&= 2^i \cdot T_0 \cdot (2^{1/(1-\alpha)} -1) \cdot   \sum_{j=0}^i   2^{j/(1-\alpha) - j}.
-\end{align*}	
-
-
-
+\textbf{The Sublinear Case of~$W(F)=F^{\alpha}/\epsilon$.}
+    In this case, the size function doubles more slowly, i.e.,
+    whenever~$F_{i+1} = 2^{1/\alpha} \cdot F_i$. Since~$0 \leq \alpha < 1$,
+    $F_{i+1}$ is bigger than~$2F_i$. Plugging this into the statement
+    of~\Cref{lemma:cs-w}, we have that~$F_i = 2^{i/(1-\alpha)} \cdot F_0$ and
+    thus
+    \begin{align*}
+        \frac{1}{W_i} \cdot \sum_{j=0}^i  2^{i-j} \cdot & (F_{j+1} - F_j) \\
+        & = \frac{1}{W_i} \cdot \sum_{j=0}^i  2^{i-j} \cdot \parentheses{2^{(j+1)/(1-\alpha)}\cdot F_0 - 2^{j/(1-\alpha)} \cdot F_0} \\
+        & = \frac{1}{W_i} \cdot \sum_{j=0}^i  2^{i-j} \cdot 2^{j/(1-\alpha)} \cdot F_0 \cdot \parentheses{2^{1/(1-\alpha)}-1} \\
+        & = \frac{1}{W_i} \cdot 2^i \cdot F_0 \cdot \parentheses{2^{1/(1-\alpha)}-1} \cdot \sum_{j=0}^i 2^{j/(1-\alpha) - j} \\
+        & = O(F_{i+1}/W_i).
+    \end{align*}	
 \end{proof}
 
-
-
-\section{Lower bound - proof of Theorem~\ref{thm:sketch_expandability}}\label{sec:ommitted_proofs_lower}
+\section{Lower Bound: Proof of Theorem~\ref{thm:sketch_expandability}}\label{sec:ommitted_proofs_lower}
 \thmsketchexpandabilitylabel*
 \begin{proof}
     Our proof follows a contradiction argument similar to the proof of
