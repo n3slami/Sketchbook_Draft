@@ -1131,7 +1131,7 @@ fragments in increasing order of their digits' significance from left to right.
 Formally, a value~$v$ is encoded in an extension by representing each of
 its~$\left\lfloor \log_3 v \right\rfloor + \nolinebreak 1$ digits in a
 fragment, with the~$j${\nobreakdash-}th digit being~$v_j=\left\lfloor v/3^j
-\right\rfloor \mod 3$. We decode~$v$ back into \textcolor{blue}{a 32-bit
+\right\rfloor \mod 3$. We decode~$v$ back into \textcolor{blue}{a 32-bit binary
 integer} by computing the sum~$3^0 \cdot v_0 + 3^1 \cdot v_1 + \dots$.
 %\footnote{\textcolor{blue}{\sketchcms computes this sum efficiently by implementing multiplication by~3 by adding a value to a copy of itself shifted to the left by one bit (which is equivalent to multiplication~by~2).}}
 
@@ -2812,13 +2812,13 @@ shows
 the benefits of both \sketchcms and \sketchcs in join size estimation. Here, we
 employ a 100 GB TPC-H workload~\cite{TPCH}. We construct sketches tracking the
 count of each \texttt{ORDERKEY} value in the \texttt{lineitem} and
-\texttt{orders} tables, and estimate the size of an equi-join on these values.
-Following~\cite{JoinSizeEstimationFilterConditions}, we simulate a many-to-many
-join by duplicating each row in the \texttt{orders} table 1-3 times. We vary
-the total memory budget, which we distribute among the sketches in proportion
-to the size of their tables. We report accuracy measurements for each table, as
-well as the join result. We only compare \sketch\ to CMS and CS to simplify our
-plots. 
+\texttt{orders} tables, and predict their counts in the join by multiplying the
+per-table estimates. Following~\cite{JoinSizeEstimationFilterConditions}, we
+simulate a many-to-many join by duplicating each row in the \texttt{orders}
+table 1-3 times. We vary the total memory budget, which we distribute among the
+sketches in proportion to the size of their tables. We report accuracy
+measurements for each table, as well as the join result. We only compare
+\sketch\ to CMS and CS to simplify our plots. 
 }
 
 \textcolor{blue}{
