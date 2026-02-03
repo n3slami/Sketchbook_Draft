@@ -151,6 +151,11 @@
 
 \graphicspath{{./figures/}}
 
+\newcommand{\tra}[1]{\textcolor{blue}{#1}}          % Reviewer 1
+\newcommand{\trb}[1]{\textcolor{olive}{#1}}         % Reviewer 2
+\newcommand{\trc}[1]{\textcolor{orange}{#1}}        % Reviewer 3
+\newcommand{\trshared}[1]{\textcolor{purple}{#1}}   % Reviewer 1 and 3
+
 %%
 %% end of the preamble, start of the body of the document source.
 \begin{document}
@@ -413,15 +418,15 @@ to choose from.
         CS{\textemdash}to demonstrate its generality. In the appendix, we
         provide a roadmap for applying \sketch\ to MG~as~future~work.
     \else 
-    \item \textcolor{blue}{We apply \sketch\ to two representative sketches{\textemdash}CMS and
-        CS{\textemdash}to demonstrate its generality.}
+    \item \tra{We apply \sketch\ to two representative sketches{\textemdash}CMS
+        and CS{\textemdash}to demonstrate its generality.}
     \fi
     \item We evaluate \sketch\ against state-of-the-art frequency estimation
         sketches and show that it significantly reduces memory consumption
         under skew and error under growing streams, while maintaining equal or
-        better performance. \textcolor{blue}{We also apply \sketch\ to estimate
-        the size of a join between two tables and show that it returns the most
-        accurate results.}
+        better performance. \trc{We also apply \sketch\ to estimate the size of
+        a join between two tables and show that it returns the most accurate
+        results.}
 \end{enumerate}
 
 \section{Background}~\label{sec:background}
@@ -459,7 +464,7 @@ Misra-Gries~\cite{MisraGries}
 (\Cref{sec:mg}) and apply our
 techniques to them. 
 \else
-\textcolor{blue}{
+\tra{
 Later in \Cref{sec:cs}, we
 describe Count Sketch~\cite{CountSketch} and apply our techniques to it. 
 }
@@ -966,7 +971,7 @@ Sketch~(CMS), denoted as \sketchcms.
 We apply \sketch\ to other sketches in \Cref{sec:cs}
 and \Cref{sec:mg}.
 \else
-\textcolor{blue}{We apply \sketch\ to Count Sketch in
+\tra{We apply \sketch\ to Count Sketch in
 \Cref{sec:cs}.}
 \fi
 
@@ -1131,9 +1136,9 @@ fragments in increasing order of their digits' significance from left to right.
 Formally, a value~$v$ is encoded in an extension by representing each of
 its~$\left\lfloor \log_3 v \right\rfloor + \nolinebreak 1$ digits in a
 fragment, with the~$j${\nobreakdash-}th digit being~$v_j=\left\lfloor v/3^j
-\right\rfloor \mod 3$. We decode~$v$ back into \textcolor{blue}{a 32-bit binary
-integer} by computing the sum~$3^0 \cdot v_0 + 3^1 \cdot v_1 + \dots$.
-%\footnote{\textcolor{blue}{\sketchcms computes this sum efficiently by implementing multiplication by~3 by adding a value to a copy of itself shifted to the left by one bit (which is equivalent to multiplication~by~2).}}
+\right\rfloor \mod 3$. We decode~$v$ back into \tra{a 32-bit binary integer} by
+computing the sum~$3^0 \cdot v_0 + 3^1 \cdot v_1 + \dots$.
+%\footnote{\tra{\sketchcms computes this sum efficiently by implementing multiplication by~3 by adding a value to a copy of itself shifted to the left by one bit (which is equivalent to multiplication~by~2).}}
 
 For example, the value~5, which is the value of the higher-order bits of
 Counter~1 in \Cref{fig:counter_chunk}, has two digits in base 3. It is
@@ -1334,9 +1339,9 @@ Finally, we use the select operation to
 evaluate~$\texttt{select}(m,$~delimiters$)$, which skips over the first~$m$
 delimiters and returns the position of the~$m${\nobreakdash-}th delimiter. We
 sequentially apply the bitwise operations above to each machine word comprising
-the chunk's extensions. \textcolor{blue}{Locating extensions in this way} is
-efficient, as a chunk's extensions often fit in 1-2 words. 
-%\textcolor{blue}{We will shortly show that updates rarely modify extensions, enabling high insertion throughput.}
+the chunk's extensions. \tra{Locating extensions in this way} is efficient, as
+a chunk's extensions often fit in 1-2 words. 
+%\tra{We will shortly show that updates rarely modify extensions, enabling high insertion throughput.}
 
 \Cref{fig:extension_location_example} shows an example of locating the 3rd
 counter's extension using rank and select. Here,
@@ -1452,79 +1457,70 @@ has a tails array, as depicted in
 \Cref{fig:counter_chunk_with_tails}.
 If it does, we repurpose the space taken up by the extension pool to store a
 pointer to the tails array. We ensure that the extension pool is large enough
-to accommodate this pointer (i.e., at least 48
-bits\footnote{\textcolor{blue}{The upper 16 bits in a 64-bit pointer are unused
-on many operating systems due to their use of 4-level
+to accommodate this pointer (i.e., \trshared{at least 48
+bits\footnote{\trshared{The upper 16 bits in a 64-bit pointer are unused on
+many operating systems due to their use of 4-level
 paging~\cite{Intel4LevelPaging}.} As such, we only store the lower 48 bits of
-the pointer. \textcolor{blue}{That said, modern machines and operating systems
-have moved towards using 5-level paging~\cite{Intel5LevelPaging}, which uses
-57-bit addresses. Despite this shift, operating systems like Linux still
-default to using 48-bit addresses for compatibility
-reasons~\cite{Linux5LevelPaging}.}}) when tuning the number of counters per
-chunk and the stub size. Any space after the pointer is unused. 
-
-\iffalse
-\footnote{\textcolor{blue}{The upper 7 bits in a general 64-bit pointer are
-unused on modern machines due to their use of 5-level
-paging~\cite{Intel5LevelPaging}. As such, we only store the lower 57 bits of
-the pointer.}}
-\fi
+the pointer. \trshared{That said, modern machines and operating systems have
+moved towards using 5-level paging~\cite{Intel5LevelPaging}, which uses 57-bit
+addresses. Despite this shift, operating systems like Linux still default to
+using 48-bit addresses for compatibility reasons~\cite{Linux5LevelPaging}.}}})
+when tuning the number of counters per chunk and the stub size. Any space after
+the pointer is unused. 
 
 \textbf{Adaptive Tuning.}
-\textcolor{blue}{To minimize the space usage and ensure that a small fraction
-of it is overprovisioned at any time, \sketchcms adaptively retunes
+\trc{To minimize the space usage and ensure that a small fraction of it is
+overprovisioned at any time, \sketchcms adaptively retunes
 \counterencodingabbrv's number of counters per chunk~$c$ and its stub
 length~$s$. It does so whenever more than~$1\%$ of the chunks use tails arrays,
-or there are more than two unused bits per
-counter.\footnote{\textcolor{blue}{These conditions lead to at most 20\%
-overprovisioned space upfront when counters are short (1 byte) and decreases
-quickly as the counters grow.}} During tuning, \sketchcms packs} as many
-counters as possible within each chunk while ensuring that extensions rarely
-outgrow their chunks. Concretely, it scans the entire sketch and computes a
-histogram of the counter values based on their bit length. It uses this
-histogram to calculate the expected total length of a chunk's extensions for a
-given combination of parameters~$c$ and $s$. It enumerates the possible
-combinations by first varying~$c$ from largest to smallest and then
-enumerating~$s$ from smallest to largest for each fixed~$c$. For each
-combination, it applies Chebyshev's inequality to the total extension length
-within a chunk to derive a conservative bound on the proportion of chunks that
-will use tails arrays. It chooses the first combination that yields a bound
-smaller than~$0.5\%$. 
+or there are more than two unused bits per counter.\footnote{\trc{These
+conditions lead to at most 20\% overprovisioned space upfront when counters are
+short (1 byte) and decreases quickly as the counters grow.}} During tuning,
+\sketchcms packs} as many counters as possible within each chunk while ensuring
+that extensions rarely outgrow their chunks. Concretely, it scans the entire
+sketch and computes a histogram of the counter values based on their bit
+length. It uses this histogram to calculate the expected total length of a
+chunk's extensions for a given combination of parameters~$c$ and $s$. It
+enumerates the possible combinations by first varying~$c$ from largest to
+smallest and then enumerating~$s$ from smallest to largest for each fixed~$c$.
+For each combination, it applies Chebyshev's inequality to the total extension
+length within a chunk to derive a conservative bound on the proportion of
+chunks that will use tails arrays. It chooses the first combination that yields
+a bound smaller than~$0.5\%$. 
 
 As a side effect of this tuning procedure, \sketchcms sets the stub length~$s$
 to be slightly longer than the length of the average counter value. This
 reduces the number of extensions and makes the number of stored tails arrays
 and their memory overhead negligible.
 
-The amortized cost of tuning \counterencodingabbrv\ is \textcolor{blue}{small,
-as many more updates than the number of counters are required to trigger
-retuning. We demonstrate this under
-Experiment~\hyperlink{experiment:vale_tuning}{3} of
+The amortized cost of tuning \counterencodingabbrv\ is \trc{small, as many more
+updates than the number of counters are required to trigger retuning. We
+demonstrate this under Experiment~\hyperlink{experiment:vale_tuning}{3} of
 \Cref{sec:evaluation}.}
 
-\textcolor{blue}{
+\trb{
 \textbf{Different Cache Line Sizes.}
 The aforementioned tuning procedure also allows \sketchcms to support different
 cache line sizes. Having smaller cache lines leads to the tuning procedure
 storing fewer counters per chunk. This reduction increases the variance of the
 total size of a chunk's extensions, causing the tuning procedure to slightly
 increase the overprovisioned space for the chunk's extension
-pool\footnote{\textcolor{blue}{We have observed that reducing the cache line
-size from 512 bits to 256 and 128 bits increases the proportion of
-overprovisioned memory by~5\% and 6\%, respectively.}}. Conversely, having
-larger cache lines does not increase the required overprovisioned space, though
-it may degrade query performance. This is because locating a counter's
-extension becomes more expensive as extension pools grow. \sketchcms easily
-addresses this problem by storing multiple chunks per cache line (e.g., two
-512-bit chunks within a 1024-bit cache line).
+pool\footnote{\trb{We have observed that reducing the cache line size from 512
+bits to 256 and 128 bits increases the proportion of overprovisioned memory
+by~5\% and 6\%, respectively.}}. Conversely, having larger cache lines does not
+increase the required overprovisioned space, though it may degrade query
+performance. This is because locating a counter's extension becomes more
+expensive as extension pools grow. \sketchcms easily addresses this problem by
+storing multiple chunks per cache line (e.g., two 512-bit chunks within a
+1024-bit cache line).
 }
 
 \textbf{Incrementing Counters.}
 When an insertion maps to the~$i${\nobreakdash-}th counter within a chunk,
 \sketchcms increments it by adding one to the lower-order bits stored in
-the~$i${\nobreakdash-}th stub, i.e., stub[$i$]. \textcolor{blue}{Most of the
-time, stub[$i$]'s increment does not carry over to the counter's higher-order
-bits, allowing the insertion to terminate} early and achieve high throughput.
+the~$i${\nobreakdash-}th stub, i.e., stub[$i$]. \tra{Most of the time,
+stub[$i$]'s increment does not carry over to the counter's higher-order bits,
+allowing the insertion to terminate} early and achieve high throughput.
 
 Whenever stub[$i$]'s increment carries over, \sketchcms adds one to the
 counter's extension or tail. For an extension, this entails incrementing its
@@ -1534,11 +1530,10 @@ a new digit. \sketchcms makes room for the fragment representing this digit by
 shifting subsequent extensions to the right. If the~$i${\nobreakdash-}th
 counter did not have an extension, a new extension encoding the value~1 is
 created for it. We use rank and select operations to determine the appropriate
-position of this extension in the extension pool. 
-\textcolor{blue}{Updating a counter's higher-order bits is efficient if they
-are stored using the binary representation of a tail. For the heavy hitters
-(which comprise most of the stream), this yields faster insertions, as their
-counters often use tails.}
+position of this extension in the extension pool. \tra{Updating a counter's
+higher-order bits is much simpler if they are stored within a tail's binary
+integer. For the heavy hitters (which comprise most of the stream), this yields
+faster insertions, as their counters often use tails.}
 
 
 \textbf{Decrementing Counters.}
@@ -1590,7 +1585,7 @@ payload and the second operand is the mask~\cite{PDEP}.} Each of these commands
 is applied to 1-2 machine words, as the bitmaps \sketchcms operates over are
 1-2 words long.
 
-\textcolor{blue}{
+\trb{
 \sketchcms has fallback implementations of rank and select for processors that
 lack the above instructions. We employ two lookup tables structured as
 direct-access arrays: one for counting the number of 1s in a byte to compute
@@ -1636,19 +1631,20 @@ compute a long hash. It splices the result into~$d$ sub-hashes of equal length
 and uses each as the hash value of an array. 
 
 \iffalse
-\textcolor{blue}{
-\hypertarget{optimization:horner_hack}{\textbf{Optimization~5: Horner's Method with Shifts and Adds.}}
-\sketchcms decodes a counter's extension with digits~$v_0, v_1, \cdots, v_k$ by
-computing the sum~$3^0 \cdot v_0 + 3^1 \cdot v_1 + \dots + 3^k \cdot v_k$. We
-speed up this process using Horner's method~\cite{Horner,HornerKnuth} and
-implementing multiplication by~3 using shift and add
-operations~\cite{HackersDelight}. Specifically, we compute a running sum
-starting from the last term (i.e., initializing the sum to~$3^0 \cdot v_k$) and
-move towards the first term, handling them one by one. For example, we
-handle~$v_{k-1}$ by multiplying the running sum by~3 and adding~$v_{k-1}$ to
-derive the sum~$3^0 \cdot v_{k-1} + 3^1 \cdot v_k$. We multiply the running sum
-by~3 by adding it to a copy of itself shifted to the left by one bit (which is
-equivalent to multiplication~by~2).}
+\tra{
+\hypertarget{optimization:horner_hack}{\textbf{Optimization~5: Horner's Method
+with Shifts and Adds.}} \sketchcms decodes a counter's extension with
+digits~$v_0, v_1, \cdots, v_k$ by computing the sum~$3^0 \cdot v_0 + 3^1 \cdot
+v_1 + \dots + 3^k \cdot v_k$. We speed up this process using Horner's
+method~\cite{Horner,HornerKnuth} and implementing multiplication by~3 using
+shift and add operations~\cite{HackersDelight}. Specifically, we compute a
+running sum starting from the last term (i.e., initializing the sum to~$3^0
+\cdot v_k$) and move towards the first term, handling them one by one. For
+example, we handle~$v_{k-1}$ by multiplying the running sum by~3 and
+adding~$v_{k-1}$ to derive the sum~$3^0 \cdot v_{k-1} + 3^1 \cdot v_k$. We
+multiply the running sum by~3 by adding it to a copy of itself shifted to the
+left by one bit (which is equivalent to multiplication~by~2).
+}
 \fi
 
 
@@ -2245,7 +2241,7 @@ error and variance of future estimates.
 For \sketchcms, this allows us to show in \Cref{sec:upper_bounds_cms}
 that:
 \else 
-\textcolor{blue}{For \sketchcms, this allows us to show that:}
+\tra{For \sketchcms, this allows us to show that:}
 \fi
 \begin{restatable}{theorem}{thmcms}
     \label{thm:cms-w}
@@ -2293,8 +2289,8 @@ approach of expanding the number of counters in each array.}
         4 & \hspace*{1.5mm}- & - & \hspace*{1.5mm}70 & 5\hspace*{0.75mm} & \hspace*{0.75mm}75 & 4 \\ 
         \bottomrule 
     \end{tabular} 
-        \captionof{table}{\textcolor{blue}{By tuning \counterencodingabbrv's
-        paramters, \sketchcms attains high performance and the best accuracy.}}
+        \captionof{table}{\tra{By tuning \counterencodingabbrv's paramters,
+        \sketchcms attains high performance and the best accuracy.}}
     \vspace{7.5cm}
     \end{minipage} \\
     \vspace*{-6.7cm}
@@ -2310,7 +2306,7 @@ approach of expanding the number of counters in each array.}
 \ifappendix
 We show in \Cref{sec:upper_bounds_cs}
 \else 
-\textcolor{blue}{We show}
+\tra{We show}
 \fi
 that a similar phenomenon occurs
 for the variance of the error in \sketchcs, but this time, $W(\cdot)$ is a
@@ -2342,12 +2338,12 @@ In \Cref{sec:ommitted_proofs_upper}, we show that similar bounds to those of
 \fi
 
 \textbf{Memory Footprint.}
-\textcolor{blue}{As described in
+\trc{As described in
 \Cref{sec:accommodating_skew}, \sketch\
 adaptively tunes \counterencodingabbrv\ to reclaim memory and ensure that a
 small fraction of its bits are unused at any time. This implies that the}
 memory footprint is dominated by the space occupied by the stubs and the
-extensions. \textcolor{blue}{We quantify this cost for a single counter~as:}
+extensions. \trc{We quantify this cost for a single counter~as:}
 \begin{lemma}
     \label{lemma:single_counter_space}
     When working with unsigned counters and stubs of length~$s$,
@@ -2436,7 +2432,7 @@ if the estimates of such a sketch have a variance that yields an error bound
 of~$E(N)$ with a confidence of~$1-\delta$ (similarly to CS), the same lower
 bound holds:
 \else 
-\textcolor{blue}{
+\tra{
 Nevertheless, we prove that if the estimates of such a sketch have a variance
 that yields an error bound of~$E(N)$ with a confidence of~$1-\delta$ (similarly
 to CS), the same lower bound holds:
@@ -2474,9 +2470,9 @@ Theorems~\ref{thm:sketch_expandability_special_case}~and~\ref{thm:sketch_expanda
     \end{tikzpicture}
     \vspace*{-4mm}
     \caption{By automatically tuning \counterencodingabbrv, \sketchcms adapts
-    to all levels of skew\textcolor{blue}{, enabling the A)~highest accuracy
-    among all baselines and B)~a smaller memory footprint compared to using a
-    fixed tuning}.}
+    to all levels of skew\tra{, enabling the A)~highest accuracy among all
+    baselines and B)~a smaller memory footprint compared to using a fixed
+    tuning}.}
     \vspace*{-4mm}
     \label{fig:skew_vale_tuning_bench}
 \end{figure}
@@ -2502,38 +2498,37 @@ Experiment~\hyperlink{experiment:arruacy_unbiased}{6} showcases \sketchcs.
 
 \textbf{Platform.}
 We run the experiments on a Fedora 41 machine with an Intel Xeon w7-2495X
-processor (4.8 GHz) with 24 cores. Our machine features \textcolor{blue}{an 80
-KB L1 cache and a 2 MB L2 cache for each core, a 45 MB shared L3 cache, and}
-\textcolor{blue}{64 GB} of RAM.
+processor (4.8 GHz) with 24 cores. Our machine features \trc{an 80 KB L1 cache
+and a 2 MB L2 cache for each core, a 45 MB shared L3 cache,} and \tra{64 GB} of
+RAM.
 
 \textbf{Baselines.}
 We compare \sketchcms to a traditional CMS, as well as the variants described
 in \Cref{sec:problem_analysis} that cater to
 skew. We use SALSA~\cite{SALSA} to represent counter merging methods and Waving
-sketch~\cite{WavingSketch} to represent hybrid methods\textcolor{blue}{, as
-they are the most accurate and the fastest in their category}. For counter
-sharing methods, we employ the following three baselines: Stingy
-sketch~\cite{StingySketch} \textcolor{blue}{is the state of the art in terms of
-throughput since it} implements the classic counter sharing design with a
-hierarchy of shared \textcolor{blue}{byte-aligned counters that prefetches the
-counters}, as described in
+sketch~\cite{WavingSketch} to represent hybrid methods\tra{, as they are the
+most accurate and the fastest in their category}. For counter sharing methods,
+we employ the following three baselines: Stingy sketch~\cite{StingySketch}
+\tra{is the state of the art in terms of throughput since it} implements the
+classic counter sharing design with a hierarchy of shared \tra{byte-aligned
+counters that prefetches the counters}, as described in
 \Cref{sec:problem_analysis}. Coding
-sketch~\cite{CodingSketch} \textcolor{blue}{is the most accurate counter
-sharing method that compresses its hierarchy of counters, trading performance
-for memory.} Tailored sketch~\cite{TailoredSketch} \textcolor{blue}{is the most
-space-efficient (and thus accurate) counter sharing method, as it
-probabilistically increments each counter in the classic hierarchy}, thereby
-shortening the counters' length in exchange for introducing two-sided errors.
-Among these six baselines, only Coding sketch is tunable, though its tuning is
-manual and complex. This is because its compression algorithm obscures the
-level of skew in the workload to which the tuning should be adapted. We
-implement \sketch\ in \texttt{C++} and use the open-source \texttt{C++}
-implementations of the baselines. \textcolor{blue}{The aforementioned
-implementations are all single-threaded.} We construct all sketches with~$d=3$
-arrays. \textcolor{blue}{This parameter setting is common in practice since it
-yields a confidence bound of~$\approx 95\%$, which is significantly higher than
-the confidence bounds resulting from~$d=1$ ($\approx 63\%$) and $d=2$ ($\approx
-86\%$) while being comparable to~$d=4$ ($\approx 98\%$).}
+sketch~\cite{CodingSketch} \tra{is the most accurate counter sharing method
+that compresses its hierarchy of counters, trading performance for memory.}
+Tailored sketch~\cite{TailoredSketch} \tra{is the most space-efficient (and
+thus accurate) counter sharing method, as it probabilistically increments each
+counter in the classic hierarchy}, thereby shortening the counters' length in
+exchange for introducing two-sided errors. Among these six baselines, only
+Coding sketch is tunable, though its tuning is manual and complex. This is
+because its compression algorithm obscures the level of skew in the workload to
+which the tuning should be adapted. We implement \sketch\ in \texttt{C++} and
+use the open-source \texttt{C++} implementations of the baselines.
+\trshared{The aforementioned implementations are all single-threaded.} We
+construct all sketches with~$d=3$ arrays. \tra{This parameter setting is common
+in practice since it yields a confidence bound of~$\approx 95\%$, which is
+significantly higher than the confidence bounds resulting from~$d=1$ ($\approx
+63\%$) and $d=2$ ($\approx 86\%$) while being comparable to~$d=4$ ($\approx
+98\%$).}
 
 \begin{figure}
     \centering
@@ -2576,8 +2571,8 @@ the confidence bounds resulting from~$d=1$ ($\approx 63\%$) and $d=2$ ($\approx
         4 & 75 & 4 \\ 
         \bottomrule 
     \end{tabular} 
-    \captionof{table}{\textcolor{blue}{Tuning \counterencodingabbrv\ yields
-        high performance and the best accuracy.}}
+    \captionof{table}{\tra{Tuning \counterencodingabbrv\ yields high
+        performance and the best accuracy.}}
     \vspace{2.45cm}
     \end{minipage} \\
     \vspace*{-3.15cm}
@@ -2593,30 +2588,29 @@ the confidence bounds resulting from~$d=1$ ($\approx 63\%$) and $d=2$ ($\approx
 \textbf{Datasets and Workloads.}
 Following prior
 work~\cite{CountMeanMin,SALSA,BitSense,PyramidSketch,StingySketch,AdaptiveCounterSplicing,CounterTree,TreeSensing,TailoredSketch,AugmentedSketch,HeavyGuardian,HeavyKeeper,WavingSketch,ElasticSketch,MVSketch,SpaceSaving,BatchUpdateMisraGries,BitMatcher,JigsawSketch,MicroscopeSketch,PSketch,TightSketch},
-we compare the baselines \textcolor{blue}{in a single-threaded setting} by
-employing three real-world streams:
+we compare the baselines \trshared{in a single-threaded setting} by employing
+three real-world streams:
 \begin{itemize}
-    \item \textsc{Kosarak}: 8M clicks from a news
-        portal~\cite{Kosarak}\textcolor{blue}{, anonymized as 8-byte integers}.
-        This dataset is highly skewed, resembling a \textsc{Zipfian}
-        distribution with an exponent parameter of~$\approx
-        3.5$.
+    \item \textsc{Kosarak}: 8M clicks from a news portal~\cite{Kosarak}\tra{,
+        anonymized as 8-byte integers}. This dataset is highly skewed,
+        resembling a \textsc{Zipfian} distribution with an exponent parameter
+        of~$\approx 3.5$.
     \item \textsc{WebDocs}: 300M words extracted from 1.7M online English
-        documents~\cite{WebDocs}. \textcolor{blue}{Each word in this dataset is
-        encoded as an 8-byte integer.} This dataset follows a skewed
-        distribution with a \textsc{Zipfian} exponent of~$\approx 1.0$.
-    \item \textsc{CAIDA}: 27M \textcolor{blue}{anonymized 5-tuples describing
-        the network connection of packets} from 10 traces taken from backbone
-        Internet links in 2018~\cite{CAIDA2018}. \textcolor{blue}{Each 5-tuple
-        is represented as a 13-byte string.} This dataset has a
-        \textsc{Zipfian} exponent of~$\approx 2.0$.
+        documents~\cite{WebDocs}. \tra{Each word in this dataset is encoded as
+        an 8-byte integer.} This dataset follows a skewed distribution with a
+        \textsc{Zipfian} exponent of~$\approx 1.0$.
+    \item \textsc{CAIDA}: 27M \tra{anonymized 5-tuples describing the network
+        connection of packets} from 10 traces taken from backbone Internet
+        links in 2018~\cite{CAIDA2018}. \tra{Each 5-tuple is represented as a
+        13-byte string.} This dataset has a \textsc{Zipfian} exponent
+        of~$\approx 2.0$.
 \end{itemize}
 We evaluate the accuracy of each baseline by querying it with each distinct key
-in the stream \textcolor{blue}{and compute the \emph{Average Absolute Error
-(AAE)} of the estimates from the ground-truth. We focus on absolute errors
-rather than relative errors to keep our presentation consistent with the
-theoretical error bounds studied in the literature. We have found the relative
-errors to behave similarly to the absolute errors.}
+in the stream \trc{and compute the \emph{Average Absolute Error (AAE)} of the
+estimates from the ground-truth. We focus on absolute errors rather than
+relative errors to keep our presentation consistent with the theoretical error
+bounds studied in the literature. We have found the relative errors to behave
+similarly to the absolute errors.}
 
 \hypertarget{experiment:accuracy}{\textbf{Experiment 1: Accuracy and Speed vs. Memory.}}
 In \Cref{fig:accuracy_bench}, we feed each workload to each baseline while
@@ -2634,22 +2628,23 @@ workload trace is shorter.
 \Cref{fig:accuracy_bench} shows that \sketchcms has a lower estimation error
 than most other baselines by as much as an order of magnitude while providing
 similar or superior insertion and query performance. This is because it extends
-the overflowing counters without affecting other counters. Compared to the
+overflowing counters without affecting other counter values. Compared to the
 baseline with the closest errors, i.e., SALSA, \sketchcms has lower errors by
 40\% across the board while providing faster insertions and queries by as much
-as~$3\times$ and $2.4\times$, respectively. This performance improvement is due
-to \sketchcms's use of rank and select primitives, as well as
+as~$3\times$ and $2.4\times$. This performance improvement is due to
+\sketchcms's use of rank and select primitives, as well as
 Optimizations~\hyperlink{optimization:rank_and_select}{1} to
 \hyperlink{optimization:hash_splicing}{4} described in
-\Cref{sec:accommodating_skew}. Coding sketch exhibits slower insertion and
-query performance by~2 and 7 orders of magnitude compared to the other
-baselines due to its decompression overheads. As such, we henceforth exclude it
-from the experiments that evaluate \sketchcms. When the memory budget is low
-under the \textsc{CAIDA} dataset, Tailored sketch is more accurate than
-\sketchcms due to its probabilistic incrementation strategy enabling it to
-store shorter counters in exchange for introducing underestimations. Applying
-the same technique to \sketchcms yields lower errors than Tailored sketch
-by~$2.38\times$, as shown by the dotted curve.
+\Cref{sec:accommodating_skew}. Coding
+sketch exhibits slower insertion and query performance by~2 and 7 orders of
+magnitude compared to the other baselines due to its decompression overheads.
+As such, we henceforth exclude it from the experiments that evaluate
+\sketchcms. When the memory budget is low under the \textsc{CAIDA} dataset,
+Tailored sketch is more accurate than \sketchcms due to its probabilistic
+incrementation strategy enabling it to store shorter counters in exchange for
+introducing underestimations. Applying the same technique to \sketchcms yields
+lower errors than Tailored sketch by~$2.38\times$, as shown by the dotted
+curve.
 %and its curve is shifted to the right since we report its memory consumption after decompression when the sketch is queryable. 
 
 \hypertarget{experiment:skew}{\textbf{Experiment 2: Accuracy under Varying Levels of Skew.}}
@@ -2659,17 +2654,17 @@ varies. Here, we generate streams of 100M keys from a \textsc{Zipfian}
 distribution over 100K distinct keys. We vary the exponent parameter, i.e., the
 skewness, on the~$x${\nobreakdash-}axis from~0.0 to 3.2, which correspond to a
 uniform and a highly skewed dataset, respectively. Recall that, aside from
-Coding sketch (which we have excluded from the experiment due to its poor
-performance), \sketchcms is the only sketch that is tunable. Thus, we allow it
-to automatically adapt \counterencodingabbrv's tuning to the workload's skew.
+Coding sketch (which we exclude from the experiment due to its poor
+performance), \sketchcms is the only tunable sketch. Thus, we allow it to adapt
+\counterencodingabbrv's tuning to the workload's skew.
 
 \begin{figure}
     \centering
     %\hspace*{0.05mm}
     \includegraphics[width=0.93\columnwidth]{l2_size_function.pdf}
     \vspace*{-3.5mm}
-    \caption{\textcolor{blue}{By expanding based on the estimation variance, \sketchcs maintains
-    a stable confidence bound.}}
+    \caption{\trb{By expanding based on the estimation variance, \sketchcs
+    maintains a stable confidence bound.}}
     \vspace*{-5mm}
     \label{fig:l2_size_function_bench}
 \end{figure}
@@ -2679,8 +2674,8 @@ to automatically adapt \counterencodingabbrv's tuning to the workload's skew.
     \vspace*{-1mm}
     \includegraphics[width=0.83\textwidth]{join_size.pdf}
     \vspace*{-3.5mm}
-    \caption{\textcolor{blue}{\sketch\ provides the most accurate frequency
-    estimates of table entries and the size of their join.}}
+    \caption{\trb{\sketch\ provides the most accurate frequency estimates of
+    table entries and the size of their join.}}
     \vspace*{-5mm}
     \label{fig:join_size_bench}
 \end{figure*}
@@ -2708,13 +2703,12 @@ version of \sketchcms avoids allocating many tails arrays. Nevertheless, it
 does not optimally leverage the shorter extension lengths and consumes~$\approx
 10\%$ more memory than the adaptive version. 
 
-\textcolor{blue}{
+\trc{
 In this experiment, adaptations comprise less than~3\% of the processing time,
-as their overhead is amortized. Despite our workload only having insertions,
-one can expect mixed workloads with both insertions and deletions to have
-similar overheads. This is because our workload triggers just as many
-adaptations as mixed workloads by growing the counters and causing many chunks
-to overflow.
+as their overhead is amortized. One can expect this overhead in mixed workloads
+with both insertions and deletions to be similar to our insertion-only
+workload. This is because our workload triggers just as many adaptations as
+mixed workloads by growing the counters and causing many chunks to overflow.
 }
 
 \hypertarget{experiment:expansion}{\textbf{Experiment 4: Accuracy and Memory under Data Growth.}}
@@ -2739,8 +2733,10 @@ best baseline by one, two, and three orders of magnitude. The right subfigure
 in \Cref{fig:expansion_bench}
 shows that, despite expanding the number of counters, \sketchcms maintains a
 modest memory footprint relative to the stream's length.
-\textcolor{blue}{Furthermore, we have found that expansions take up only 0.5\%
-of the processing time, as they simply copy the counters sequentially.}
+\trc{Furthermore, we have found that expansions take up only 0.5\%
+of the processing time, as they simply copy the counters sequentially.
+Nevertheless, when \sketchcms expands beyond the CPU cache, it incurs a slight
+yet necessary drop in insertion query throughput.}
 
 \hypertarget{experiment:contraction}{\textbf{Experiment 5: Contractions.}}
 \Cref{fig:contraction_bench} showcases deletions and contractions in
@@ -2756,13 +2752,13 @@ keys are deleted, \sketchcms contracts to save memory, while CMS wastes memory
 by remaining at the same size. This enables achieving a lower memory footprint
 than CMS by 2-3 orders of magnitude while still being more accurate, despite
 the reduced number of counters slightly increasing the error.
-\textcolor{blue}{Moreover, since contractions sequentially scan the sketch,
+\trc{Moreover, since contractions sequentially scan the sketch,
 similarly to expansions, they take up at most 0.5\% of the total execution
 time.}
 
 \hypertarget{experiment:accuracy_unbiased}{\textbf{Experiment 6: Unbiased Accuracy and Speed vs. Memory.}}
-We now \textcolor{blue}{turn to} \sketchcs to demonstrate the applicability of
-\sketch\ beyond CMS. We compare it to a traditional CS and Waving
+We now \trb{turn to} \sketchcs to demonstrate the applicability of \sketch\
+beyond CMS. We compare it to a traditional CS and Waving
 sketch~\cite{WavingSketch}, which is representative of unbiased hybrid methods.
 We also compare to Stingy sketch~\cite{StingySketch} and Coding
 sketch~\cite{CodingSketch} applied to CS, representing counter sharing methods
@@ -2777,7 +2773,7 @@ has the fastest insertions while closely matching the query performance of the
 most performant sketch. 
 
 
-\textcolor{blue}{
+\trb{
 \hypertarget{experiment:l2_size_function}{\textbf{Experiment 6: Expansion Based on Variance.}}
 \Cref{fig:l2_size_function_bench}
 illustrates how expanding \sketchcs based on the growth of the estimation
@@ -2791,7 +2787,7 @@ obscure this information. We also report the sketch's final memory footprint
 after ingesting the stream. 
 }
 
-\textcolor{blue}{
+\trb{
 As shown in
 \Cref{fig:l2_size_function_bench},
 expanding based on the estimation variance ensures stable tail errors in
@@ -2805,7 +2801,7 @@ dropping with skew, making keys less likely to map to the same counter and
 create severe errors.
 }
 
-\textcolor{blue}{
+\trb{
 \hypertarget{experiment:join_size}{\textbf{Experiment 7: Join Size Estimation.}}
 \Cref{fig:join_size_bench}
 shows
@@ -2821,18 +2817,18 @@ measurements for each table, as well as the join result. We only compare
 \sketch\ to CMS and CS to simplify our plots. 
 }
 
-\textcolor{blue}{
+\trb{
 As shown in
 \Cref{fig:join_size_bench},
 \sketchcms and \sketchcs provide the best accuracy due to their use of
 \counterencodingabbrv. \sketchcs and CS are more accurate than \sketchcms and
-CMS on each separate table when the memory budget is tight. This is because
-\sketchcs and CS have superior theoretical error bounds when the workload is
-more uniform, which is the case in this experiment. When the memory budget is
-high enough for \sketchcms to outperform \sketchcs on each table separately,
-\sketchcs still has lower join size errors. This is due to \sketchcs returning
-unbiased estimates, which allows for multiplying them without the errors
-compounding.
+CMS on each separate table when the memory budget is tight. This is because the
+positive and negative counts of colliding keys in \sketchcs and CS cancel out
+under more uniform workloads, such as the one in this experiment. When the memory
+budget is high enough for \sketchcms to outperform \sketchcs on each table
+separately, \sketchcs still has lower join size errors. This is due to
+\sketchcs returning unbiased estimates, which allows for multiplying them
+without compounding errors.
 }
 
 \section{Conclusion}
@@ -2842,7 +2838,7 @@ both theoretically and empirically, that \sketch\ improves the accuracy and
 memory footprint of sketches beyond the state of the art while maintaining high
 performance.
 
-\textcolor{blue}{
+\trshared{
 Exploring concurrency control mechanisms for \sketch\ would be an interesting
 research direction. Prior work has proposed handling concurrent updates by
 employing thread-local sketches to ingest subsets of the stream in parallel and
