@@ -1586,8 +1586,8 @@ is applied to 1-2 machine words, as the bitmaps \sketchcms operates over are
 1-2 words long.
 
 \trb{
-\sketchcms has fallback implementations of rank and select for processors that
-lack the above instructions. We employ two lookup tables structured as
+\sketchcms includes fallback implementations of rank and select for processors
+that lack the above instructions. We employ two lookup tables structured as
 direct-access arrays: one for counting the number of 1s in a byte to compute
 rank, and one for applying select within a byte. \sketchcms iteratively applies
 these tables to the bytes within a bitmap to evaluate rank and select. Doing so
@@ -2289,11 +2289,12 @@ approach of expanding the number of counters in each array.}
         4 & \hspace*{1.5mm}- & - & \hspace*{1.5mm}70 & 5\hspace*{0.75mm} & \hspace*{0.75mm}75 & 4 \\ 
         \bottomrule 
     \end{tabular} 
-        \captionof{table}{\tra{By tuning \counterencodingabbrv's paramters,
-        \sketchcms attains high performance and the best accuracy.}}
-    \vspace{7.5cm}
+        \captionof{table}{\tra{Tuning \counterencodingabbrv's parameters for
+        each plot point to the left according to the table above enables high
+        performance and accuracy for \sketchcms.}}
+    \vspace{7.6cm}
     \end{minipage} \\
-    \vspace*{-6.7cm}
+    \vspace*{-7.0cm}
     \caption{\sketchcms achieves the highest accuracy under real-world
     workloads while maintaining equal or superior insertion and query
     performance. We use the optimal tuning of the baselines at each point of
@@ -2462,18 +2463,17 @@ Theorems~\ref{thm:sketch_expandability_special_case}~and~\ref{thm:sketch_expanda
 
 \begin{figure}
     \centering
-    \includegraphics[width=0.95\columnwidth]{skew_vale_tuning.pdf}
+    \includegraphics[width=\columnwidth]{skew_vale_tuning.pdf}
     \begin{tikzpicture}
         \node[inner sep=1pt,anchor=north,align=left] (A) at (0,0) {\textbf{A)}};
         \node[inner sep=1pt,right=3.5 of A,align=center] (B) {\textbf{B)}};
         \node[inner sep=1pt,left=1.0 of A,align=center] (dummy) {};
     \end{tikzpicture}
     \vspace*{-4mm}
-    \caption{By automatically tuning \counterencodingabbrv, \sketchcms adapts
-    to all levels of skew\tra{, enabling the A)~highest accuracy among all
-    baselines and B)~a smaller memory footprint compared to using a fixed
-    tuning}.}
-    \vspace*{-4mm}
+    \caption{\tra{By adapting \counterencodingabbrv to skew, \sketchcms
+    achieves the A)~highest accuracy among all baselines and B)~a smaller
+    memory footprint compared to using a fixed tuning}.}
+    \vspace*{-5mm}
     \label{fig:skew_vale_tuning_bench}
 \end{figure}
 
@@ -2536,7 +2536,7 @@ significantly higher than the confidence bounds resulting from~$d=1$ ($\approx
     \vspace*{-4mm}
     \caption{\sketchcms achieves both a low error rate and a small memory
     footprint when processing growing streams.}
-    \vspace*{-3mm}
+    \vspace*{-4mm}
     \label{fig:expansion_bench}
 \end{figure}
 
@@ -2544,10 +2544,10 @@ significantly higher than the confidence bounds resulting from~$d=1$ ($\approx
     \centering
     \hspace*{0.05mm}
     \includegraphics[width=0.98\columnwidth]{contraction.pdf}
-    \vspace*{-3mm}
+    \vspace*{-4mm}
     \caption{\sketchcms saves a significant amount of memory by contracting when
     many keys are deleted.}
-    \vspace*{-3mm}
+    \vspace*{-5mm}
     \label{fig:contraction_bench}
 \end{figure}
 
@@ -2571,8 +2571,8 @@ significantly higher than the confidence bounds resulting from~$d=1$ ($\approx
         4 & 75 & 4 \\ 
         \bottomrule 
     \end{tabular} 
-    \captionof{table}{\tra{Tuning \counterencodingabbrv\ yields high
-        performance and the best accuracy.}}
+    \captionof{table}{\tra{Tuning \counterencodingabbrv\ as above leads to high
+        performance and accuracy.}}
     \vspace{2.45cm}
     \end{minipage} \\
     \vspace*{-3.15cm}
@@ -2658,6 +2658,13 @@ Coding sketch (which we exclude from the experiment due to its poor
 performance), \sketchcms is the only tunable sketch. Thus, we allow it to adapt
 \counterencodingabbrv's tuning to the workload's skew.
 
+\Cref{fig:skew_vale_tuning_bench}-A) shows that \sketchcms provides the lowest
+error under all degrees of skew. It outperforms all other baselines by an order
+of magnitude for more uniform workloads and by~$3\times$ for more skewed
+workloads. This is because it exposes a tuning space that allows
+\counterencodingabbrv\ to save memory by employing longer and shorter stubs for
+more uniform and skewed workloads, respectively. 
+
 \begin{figure}
     \centering
     %\hspace*{0.05mm}
@@ -2680,13 +2687,6 @@ performance), \sketchcms is the only tunable sketch. Thus, we allow it to adapt
     \label{fig:join_size_bench}
 \end{figure*}
 
-
-\Cref{fig:skew_vale_tuning_bench}-A) shows that \sketchcms provides the lowest
-error under all degrees of skew. It outperforms all other baselines by an order
-of magnitude for more uniform workloads and by~$3\times$ for more skewed
-workloads. This is because it exposes a tuning space that allows
-\counterencodingabbrv\ to save memory by employing longer and shorter stubs for
-more uniform and skewed workloads, respectively. 
 
 \hypertarget{experiment:vale_tuning}{\textbf{Experiment 3: Memory Savings of Adaptively Tuning \counterencodingabbrv.}}
 We demonstrate the need for adapting \counterencodingabbrv's tuning as the
@@ -2734,9 +2734,7 @@ in \Cref{fig:expansion_bench}
 shows that, despite expanding the number of counters, \sketchcms maintains a
 modest memory footprint relative to the stream's length.
 \trc{Furthermore, we have found that expansions take up only 0.5\%
-of the processing time, as they simply copy the counters sequentially.
-Nevertheless, when \sketchcms expands beyond the CPU cache, it incurs a slight
-yet necessary drop in insertion query throughput.}
+of the processing time, as they simply copy the counters sequentially.}
 
 \hypertarget{experiment:contraction}{\textbf{Experiment 5: Contractions.}}
 \Cref{fig:contraction_bench} showcases deletions and contractions in
@@ -2804,17 +2802,15 @@ create severe errors.
 \trb{
 \hypertarget{experiment:join_size}{\textbf{Experiment 7: Join Size Estimation.}}
 \Cref{fig:join_size_bench}
-shows
-the benefits of both \sketchcms and \sketchcs in join size estimation. Here, we
-employ a 100 GB TPC-H workload~\cite{TPCH}. We construct sketches tracking the
-count of each \texttt{ORDERKEY} value in the \texttt{lineitem} and
-\texttt{orders} tables, and predict their counts in the join by multiplying the
-per-table estimates. Following~\cite{JoinSizeEstimationFilterConditions}, we
-simulate a many-to-many join by duplicating each row in the \texttt{orders}
-table 1-3 times. We vary the total memory budget, which we distribute among the
-sketches in proportion to the size of their tables. We report accuracy
-measurements for each table, as well as the join result. We only compare
-\sketch\ to CMS and CS to simplify our plots. 
+applies \sketchcms and \sketchcs to join size estimation. Here, we employ a 100
+GB TPC-H workload~\cite{TPCH}. We construct sketches tracking the count of each
+\texttt{ORDERKEY} value in the \texttt{lineitem} and \texttt{orders} tables,
+and predict their counts in the join by multiplying the per-table estimates.
+Following~\cite{JoinSizeEstimationFilterConditions}, we simulate a many-to-many
+join by duplicating each row in the \texttt{orders} table 1-3 times. We vary
+the total memory budget, which we distribute among the sketches in proportion
+to the size of their tables. We report accuracy measurements for each table, as
+well as the join result.
 }
 
 \trb{
@@ -2839,13 +2835,15 @@ memory footprint of sketches beyond the state of the art while maintaining high
 performance.
 
 \trshared{
-Exploring concurrency control mechanisms for \sketch\ would be an interesting
-research direction. Prior work has proposed handling concurrent updates by
-employing thread-local sketches to ingest subsets of the stream in parallel and
-periodically merging them to answer
-queries~\cite{FastConcurrentDataSketches,FPGASketching}. While these techniques
-apply to \sketch, their impact on performance when combined with expansions and
-contractions remains to be explored.
+Although \sketch\ is currently single-threaded, we expect significant
+performance gains from parallelization (e.g., through employing thread-local
+sketches to ingest subsets of the stream and periodically merging them to
+answer queries~\cite{FastConcurrentDataSketches,FPGASketching}). More broadly,
+\sketch\ opens a new research avenue on expandable sketches applicable to other
+core statistics, such as quantiles and cardinalities, which exhibit similar
+error growth under workloads with growing datasets. This marks a fundamental
+shift from fixed-size sketches with degrading accuracy to adaptive structures
+that maintain stable accuracy for always-on analytics.
 }
 
 %\begin{acks}
