@@ -1,3 +1,9 @@
+% Flag to include the appendix
+\newif\ifappendix
+\newif\ifnoappendix
+\appendixfalse
+\noappendixtrue
+
 %%
 %% This is file `sample-sigconf.tex',
 %% generated with the docstrip utility.
@@ -44,7 +50,11 @@
 %% for your publication.
 %%
 %%
+\ifappendix
 \documentclass[sigconf]{acmart}
+\else 
+\documentclass[acmsmall]{acmart}
+\fi
 %%
 %% \BibTeX command to typeset BibTeX logo in the docs
 \AtBeginDocument{%
@@ -145,10 +155,6 @@
 \newcommand{\expectation}[1]{\mathbb{E}\left[ #1 \right]}
 \newcommand{\variance}[1]{\mathrm{Var}\left( #1 \right)}
 
-% Flag to include the appendix
-\newif\ifappendix
-\appendixtrue
-
 \graphicspath{{./figures/}}
 
 %%
@@ -215,9 +221,9 @@
     aspects: (1)~They are memory-inefficient under data skew. This is because
     they use uniformly-sized counters to track the key counts and thus waste
     memory on storing the leading zeros of many small counter values. (2)~Their
-    estimation error deteriorates at least linearly with the length of the
-    stream, which may grow indefinitely over time. This is because they count
-    the keys using a fixed number of counters. 
+    estimation error deteriorates at least linearly with the stream's length,
+    which may grow indefinitely over time. This is because they count the keys
+    using a fixed number of counters. 
 
     We present \sketch, a framework that generalizes frequency estimation
     sketches to address these problems by dynamically adapting to the stream's
@@ -226,10 +232,9 @@
     the same cache line. It leverages specialized bit manipulation routines to
     quickly access a counter's extension. It also adaptively maintains accurate
     estimates by expanding its number of counters as the stream grows. We apply
-    \sketch\ to Count-Min Sketch and Count Sketch, and show, both theoretically
-    and empirically, that \sketch\ significantly improves their accuracy and
-    memory over the state of the art while maintaining competitive or superior
-    performance.
+    \sketch\ to Count-Min Sketch and Count Sketch, and show, theoretically and
+    empirically, that \sketch\ significantly improves accuracy and memory over
+    the state of the art while maintaining competitive or superior performance.
 \end{abstract}
 
 %%
@@ -312,8 +317,10 @@ approximate the counts using a compact, fixed-size structure. At a high level,
 this structure maps each key to a counter among a small set of counters (e.g.,
 via hashing). It estimates the frequency of a given key based on its
 corresponding counter. In this way, sketches significantly reduce the memory
-footprint, though they introduce estimation errors, since multiple keys may map
-to the same counter. Sketches have become key components across many systems
+footprint, though they introduce estimation errors due the possibility of
+multiple keys mapping to the same counter.
+%In this way, sketches significantly reduce the memory footprint, though they introduce estimation errors, since multiple keys may map to the same counter.
+Sketches have become key components across many systems
 including query
 optimizers~\cite{Compass,QueryOptimizationSketches,ConvolutionSketch}, network
 monitors~\cite{SketchBasedChangeDetection,WhatsNew,SketchingStreamsNet,TrafficManagementSurvey,RandomizedAdmissionEstimation,Blink,LOFT},
@@ -325,14 +332,14 @@ genome analysis pipelines~\cite{CMSkmer,SetMinSketch}.
 Frequency estimation sketches differ in the nature of the errors they
 introduce. The Count-Min Sketch (CMS)~\cite{CountMin} always overestimates a
 key's count. This one-sided error makes CMS suitable for security-critical
-applications such as denial-of-service~\cite{CoDDoS} and hardware row
-hammer~\cite{CoMeT} attack detection, where false negatives are unacceptable.
-The Count Sketch (CS)~\cite{CountSketch}, in contrast, can both overestimate
-and underestimate a key's count. Yet, these errors cancel out on average,
-yielding unbiased estimates. This property prevents the error from compounding
-when combining or multiplying estimates, making CS useful for tasks such as
-query optimization~\cite{Compass,QueryOptimizationSketches,ConvolutionSketch}
-and covariance estimation~\cite{ASCS}. The Misra-Gries (MG)
+applications such as detecting denial-of-service~\cite{CoDDoS} and hardware row
+hammer~\cite{CoMeT} attacks, where false negatives are unacceptable. The Count
+Sketch (CS)~\cite{CountSketch}, in contrast, can both overestimate and
+underestimate a key's count. Yet, these errors cancel out on average, yielding
+unbiased estimates. This property prevents the error from compounding when
+combining or multiplying estimates, making CS useful for tasks such as query
+optimization~\cite{Compass,QueryOptimizationSketches,ConvolutionSketch} and
+covariance estimation~\cite{ASCS}. The Misra-Gries (MG)
 structure~\cite{MisraGries} always underestimates the key counts. Since MG also
 explicitly tracks (or approximates) the most frequent keys, i.e., the heavy
 hitters, it is particularly effective for identifying them, as
@@ -357,9 +364,9 @@ most counters within a sketch hold small values while only a few hold large
 ones. Existing sketches use uniformly-sized counters, which must be long enough
 to represent the maximum counter value in a workload. Consequently, they waste
 a significant amount of memory storing the unused higher-order bits of small
-counter values. Several prior works attempt to address this problem by merging
-or sharing overflowing
-counters~\cite{SALSA,BitSense,PyramidSketch,StingySketch,AdaptiveCounterSplicing,CounterTree,TreeSensing,TailoredSketch}.
+counter values. Several prior works attempt to address this problem by
+utilizing smaller counters and merging or sharing those that
+overflow~\cite{SALSA,BitSense,PyramidSketch,StingySketch,AdaptiveCounterSplicing,CounterTree,TreeSensing,TailoredSketch}.
 Nevertheless, these approaches compromise either accuracy or performance.
 Therefore, the challenge of minimizing memory footprint under skew without
 harming accuracy~or~performance~persists.
@@ -393,10 +400,18 @@ cache line and employs specialized bit manipulation routines to decode them in
 constant time. To resolve Problem~2 (Unbounded Data Growth), \sketch\ expands
 its number of counters as the stream grows. In doing so, it bounds both the
 error and the memory footprint and establishes a Pareto frontier of tradeoffs
-to choose from. \\[6mm]
+to choose from. 
+\ifappendix
+\\[6mm]
+\fi
 
+\ifnoappendix
+\textbf{Additional Contributions.}
+\fi
 \begin{enumerate}
-    \item[] \textbf{Additional Contributions.}
+    \ifappendix
+      \item[] \textbf{Additional Contributions.}
+    \fi
     \item We analyze existing techniques for addressing skew and show that
         their estimation error grows super-linearly with the stream size.
     \item We introduce a constant-time \underline{va}riable-\underline{l}ength
@@ -423,6 +438,42 @@ to choose from. \\[6mm]
       between two tables and show that it returns the most accurate results.
 \end{enumerate}
 \vspace{-2mm}
+
+\begin{table}
+    \centering
+    \bgroup
+    \def\arraystretch{1.025}
+    \small
+    \begin{tabular}{cc}
+        \toprule
+        \textbf{Symbol} & \textbf{Definition} \\
+        \midrule
+        $N$ & The sum of the counts of all keys in the stream. \\
+        $x, y$ & Example keys from the stream. \\
+        $f(x)$ & The ground-truth count of key~$x$. \\
+        $\hat{f}(x)$ & The estimated count of key~$x$. \\
+        $w$ & Number of counters/slots. \\
+        $d$ & Number of independent arrays. \\
+        $h_i(x)$ & Hash function mapping key~$x$ to a counter. \\
+        $\sigma_i(x)$ & Hash function defining key~$x$'s update direction ($\pm 1$). \\
+        %$N^{\text{res}(i)}$ & Total count of all but the~$i$ most frequent keys. \\
+        \cmidrule{1-2}
+        $c$ & Number of counters in each chunk. \\
+        $s$ & Length of each stub in bits. \\
+        $W(\cdot)$ & Size function. \\
+        %\cmidrule{1-2}
+        %AAE & Average Absolute Error, i.e., $\text{avg}_x|\hat{f}(x) - f(x)|$. \\
+        %ARE & Average Relative Error, i.e., $\text{avg}_x\frac{|\hat{f}(x) - f(x)|}{f(x)}$. \\
+        %\makecell[c]{Top-$w$ \\[-2pt] AAE} & Average Absolute Error among the~$w$ most frequent items. \\
+        \bottomrule
+    \end{tabular}
+    \egroup
+    \caption{Definitions of terms and symbols.}
+    \ifnoappendix
+      \vspace{-3mm}
+    \fi
+    \label{tab:term_and_symbol_definitions}
+\end{table}
 
 \section{Background}~\label{sec:background}
 A stream is a sequence of key-value pairs~$\left\langle (x_1,\Delta_1),
@@ -463,38 +514,89 @@ Later in \Cref{sec:cs}, we
 describe Count Sketch~\cite{CountSketch} and apply our techniques to it. 
 \fi
 
-\begin{table}
+\begin{figure}
     \centering
-    \bgroup
-    \def\arraystretch{1.025}
-    \small
-    \begin{tabular}{cc}
-        \toprule
-        \textbf{Symbol} & \textbf{Definition} \\
-        \midrule
-        $N$ & The sum of the counts of all keys in the stream. \\
-        $x, y$ & Example keys from the stream. \\
-        $f(x)$ & The ground-truth count of key~$x$. \\
-        $\hat{f}(x)$ & The estimated count of key~$x$. \\
-        $w$ & Number of counters/slots. \\
-        $d$ & Number of independent arrays. \\
-        $h_i(x)$ & Hash function mapping key~$x$ to a counter. \\
-        $\sigma_i(x)$ & Hash function defining key~$x$'s update direction ($\pm 1$). \\
-        %$N^{\text{res}(i)}$ & Total count of all but the~$i$ most frequent keys. \\
-        \cmidrule{1-2}
-        $c$ & Number of counters in each chunk. \\
-        $s$ & Length of each stub in bits. \\
-        $W(\cdot)$ & Size function. \\
-        %\cmidrule{1-2}
-        %AAE & Average Absolute Error, i.e., $\text{avg}_x|\hat{f}(x) - f(x)|$. \\
-        %ARE & Average Relative Error, i.e., $\text{avg}_x\frac{|\hat{f}(x) - f(x)|}{f(x)}$. \\
-        %\makecell[c]{Top-$w$ \\[-2pt] AAE} & Average Absolute Error among the~$w$ most frequent items. \\
-        \bottomrule
-    \end{tabular}
-    \egroup
-    \caption{Definitions of terms and symbols.}
-    \label{tab:term_and_symbol_definitions}
-\end{table}
+    \begin{tikzpicture}
+        \def\arraycount{3}
+        \def\arrayw{5}
+        \ifappendix
+            \def\arrayh{0.25}
+        \else
+            \def\arrayh{0.3}
+        \fi
+        \def\arraylen{10}
+        \def\arraysep{0.25}
+        \def\counterw{0.5}
+
+        \foreach \i in {1, ..., \arraycount} {
+            \draw[black] (0,-\i*\arrayh+1.5*\arrayh-\i*\arraysep+\arraysep) rectangle (\arrayw,-\i*\arrayh+0.5*\arrayh-\i*\arraysep+\arraysep);
+            \foreach \j in {2, ..., \arraylen} {
+                \draw (\j*\counterw-\counterw,-\i*\arrayh+1.5*\arrayh-\i*\arraysep+\arraysep) -- (\j*\counterw-\counterw,-\i*\arrayh+0.5*\arrayh-\i*\arraysep+\arraysep);
+            }
+        }
+        \def\texty{4.5*\arrayh}
+        \ifappendix
+          \def\inserttextx{-2.25*\counterw}
+        \else
+          \def\inserttextx{-3*\counterw}
+        \fi
+        \node[inner sep=1pt,align=center] (key) at (\inserttextx,\texty) {\small Insert $x$};
+        \draw (key.south) -- (\inserttextx,-1.5*\arrayh-1.5*\arraysep);
+
+        \def\pa{3.0}
+        \def\pb{1.0}
+        \def\pc{2.0}
+        \ifappendix
+            \draw[-stealth] (\inserttextx,0.5*\arrayh+0.5*\arraysep) -| (\pa*\counterw+0.5*\counterw,0.5*\arrayh) node[pos=0.095,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_1(x)$, $+1$};
+            \draw[-stealth] (\inserttextx,-0.5*\arrayh-0.5*\arraysep) -| (\pb*\counterw+0.5*\counterw,-0.5*\arrayh-1.0*\arraysep) node[pos=0.148,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_2(x)$, $+1$};
+            \draw[-stealth] (\inserttextx,-1.5*\arrayh-1.5*\arraysep) -| (\pc*\counterw+0.5*\counterw,-1.5*\arrayh-2.0*\arraysep) node[pos=0.116,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_3(x)$, $+1$};
+        \else
+            \draw[-stealth] (\inserttextx,0.5*\arrayh+0.5*\arraysep) -| (\pa*\counterw+0.5*\counterw,0.5*\arrayh) node[pos=0.1005,above=2pt,align=center,inner sep=0pt] {\small $h_1(x)$, $+1$};
+            \draw[-stealth] (\inserttextx,-0.5*\arrayh-0.5*\arraysep) -| (\pb*\counterw+0.5*\counterw,-0.5*\arrayh-1.0*\arraysep) node[pos=0.145,above=2pt,align=center,inner sep=0pt] {\small $h_2(x)$, $+1$};
+            \draw[-stealth] (\inserttextx,-1.5*\arrayh-1.5*\arraysep) -| (\pc*\counterw+0.5*\counterw,-1.5*\arrayh-2.0*\arraysep) node[pos=0.1185,above=2pt,align=center,inner sep=0pt] {\small $h_3(x)$, $+1$};
+        \fi
+
+        \ifappendix
+            \def\querytextx{\arrayw+2.25*\counterw}
+        \else
+            \def\querytextx{\arrayw+3*\counterw}
+        \fi
+        \node[inner sep=1pt,align=center] (query) at (\querytextx,\texty) {\small Query $q$ \\[-2pt] \small Result $=1$};
+        \draw[stealth-] (query.south) -- (\querytextx,-1.5*\arrayh-1.5*\arraysep) node[pos=0.5,below=2pt,rotate=90,inner sep=2pt] {\small Min};
+
+        \def\pa{8.0}
+        \def\pb{4.0}
+        \def\pc{7.0}
+        \ifappendix
+            \draw (\querytextx,0.5*\arrayh+0.5*\arraysep) -| (\pa*\counterw+0.5*\counterw,0.5*\arrayh) node[pos=0.095,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_1(q)$};
+            \draw (\querytextx,-0.5*\arrayh-0.5*\arraysep) -| (\pb*\counterw+0.5*\counterw,-0.5*\arrayh-1.0*\arraysep) node[pos=0.0445,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_2(q)$};
+            \draw (\querytextx,-1.5*\arrayh-1.5*\arraysep) -| (\pc*\counterw+0.5*\counterw,-1.5*\arrayh-2.0*\arraysep) node[pos=0.074,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_3(q)$};
+        \else
+            \draw (\querytextx,0.5*\arrayh+0.5*\arraysep) -| (\pa*\counterw+0.5*\counterw,0.5*\arrayh) node[pos=0.095,above=2pt,align=center,inner sep=0pt] {\small $h_1(q)$};
+            \draw (\querytextx,-0.5*\arrayh-0.5*\arraysep) -| (\pb*\counterw+0.5*\counterw,-0.5*\arrayh-1.0*\arraysep) node[pos=0.0502,above=2pt,align=center,inner sep=0pt] {\small $h_2(q)$};
+            \draw (\querytextx,-1.5*\arrayh-1.5*\arraysep) -| (\pc*\counterw+0.5*\counterw,-1.5*\arrayh-2.0*\arraysep) node[pos=0.0773,above=2pt,align=center,inner sep=0pt] {\small $h_3(q)$};
+        \fi
+
+        \draw[fill=gray!20] (\pa*\counterw,0.5*\arrayh) rectangle (\pa*\counterw+\counterw,-0.5*\arrayh);
+        \draw[fill=gray!20] (\pb*\counterw,-0.5*\arrayh-1.0*\arraysep) rectangle (\pb*\counterw+\counterw,-1.5*\arrayh-1.0*\arraysep);
+        \draw[fill=gray!20] (\pc*\counterw,-1.5*\arrayh-2.0*\arraysep) rectangle (\pc*\counterw+\counterw,-2.5*\arrayh-2.0*\arraysep);
+        \ifappendix
+            \node[inner sep=0pt] at (\pa*\counterw+0.5*\counterw,-0.0*\arrayh-0.0*\arraysep) {\footnotesize $1$};
+            \node[inner sep=0pt] at (\pb*\counterw+0.5*\counterw,-1.0*\arrayh-1.0*\arraysep) {\footnotesize $4$};
+            \node[inner sep=0pt] at (\pc*\counterw+0.5*\counterw,-2.0*\arrayh-2.0*\arraysep) {\footnotesize $3$};
+        \else 
+            \node[inner sep=0pt] at (\pa*\counterw+0.5*\counterw,-0.0*\arrayh-0.0*\arraysep) {\small $1$};
+            \node[inner sep=0pt] at (\pb*\counterw+0.5*\counterw,-1.0*\arrayh-1.0*\arraysep) {\small $4$};
+            \node[inner sep=0pt] at (\pc*\counterw+0.5*\counterw,-2.0*\arrayh-2.0*\arraysep) {\small $3$};
+        \fi
+
+        %\node[inner sep=0pt,anchor=west] at (-3.05*\counterw,3.0*\arrayh) {\textbf{A) CMS}};
+    \end{tikzpicture}
+    \caption{CMS maintains~$d$ counter arrays of size~$w$ and hashes keys into
+    them to estimate their frequencies. Insertions are illustrated on the left
+    and queries on the right.}
+    \label{fig:cms_overview}
+\end{figure}
 
 \textbf{Count-Min Sketch (CMS).}
 The core design element of CMS is a counter array consisting of~$w$ counters,
@@ -509,7 +611,7 @@ a key~$x$. This error is at most~$\frac{N}{w}$ in expectation since a key
 participates in a hash collision with a probability of~$\frac{1}{w}$ and the
 total count of keys different from~$x$ is at most~$N$. Increasing the array's
 size makes collisions less likely, thereby decreasing the error and improving
-\emph{Accuracy}. Even so, the error may deviate from its expectation. The
+\emph{Accuracy}. Even still, the error may deviate from its expectation. The
 probability that errors do not exceed the expectation ``too much'' is known as
 the sketch's \emph{Confidence}. An application of Markov's inequality shows
 that the error does not exceed~$\frac{eN}{w}$ with a confidence of at
@@ -536,60 +638,6 @@ exponentially, since it only carries severe errors when all estimates err
 significantly. Thus, with $d$ arrays of length $w$, CMS guarantees an error of
 at most~$\frac{eN}{w}$ with a confidence of~$1-e^{-d}$, i.e., $\Pr\left(
 |\hat{f}(x)-f(x)| \leq \frac{eN}{w} \right) \geq 1-e^{-d}$ for any key~$x$.
-
-\begin{figure}
-    \centering
-    \begin{tikzpicture}
-        \def\arraycount{3}
-        \def\arrayw{5}
-        \def\arrayh{0.25}
-        \def\arraylen{10}
-        \def\arraysep{0.25}
-        \def\counterw{0.5}
-
-        \foreach \i in {1, ..., \arraycount} {
-            \draw[black] (0,-\i*\arrayh+1.5*\arrayh-\i*\arraysep+\arraysep) rectangle (\arrayw,-\i*\arrayh+0.5*\arrayh-\i*\arraysep+\arraysep);
-            \foreach \j in {2, ..., \arraylen} {
-                \draw (\j*\counterw-\counterw,-\i*\arrayh+1.5*\arrayh-\i*\arraysep+\arraysep) -- (\j*\counterw-\counterw,-\i*\arrayh+0.5*\arrayh-\i*\arraysep+\arraysep);
-            }
-        }
-        \def\texty{4.5*\arrayh}
-        \def\inserttextx{-2.25*\counterw}
-        \node[inner sep=1pt,align=center] (key) at (\inserttextx,\texty) {\small Insert $x$};
-        \draw (key.south) -- (\inserttextx,-1.5*\arrayh-1.5*\arraysep);
-
-        \def\pa{3.0}
-        \def\pb{1.0}
-        \def\pc{2.0}
-        \draw[-stealth] (\inserttextx,0.5*\arrayh+0.5*\arraysep) -| (\pa*\counterw+0.5*\counterw,0.5*\arrayh) node[pos=0.095,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_1(x)$, $+1$};
-        \draw[-stealth] (\inserttextx,-0.5*\arrayh-0.5*\arraysep) -| (\pb*\counterw+0.5*\counterw,-0.5*\arrayh-1.0*\arraysep) node[pos=0.148,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_2(x)$, $+1$};
-        \draw[-stealth] (\inserttextx,-1.5*\arrayh-1.5*\arraysep) -| (\pc*\counterw+0.5*\counterw,-1.5*\arrayh-2.0*\arraysep) node[pos=0.116,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_3(x)$, $+1$};
-
-        \def\querytextx{\arrayw+2.25*\counterw}
-        \node[inner sep=1pt,align=center] (query) at (\querytextx,\texty) {\small Query $q$ \\[-2pt] \small Result $=1$};
-        \draw[stealth-] (query.south) -- (\querytextx,-1.5*\arrayh-1.5*\arraysep) node[pos=0.5,below=2pt,rotate=90,inner sep=2pt] {\small Min};
-
-        \def\pa{8.0}
-        \def\pb{4.0}
-        \def\pc{7.0}
-        \draw (\querytextx,0.5*\arrayh+0.5*\arraysep) -| (\pa*\counterw+0.5*\counterw,0.5*\arrayh) node[pos=0.095,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_1(q)$};
-        \draw (\querytextx,-0.5*\arrayh-0.5*\arraysep) -| (\pb*\counterw+0.5*\counterw,-0.5*\arrayh-1.0*\arraysep) node[pos=0.0445,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_2(q)$};
-        \draw (\querytextx,-1.5*\arrayh-1.5*\arraysep) -| (\pc*\counterw+0.5*\counterw,-1.5*\arrayh-2.0*\arraysep) node[pos=0.074,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_3(q)$};
-
-        \draw[fill=gray!20] (\pa*\counterw,0.5*\arrayh) rectangle (\pa*\counterw+\counterw,-0.5*\arrayh);
-        \draw[fill=gray!20] (\pb*\counterw,-0.5*\arrayh-1.0*\arraysep) rectangle (\pb*\counterw+\counterw,-1.5*\arrayh-1.0*\arraysep);
-        \draw[fill=gray!20] (\pc*\counterw,-1.5*\arrayh-2.0*\arraysep) rectangle (\pc*\counterw+\counterw,-2.5*\arrayh-2.0*\arraysep);
-        \node[inner sep=0pt] at (\pa*\counterw+0.5*\counterw,-0.0*\arrayh-0.0*\arraysep) {\footnotesize $1$};
-        \node[inner sep=0pt] at (\pb*\counterw+0.5*\counterw,-1.0*\arrayh-1.0*\arraysep) {\footnotesize $4$};
-        \node[inner sep=0pt] at (\pc*\counterw+0.5*\counterw,-2.0*\arrayh-2.0*\arraysep) {\footnotesize $3$};
-
-        %\node[inner sep=0pt,anchor=west] at (-3.05*\counterw,3.0*\arrayh) {\textbf{A) CMS}};
-    \end{tikzpicture}
-    \caption{CMS maintains~$d$ counter arrays of size~$w$ and hashes keys into
-    them to estimate their frequencies. Insertions are illustrated on the left
-    and queries on the right.}
-    \label{fig:cms_overview}
-\end{figure}
 
 Since CMS uses a constant number of tightly packed counters and does not store
 the stream's keys, it significantly improves the memory footprint compared to
@@ -618,13 +666,13 @@ separately in a hash table while leaving the rest of the keys to
 CMS~\cite{AugmentedSketch,HeavyKeeper,HeavyGuardian,MVSketch,WavingSketch,ElasticSketch}.
 Such hybrid structures aim to cap the maximum counter value in CMS, thereby
 permitting shorter counters. Yet, this approach does not fundamentally resolve
-the issue. The keys tracked by CMS may still follow a skewed distribution,
-leading to significant memory wastage. Moreover, the heavy hitters can vary
-over time. Identifying the next heavy hitter and ``promoting'' it from CMS into
-the hash table is error-prone, since collisions in CMS can cause many
-infrequent keys to be misclassified as heavy hitters. The hybrid structures in
-the literature explore different hash table implementations and promotion
-policies.
+the issue. The reasons are twofold: The keys tracked by CMS may still follow a
+skewed distribution, leading to significant memory wastage. Moreover, the heavy
+hitters can vary over time. Identifying the next heavy hitter and ``promoting''
+it from CMS into the hash table is error-prone, since collisions in CMS can
+cause many infrequent keys to be misclassified as heavy hitters. The hybrid
+structures in the literature explore different hash table implementations and
+promotion policies.
 
 \textbf{Compression-based Methods.}
 Other approaches compress the counters using algorithms such as compressive
@@ -2795,8 +2843,10 @@ error growth under workloads with growing datasets. This marks a fundamental
 shift from fixed-size sketches with degrading accuracy to adaptive structures
 that maintain stable accuracy for always-on analytics.
 
-%\begin{acks}
-%\end{acks}
+\begin{acks}
+  We thank the reviewers for their insightful comments. This research was
+  supported by the NSERC grant \#RGPIN-2023-03580.
+\end{acks}
 
 %\clearpage
 
