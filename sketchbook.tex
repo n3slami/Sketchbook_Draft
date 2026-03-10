@@ -2626,10 +2626,12 @@ expanding when the numerator~$F$ more than doubles, which is in contrast with
 how \sketchcms expands when~$N$ (the numerator of CMS's error bound) more than
 doubles. We encode different expansion policies by defining the size function
 based on the numerator~$F$, i.e., as~$W(F)$. The quantity~$F$ is also known as
-the squared~$\ell_2$-norm of the stream. This technique allows one to adapt
-\sketch\ to any arbitrary sketch with an error bound of the form~$\frac{X}{w}$
-by expanding when the quantity~$X$ more than doubles and defining the size
-function based on~$X$, i.e., as $W(X)$.
+the squared~$\ell_2$-norm of the stream. Similarly, one can adapt
+\sketch\ to an arbitrary sketch with an error bound of the form~$\frac{X}{w}$,
+where~$X$ is some parameter of the workload or the sketch (e.g., the total
+number of keys) and~$w$ is the sketch's size (e.g., the number of counters).
+This entails expanding when the quantity~$X$ more than doubles and defining the
+size function based on~$X$, i.e., as $W(X)$.
 
 Similarly to \sketchcms, where we have to track the total number of keys~$N$ to
 determine when to expand, \sketchcs must track the squared~$\ell_2$-norm~$F$.
@@ -3013,9 +3015,7 @@ confidence bounds resulting from~$d=1$ ($\approx 63\%$) and $d=2$ ($\approx
     \ifnoappendix
     \hspace*{7.15cm}
     \fi
-    \ifappendix
-      \vspace{-3mm}
-    \fi
+    \vspace{-3mm}
     \caption{By adapting \counterencodingabbrv\ to skew, \sketchcms
     achieves the highest accuracy among all baselines (Part A) and a smaller
     memory footprint compared to using a fixed tuning (Part B).}
@@ -3175,12 +3175,6 @@ tails arrays. Nevertheless, it does not optimally leverage the shorter
 extension lengths and consumes~$\approx 10\%$ more memory than the adaptive
 version. 
 
-In this experiment, adaptations comprise less than~3\% of the processing time,
-as their overhead is amortized. One can expect this overhead in mixed workloads
-with both insertions and deletions to be similar to our insertion-only
-workload. This is because our workload triggers just as many adaptations as
-mixed workloads by growing the counters and causing many chunks to overflow.
-
 \ifnoappendix
 \setlength{\tabcolsep}{4pt}
 \begin{tabular}{cc}
@@ -3203,6 +3197,12 @@ mixed workloads by growing the counters and causing many chunks to overflow.
 \end{tabular}
 \vspace{5mm}
 \fi
+
+In this experiment, adaptations comprise less than~3\% of the processing time,
+as their overhead is amortized. One can expect this overhead in mixed workloads
+with both insertions and deletions to be similar to our insertion-only
+workload. This is because our workload triggers just as many adaptations as
+mixed workloads by growing the counters and causing many chunks to overflow.
 
 \hypertarget{experiment:expansion}{\textbf{Experiment 4: Accuracy and Memory under Data Growth.}}
 We now compare the accuracy and memory footprint of the baselines when the
@@ -3410,14 +3410,14 @@ state of the art while maintaining high performance. Although \sketch\ is
 currently single-threaded, we expect significant performance gains from
 parallelization (e.g., through employing thread-local sketches to ingest
 subsets of the stream and periodically merging them to answer
-queries~\cite{FastConcurrentDataSketches,FPGASketching}). In particular,
+queries~\cite{FastConcurrentDataSketches,FPGASketching}). As future work,
 studying the interplay of concurrent updates with expansions, contractions, and
-adaptive tuning would be an interesting direction of future work. More broadly,
-\sketch\ opens a new research avenue on expandable sketches applicable to other
-core statistics, such as quantiles and cardinalities, which exhibit similar
-error growth under workloads with growing datasets. This marks a fundamental
-shift from fixed-size sketches with degrading accuracy to adaptive structures
-that maintain stable accuracy for always-on analytics.
+adaptive tuning would be fruitful. More broadly, \sketch\ opens a new research
+avenue on expandable sketches applicable to other core statistics, such as
+quantiles and cardinalities, which exhibit similar error growth under workloads
+with growing datasets. This marks a fundamental shift from fixed-size sketches
+with degrading accuracy to adaptive structures that maintain stable accuracy
+for always-on analytics.
 
 \begin{acks}
   We thank the reviewers for their insightful comments. This research was
