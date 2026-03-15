@@ -373,8 +373,9 @@
   numpages = {12},
 }
 
-@article{InfiniFilter,
-  author = {Dayan, Niv and Bercea, Ioana and Reviriego, Pedro and Pagh, Rasmus},
+@inproceedings{InfiniFilter,
+  author = {Dayan, Niv and Bercea, Ioana O. and Reviriego, Pedro and Pagh,
+            Rasmus },
   title = {InfiniFilter: Expanding Filters to Infinity and Beyond},
   year = {2023},
   issue_date = {June 2023},
@@ -411,23 +412,45 @@
               cost properties compared to existing methods: it better scales
               performance, the false positive rate, and the memory footprint, all
               at the same time.},
-  journal = {Proc. ACM Manag. Data},
+  booktitle = {Proceedings of the 2023 International Conference on Management of
+               Data},
   month = {jun},
   articleno = {140},
   numpages = {27},
   keywords = {approximate set membership, scalability, expandability, data
               growth, quotient filter, probabalistic data structures, bloom
               filter},
+  location = {Seattle, Washington, USA},
+  series = {SIGMOD '23},
 }
 
-@misc{AlephFilter,
+@article{AlephFilter,
+  author = {Dayan, Niv and Bercea, Ioana O. and Pagh, Rasmus},
   title = {Aleph Filter: To Infinity in Constant Time},
-  author = {Niv Dayan and Ioana Bercea and Rasmus Pagh},
   year = {2024},
-  eprint = {2404.04703},
-  archivePrefix = {arXiv},
-  primaryClass = {cs.DB},
-  url = {https://arxiv.org/abs/2404.04703},
+  issue_date = {July 2024},
+  publisher = {VLDB Endowment},
+  volume = {17},
+  number = {11},
+  issn = {2150-8097},
+  url = {https://doi.org/10.14778/3681954.3682027},
+  doi = {10.14778/3681954.3682027},
+  abstract = {Filter data structures are widely used in various areas of
+              computer science to answer approximate set-membership queries. In
+              many applications, the data grows dynamically, requiring their
+              filters to expand along with the data. However, existing methods
+              for expanding filters cannot maintain stable performance, memory
+              footprint, and false positive rate (FPR) simultaneously. We address
+              this problem with Aleph Filter, which makes the following
+              contributions. (1) It supports all operations (insertions, queries,
+              deletes, etc.) in constant time, no matter how much the data grows.
+              (2) Given an estimate of how much the data will ultimately grow,
+              Aleph Filter provides a memory vs. FPR trade-offs on par with
+              static filters.},
+  journal = {Proc. VLDB Endow.},
+  month = jul,
+  pages = {3644–3656},
+  numpages = {13},
 }
 
 @article{TaffyFilters,
@@ -531,6 +554,41 @@
   pages = {60–70},
   numpages = {11},
   location = {New Orleans, Louisiana},
+}
+
+@inproceedings{Succincter,
+  author = {Patrascu, Mihai},
+  title = {Succincter},
+  year = {2008},
+  isbn = {9780769534367},
+  publisher = {IEEE Computer Society},
+  address = {USA},
+  url = {https://doi.org/10.1109/FOCS.2008.83},
+  doi = {10.1109/FOCS.2008.83},
+  abstract = {We can represent an array of n values from {0,1,2} using ceil(n
+              log_2 3) bits (arithmetic coding), but then we cannot retrieve a
+              single element efficiently. Instead, we can encode every block of t
+              elements using ceil(t log_2 3) bits, and bound the retrieval time
+              by t. This gives a linear trade-off between the redundancy of the
+              representation and the query time.In fact, this type of linear
+              trade-off is ubiquitous in known succinct data structures, and in
+              data compression. The folk wisdom is that if we want to waste one
+              bit per block, the encoding is so constrained that it cannot help
+              the query in any way. Thus, the only thing a query can do is to
+              read the entire block and unpack it.We break this limitation and
+              show how to use recursion to improve redundancy. It turns out that
+              if a block is encoded with two (!) bits of redundancy, we can
+              decode a single element, and answer many other interesting queries,
+              in time logarithmic in the block size.Our technique allows us to
+              revisit classic problems in succinct data structures, and give
+              surprising new upper bounds. We also construct a locally-decodable
+              version of arithmetic coding.},
+  booktitle = {Proceedings of the 2008 49th Annual IEEE Symposium on Foundations
+               of Computer Science},
+  pages = {305–313},
+  numpages = {9},
+  keywords = {succinct data structures, arithmetic coding, locally decodable},
+  series = {FOCS '08},
 }
 
 @inproceedings{BroadwordRankAndSelect,
@@ -3088,5 +3146,146 @@
   month = aug,
   pages = {1530–1541},
   numpages = {12},
+}
+
+@inproceedings{MementoFilter,
+  author = {Eslami, Navid and Dayan, Niv},
+  title = {Memento Filter: A Fast, Dynamic, and Robust Range Filter},
+  year = {2025},
+  issue_date = {June 2025},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  url = {https://doi.org/10.1145/3698820},
+  doi = {10.1145/3698820},
+  abstract = {Range filters are probabilistic data structures that answer
+              approximate range emptiness queries. They aid in avoiding
+              processing empty range queries and have use cases in many
+              application domains such as key-value stores and social web
+              analytics. However, current range filters do not support
+              dynamically changing and growing datasets. Moreover, several of
+              these designs also exhibit impractically high false positive rates
+              under correlated workloads, which are common in practice. These
+              impediments restrict the applicability of range filters across a
+              wide range of use cases.We introduce Memento filter, the first
+              range filter to simultaneously offer dynamicity, fast operations,
+              and a robust false positive rate for any workload. Memento filter
+              partitions the key universe and clusters its keys according to this
+              partitioning. For each cluster, it stores a fingerprint and a list
+              of key suffixes contiguously. The encoding of these lists makes
+              them amenable to existing dynamic filter structures. Due to the
+              one-to-one mapping from keys to suffixes, Memento filter supports
+              inserts and deletes and can even expand to accommodate a growing
+              dataset.We implement Memento filter on top of a Rank-and-Select
+              Quotient filter and InfiniFilter and demonstrate that it achieves a
+              competitive false positive rate and performance with the state of
+              the art while also providing dynamicity. Due to its dynamicity,
+              Memento filter is the first range filter applicable to B-Trees. We
+              showcase this by integrating Memento filter into WiredTiger, a
+              B-Tree-based key-value store, significantly boosting its
+              performance for mixed workloads.},
+  booktitle = {Proceedings of the 2025 International Conference on Management of
+               Data},
+  pages = {1–27},
+  numpages = {27},
+  keywords = {data growth, dynamic data structure, range filter, scalability},
+  location = {Berlin, Germany},
+  series = {SIGMOD '25},
+}
+
+@article{Diva,
+  author = {Eslami, Navid and Bercea, Ioana O. and Dayan, Niv},
+  title = {Diva: Dynamic Range Filter for Var-Length Keys and Queries},
+  year = {2025},
+  issue_date = {July 2025},
+  publisher = {VLDB Endowment},
+  volume = {18},
+  number = {11},
+  issn = {2150-8097},
+  url = {https://doi.org/10.14778/3749646.3749664},
+  doi = {10.14778/3749646.3749664},
+  abstract = {Range filters are compact probabilistic data structures that
+              answer approximate range emptiness queries. They are used in many
+              domains, e.g., in key-value stores, to quickly rule out the
+              existence of keys in a given query range and avoid having to search
+              for them in storage. However, all existing range filters exhibit at
+              least one of the following shortcomings: (1) they do not provide
+              robust false positive rate and performance guarantees , (2) they do
+              not support variable-length keys and query ranges, and (3) they do
+              not allow dynamic operations such as insertions, deletions, or
+              expansions.We introduce Diva, the first range filter to address all
+              the above challenges simultaneously. Diva learns the dataset's
+              distribution by sampling keys and storing them in a cache-efficient
+              trie. It compresses the keys in-between samples by removing their
+              longest common prefix and truncating their suffixes while leaving
+              enough bits in the middle (i.e., an infix) to allow differentiating
+              between the keys in the sorted order. It stores infixes in constant
+              time dynamic data blocks, which it splits to handle insertions and
+              expansions. It processes a range query by traversing the trie and
+              checking for the inclusion of infixes in the target query range.We
+              show, theoretically and empirically, that Diva achieves a false
+              positive rate on par with the state of the art on real-world
+              datasets while supporting dynamicity and variable-length queries
+              and keys.},
+  journal = {Proc. VLDB Endow.},
+  month = jul,
+  pages = {3923–3936},
+  numpages = {14},
+}
+
+@inproceedings{Aeris,
+  author = {Chesetti, Yuvaraj and Eslami, Navid and Zhang, Huanchen and Dayan,
+            Niv and Pandey, Prashant},
+  title = {Aeris Filter: A Strongly and Monotonically Adaptive Range Filter},
+  year = {2026},
+  issue_date = {June 2026},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  abstract = {Range filters are probabilistic data structures used to
+              efficiently perform range emptiness queries, with applica- tions in
+              databases, big data analytics, and key-value stores. Modern range
+              filters are compact and can guarantee a bounded false positive rate
+              irrespective of the spatial skew in queries. However, existing
+              range filters are still susceptible to temporal skew: in skewed
+              workloads where a few queries are repeated disproportionately more
+              often, the false positive rate of a range filter may be unbounded.
+              We introduce the Aeris filter, an adaptive expandable range filter
+              that guarantees a robust false positive rate irrespective of
+              spatial or temporal skew. The Aeris filter achieves this by
+              dynamically resolving and adapting to false positives. More
+              specifically, the Aeris filter is monotonic adaptive, i.e., it
+              never forgets a previously encoun- tered false positive. The Aeris
+              filter introduces a novel encoding scheme to implement adaptivity
+              in a range filter with no additional space or operational overhead.
+              Furthermore, the Aeris filter deamortizes the I/O cost to expand
+              monotonic adaptive filters by utilizing on-disk adaptivity
+              structures, resulting in fewer system disruptions. Experimental
+              results demonstrate that the Aeris filter achieves up to a 10×
+              reduction in false positive rates on skewed query distributions
+              compared to other non-adaptive range filters. When integrated into
+              a database, the Aeris filter delivers 1.5−8× higher throughput for
+              adversarial workloads, and is able to deliver this high throughput
+              using a cache of smaller size. The Aeris filter also reduces
+              expansion overhead by up to 3× compared to the Memento filter, a
+              spatially-robust expandable range filter. These improvements ensure
+              scalable, efficient, and adaptive range query handling in dynamic
+              environments.},
+  booktitle = {Proceedings of the 2026 International Conference on Management of
+               Data},
+  pages = {1670–1684},
+  numpages = {15},
+  keywords = {adaptive, data growth, dynamic data structure, range filter,
+              scalability},
+  location = {Bangalore, India},
+  series = {SIGMOD '26},
+}
+
+@misc{SublimeArxiv,
+  title = {Sublime: Sublinear Error \& Space for Unbounded Skewed Streams},
+  author = {Eslami, Navid and Bercea, Ioana O. and Pagh, Rasmus and Dayan, Niv},
+  year = {2026},
+  eprint = {2404.04703},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.DB},
+  url = {https://arxiv.org/abs/2404.04703},
 }
 
