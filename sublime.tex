@@ -158,6 +158,15 @@
 
 \graphicspath{{./figures/}}
 
+\ifappendix
+\usepackage{draftwatermark}
+\SetWatermarkScale{0.2}
+\SetWatermarkAngle{270}
+\SetWatermarkText{Accepted to SIGMOD 2026}
+\SetWatermarkHorCenter{0.95\paperwidth}
+\SetWatermarkVerCenter{0.5\paperheight}
+\fi
+
 %%
 %% end of the preamble, start of the body of the document source.
 \begin{document}
@@ -1160,7 +1169,7 @@ length to keep both the memory footprint and the error rate under control,
   high-performance operations. Is it possible to achieve all these
   goals~simultaneously?
 
-\section{\sketch}\label{sec:sketchbook} 
+\section{\sketch}\label{sec:sublime} 
 We present \sketch, a framework for generalizing a frequency estimation sketch
 to optimize its memory footprint with respect to the stream's skew and its
 length. \Cref{sec:accommodating_skew} shows how to adapt to skew by compactly
@@ -1902,7 +1911,8 @@ to increase its number of counters as the stream grows. In the case of CMS,
 concatenates the current sketch with a copy of itself, doubling the size of
 each array. This operation is inexpensive since it simply copies counters
 without needing to rehash the keys. These larger arrays reduce the collision
-probability of future insertions. \Cref{fig:sketchbook_chain} illustrates
+probability of future insertions. \Cref{fig:sketch_chain}
+illustrates
 \sketchcms just after the second expansion took place (on the right), as well
 as its state just before the first expansion (left) and the second (middle).
 Each half of an array in the largest sketch is a copy of the corresponding
@@ -2066,7 +2076,7 @@ complexity as CMS.}
     \caption{\sketchcms expands by concatenating each array with a copy of
     itself. It maps a key to a counter in an array by taking the appropriate
     number of bits from its hash.}
-    \label{fig:sketchbook_chain}
+    \label{fig:sketch_chain}
 \end{figure}
 
 \textbf{Consistent Hash Functions.}
@@ -2077,7 +2087,7 @@ expansion, a key hashes to either the same counter it would have hashed to
 before, or its copy.\footnote{It also grants \sketchcms mergeability: the
 ability to merge sketches constructed on distinct streams to represent their
 union without needing to rescan them.} For example, the queried key~$q$ in
-\Cref{fig:sketchbook_chain} has~$h_1(q)=011\dots$ as its hash. Since the size
+\Cref{fig:sketch_chain} has~$h_1(q)=011\dots$ as its hash. Since the size
 of the array before expansion was~4, we only needed the first~$\log_2 4=2$ bits
 of $q$'s hash, i.e., 01, to map it to the 2nd counter in the first array. After
 expansion, we use the first~$\log_2 8=3$ bits of the hash, i.e., 011, to map it
@@ -2090,7 +2100,7 @@ Thus, it avoids wasting memory from the onset in case the stream grows slowly.
 
 \textbf{Expansion Thresholds.} 
 By default, \sketchcms expands whenever~$N$ quadruples. As shown at the bottom
-of \Cref{fig:sketchbook_chain}, expansions occur when the number of keys~$N$
+of \Cref{fig:sketch_chain}, expansions occur when the number of keys~$N$
 reaches 4, 16, and 64. These thresholds cause the number of counters in each
 array to grow as~$\sqrt{N}$. As a consequence, we achieve a sublinear memory
 footprint and sublinear errors. To
@@ -2878,7 +2888,7 @@ counters within an array} yields:
     and multiplying by the number of arrays~$d$ proves the result.
 \end{proof}
 
-\textbf{Lower Bound.}
+\textbf{Memory Footprint Lower Bound.}
 To prove a memory footprint lower bound for frequency estimation sketches, we
 use them to implement filters and leverage their memory lower bounds. A filter
 is a compact data structure that answers whether a query key exists in a given
@@ -3471,7 +3481,7 @@ maintain stable accuracy for always-on analytics.
 %\clearpage
 
 \bibliographystyle{ACM-Reference-Format}
-\bibliography{sketchbook}
+\bibliography{sublime}
 
 \ifappendix
 \clearpage
