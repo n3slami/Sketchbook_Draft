@@ -453,6 +453,73 @@
   numpages = {13},
 }
 
+@article{Zeno,
+  author = {Kim, Hyuhng Min and Eslami, Navid and Dayan, Niv},
+  title = {Zeno Filter: To Infinity in Tiny Steps},
+  year = {2026},
+  abstract = {Filters are compact probabilistic data structures that answer
+              “have I seen this before?” without storing everything they have
+              seen so far. Databases rely on them to skip unnecessary storage
+              lookups and save time. In many applications, the total data size is
+              unknown beforehand, creating the need for dynamic filters that can
+              expand as the dataset grows. However, existing dynamic filters
+              suffer from two forms of space inefficiency. First, they double in
+              size to prevent hash collisions, leaving 50\% of space wasted
+              immediately after expansion. Second, they expand out-of-place,
+              temporarily keeping both the old and new filters in memory, further
+              inflating space usage. Enter the Zeno Filter to resolve this
+              wastage. It addresses the first problem by enabling expansions of
+              less than 2×, achieved by stretching the distance between entries
+              until hash collisions can be resolved. It addresses the second by
+              expanding in-place, using a succinct and efficient indirection
+              layer to relocate entries without duplication. The result is a
+              dynamic filter that cuts space by up to 60\% while matching the
+              speed and accuracy of existing designs.},
+  booktitle = {Proceedings of the 2026 International Conference on Management of
+               Data},
+  keywords = {data growth, dynamic data structure, scalability},
+  location = {Bangalore, India},
+  series = {SIGMOD '26},
+}
+
+@inproceedings{BeyondBloomTutorial,
+  author = {Pandey, Prashant and Farach-Colton, Mart\'{\i}n and Dayan, Niv and
+            Zhang, Huanchen},
+  title = {Beyond Bloom: A Tutorial on Future Feature-Rich Filters},
+  year = {2024},
+  isbn = {9798400704222},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  url = {https://doi.org/10.1145/3626246.3654681},
+  doi = {10.1145/3626246.3654681},
+  abstract = {Filters, such as Bloom, quotient, and cuckoo, save space by
+              maintaining an approximate representation of a set and occasionally
+              returning false positives. Filters play a critical role in building
+              modern dataintensive applications and are used across various
+              domains such as databases, storage engines, computational biology,
+              cyber- security, and networks. There has been extensive research on
+              filters in the past few decades resulting in filters with much
+              improved performance and features. Yet modern data-intensive
+              applications are still designed around the limitations of
+              traditional filters resulting in complex designs and sub-optimal
+              performance.This tutorial aims to bring together researchers at the
+              forefront of filter data structure research to help the database
+              community learn about the recent advancements in the theory and
+              practice of filters. The tutorial will cover real-world case
+              studies of redesigning applications using the modern filter APIs to
+              achieve simplicity and improved application performance. The
+              tutorial will further help uncover the open research problems, both
+              in theory and systems, and increase interaction among researchers
+              to tackle those problems.},
+  booktitle = {Companion of the 2024 International Conference on Management of
+               Data},
+  pages = {636–644},
+  numpages = {9},
+  keywords = {dictionary data structure, filters, membership query},
+  location = {Santiago AA, Chile},
+  series = {SIGMOD/PODS '24},
+}
+
 @article{TaffyFilters,
   author = {Apple, Jim},
   title = {Stretching your data with taffy filters},
@@ -3278,6 +3345,105 @@
   series = {SIGMOD '26},
 }
 
+@inproceedings{OctoSketch,
+  author = {Yinda Zhang and Peiqing Chen and Zaoxing Liu},
+  title = {{OctoSketch}: Enabling {Real-Time}, Continuous Network Monitoring
+           over Multiple Cores},
+  booktitle = {21st USENIX Symposium on Networked Systems Design and
+               Implementation (NSDI 24)},
+  year = {2024},
+  isbn = {978-1-939133-39-7},
+  address = {Santa Clara, CA},
+  pages = {1621--1639},
+  url = {https://www.usenix.org/conference/nsdi24/presentation/zhang-yinda},
+  publisher = {USENIX Association},
+  month = apr,
+}
+
+@article{ScoutSketch,
+  author = {Gao, Guoju and Ma, Tianyu and Huang, He and Sun, Yu-E and Wang,
+            Haibo and Du, Yang and Chen, Shigang},
+  title = {Scout Sketch+: Finding Both Promising and Damping Items
+           Simultaneously in Data Streams},
+  year = {2024},
+  issue_date = {Dec. 2024},
+  publisher = {IEEE Press},
+  volume = {32},
+  number = {6},
+  issn = {1063-6692},
+  url = {https://doi.org/10.1109/TNET.2024.3469196},
+  doi = {10.1109/TNET.2024.3469196},
+  abstract = {Data stream processing holds great potential value in lots of
+              practical application scenarios. This paper studies two new but
+              important patterns for items in data streams, called promising and
+              damping items. The promising items mean that the frequencies of an
+              item in multiple continuous time windows show an upward trend
+              overall, while a slight decrease in some of these windows is
+              allowed. In contrast to promising items exhibiting an increasing
+              trend, the definition of damping items indicates a decreasing
+              trend. Many applications can benefit from the property of promising
+              or damping items, e.g., monitoring latent attacks in computer
+              networks, pre-adjusting bandwidth allocation in communication
+              channels, detecting potential hot events/news, or finding topics
+              that gradually lose momentum in social networks. We first introduce
+              how to accurately find promising items in data streams in real-time
+              under limited memory space. To this end, we propose a novel
+              structure named Scout Sketch, which consists of Filter and Finder.
+              Filter is devised based on the Bloom filter to eliminate the
+              ungratified items with less memory overload; Finder records some
+              necessary information about the potential items and detects the
+              promising items at the end of each time window, where we propose
+              some tailor-made detection operations. We then enhance Scout Sketch
+              (called Scout Sketch+) to adaptively detect both types of promising
+              and damping items simultaneously. Finally, we conducted extensive
+              experiments on four real-world datasets, which show that the F1
+              Score and throughput of Scout Sketch(+) are about 2.02 and 5.61
+              times that of the compared solutions. All source codes are
+              available at Github
+              (<uri>https://github.com/Aoohhh/ScoutSketch</uri>).},
+  journal = {IEEE/ACM Trans. Netw.},
+  month = oct,
+  pages = {5491–5506},
+  numpages = {16},
+}
+
+@inproceedings{Canopy,
+  author = {Kaldor, Jonathan and Mace, Jonathan and Bejda, Micha\l{} and Gao,
+            Edison and Kuropatwa, Wiktor and O'Neill, Joe and Ong, Kian Win and
+            Schaller, Bill and Shan, Pingjia and Viscomi, Brendan and
+            Venkataraman, Vinod and Veeraraghavan, Kaushik and Song, Yee Jiun},
+  title = {Canopy: An End-to-End Performance Tracing And Analysis System},
+  year = {2017},
+  isbn = {9781450350853},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  url = {https://doi.org/10.1145/3132747.3132749},
+  doi = {10.1145/3132747.3132749},
+  abstract = {This paper presents Canopy, Facebook's end-to-end performance
+              tracing infrastructure. Canopy records causally related performance
+              data across the end-to-end execution path of requests, including
+              from browsers, mobile applications, and backend services. Canopy
+              processes traces in near real-time, derives user-specified features
+              , and outputs to performance datasets that aggregate across
+              billions of requests. Using Canopy, Facebook engineers can query
+              and analyze performance data in real-time. Canopy addresses three
+              challenges we have encountered in scaling performance analysis:
+              supporting the range of execution and performance models used by
+              different components of the Facebook stack; supporting interactive
+              ad-hoc analysis of performance data; and enabling deep
+              customization by users, from sampling traces to extracting and
+              visualizing features. Canopy currently records and processes over 1
+              billion traces per day. We discuss how Canopy has evolved to apply
+              to a wide range of scenarios, and present case studies of its use
+              in solving various performance challenges.},
+  booktitle = {Proceedings of the 26th Symposium on Operating Systems Principles
+               },
+  pages = {34–50},
+  numpages = {17},
+  location = {Shanghai, China},
+  series = {SOSP '17},
+}
+
 @misc{SublimeArxiv,
   title = {Sublime: Sublinear Error \& Space for Unbounded Skewed Streams},
   author = {Eslami, Navid and Bercea, Ioana O. and Pagh, Rasmus and Dayan, Niv},
@@ -3288,3 +3454,13 @@
   url = {https://arxiv.org/abs/2404.04703},
 }
 
+@article{Jensen,
+  author = {Jensen, J. L. W. V.},
+  title = {Sur les fonctions convexes et les inégalités entre les valeurs
+           moyennes},
+  journal = {Acta Mathematica},
+  year = {1906},
+  volume = {30},
+  pages = {175--193},
+  doi = {10.1007/bf02418571},
+}
