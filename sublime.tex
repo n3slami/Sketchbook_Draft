@@ -317,15 +317,14 @@ Tracking these counts exactly requires maintaining a counter for every distinct
 key, which leads to a substantial memory overhead if the stream contains many
 unique keys. To overcome this issue, \textcolor{blue}{a \emph{Frequency
 Estimation Sketch} approximates} the counts using a compact, fixed-size
-structure. At a high level, this structure maps each key to a
-\textcolor{blue}{counter (e.g., via hashing) and uses it to estimate the
-frequency of the key.} In this way, \textcolor{blue}{frequency estimation
-sketches} significantly reduce the memory footprint, though they introduce
-estimation errors \textcolor{blue}{due to the possibility of multiple keys
-mapping to the same counter. Frequency estimation sketches} have become key
-components across many systems including query
-optimizers~\cite{Compass,QueryOptimizationSketches,ConvolutionSketch}, network
-monitors~\cite{SketchBasedChangeDetection,WhatsNew,SketchingStreamsNet,TrafficManagementSurvey,RandomizedAdmissionEstimation,Blink,LOFT},
+structure. At a high level, this structure maps \textcolor{blue}{the key domain
+to a smaller codomain of counters (e.g., via hashing) and uses the counter each
+key maps to as an estimate of its frequency.} In this way, \textcolor{blue}{a
+frequency estimation sketch} significantly reduces the memory footprint, though
+it introduces estimation errors \textcolor{blue}{due to the possibility of
+multiple keys mapping to the same counter. Frequency estimation sketches} have
+become key components across many systems, including query
+optimizers~\cite{Compass,QueryOptimizationSketches,ConvolutionSketch}, network~monitors~\cite{SketchBasedChangeDetection,WhatsNew,SketchingStreamsNet,TrafficManagementSurvey,RandomizedAdmissionEstimation,Blink,LOFT},
 streaming SQL engines~\cite{Flink}, sensor data
 analyzers~\cite{SensorDataAnalytics,RobustAggregationSensorNetworks}, and
 genome analysis pipelines~\cite{CMSkmer,SetMinSketch}.
@@ -365,7 +364,7 @@ skewed, with a small number of heavy hitters appearing far more than other keys
 (e.g., following a Zipfian or, more generally, a heavy-tailed
 distribution)}~\cite{Memento,AdditiveErrorCounters,StingySketch}. As a result,
 most counters within a \textcolor{blue}{frequency estimation sketch} hold small
-values while only a few hold large ones. Existing \textcolor{blue}{frequency
+values while only a few hold large values. Existing \textcolor{blue}{frequency
 estimation sketches} use uniformly-sized counters, which must be long enough to
 represent the maximum counter \textcolor{blue}{value}. Consequently, they waste
 a significant amount of memory storing the unused higher-order bits of small
@@ -412,9 +411,10 @@ each counter and its extension within the same cache line and employs
 specialized bit manipulation routines to decode them in constant time. To
 resolve Problem~2 (Unbounded Data Growth), \sketch\ expands
 \textcolor{blue}{the overall number of} counters \textcolor{blue}{it employs}
-as the stream grows. \textcolor{blue}{In doing so, it bounds both the error and
-the memory footprint, establishing a Pareto frontier of tradeoffs among them
-that allows applications to tune \sketch\ to best suit their goals.}
+as the stream grows. \textcolor{blue}{In doing so, it achieves sublinear error
+bounds and memory with respect to the stream length. It further introduces a
+new Pareto frontier between these metrics, allowing applications to pick the
+tradeoff that best suits their needs.}
 
 \textbf{Additional Contributions.}
 \begin{enumerate}
@@ -426,7 +426,7 @@ that allows applications to tune \sketch\ to best suit their goals.}
         address Problem~1 without exacerbating Problem~2
         (\Cref{sec:problem_analysis_skew})}.
 
-    \item \textcolor{blue}{We identify for the first time the problem of
+    \item \textcolor{blue}{We are the first to identify the problem of
       designing frequency estimation sketches that maintain both error and
       memory usage sublinear in the stream length
       (\Cref{sec:problem_analysis_unbounded_growth})}.
@@ -436,10 +436,10 @@ that allows applications to tune \sketch\ to best suit their goals.}
         beyond \textcolor{blue}{frequency estimation sketches, and use it to
         encode variable-length counters (\mbox{\Cref{sec:accommodating_skew}})}.
 
-    \item \textcolor{blue}{We describe how \sketch\ expands and contracts based
-      on the stream’s length to enable fine-grained control over the
-      accuracy-memory tradeoff while maintaining constant-time queries. We also
-      characterize this new tradeoff space
+    \item \textcolor{blue}{We describe how to expand and contract a frequency
+      estimation sketch based on the stream's length while supporting
+      constant-time queries and enabling fine-grained control over the
+      accuracy-memory tradeoff. We also characterize this new tradeoff space
       (\Cref{sec:accommodating_unknown_stream_lengths})}.
 
     \item \textcolor{blue}{To demonstrate its generality, we apply \sketch\ to
@@ -453,14 +453,15 @@ that allows applications to tune \sketch\ to best suit their goals.}
     \ifappendix
         (\Cref{sec:mg}).
     \else
-        (the appendix~\cite{SublimeArxiv}).
+        (the Appendix~\cite{SublimeArxiv}).
     \fi
       }
 
     \item We prove a lower bound on the minimum space required for any
-        expandable frequency estimation sketch to achieve a target error, and
-        show that \sketch's memory footprint approximately meets this bound
-        \textcolor{blue}{(\Cref{sec:memory_analysis})}.
+      expandable frequency estimation sketch to achieve a target
+      \textcolor{blue}{error. We} show that \sketch's memory footprint
+      approximately meets this bound
+      \textcolor{blue}{(\Cref{sec:memory_analysis})}.
 
     \item We evaluate \sketch\ against state-of-the-art frequency estimation
         sketches and show that it \textcolor{blue}{simultaneously 1)~reduces
@@ -699,23 +700,31 @@ count. Nevertheless, CMS still suffers from several memory inefficiencies,
 \textcolor{blue}{which we explore} in the following section.
 
 \section{Problem Analysis}\label{sec:problem_analysis}
-Traditional \textcolor{blue}{FE sketches}, such as CMS, use more memory than
-necessary by failing to account for 1)~the skew in the stream and 2)~the
-stream's gradual growth over time.
+\textcolor{blue}{
+We show that mainstream FE sketches such as CMS suffer from two core
+limitations: 1)~they waste a significant amount of memory under
+skew{\textemdash}memory that could otherwise be used to improve accuracy or
+confidence{\textemdash}and 2)~their estimation error grows rapidly with the
+stream length. These shortcomings keep current FE sketches from facilitating
+accurate decision-making at scale.
+}
 
 \subsection{Challenge 1: Skew}\label{sec:problem_analysis_skew}
-With uniform workloads, most counters in CMS take on similar values. In
-contrast, under skewed workloads with a few heavy hitters, most counter values
-remain small while only a few grow large. Because CMS relies on uniformly-sized
-counters that must be sufficiently long to store the maximum counter value, it
-wastes substantial memory by allocating excessive bits to the many counters
-with small values. Ideally, each counter should be just long enough to fit its
-value, thereby saving space or allowing the storage of more counters to improve
-accuracy.
+\textcolor{blue}{
+Most real-world workloads are skewed, meaning that a few heavy hitters receives
+the majority of insertions, while all other keys have low
+counts~\cite{Memento,AdditiveErrorCounters,StingySketch}. In CMS, however, all
+counters are uniformly sized, so each must be provisioned to accommodate the
+largest possible value. This leads to substantial memory waste. Ideally, each
+counter should be sized just large enough to fit its value, thereby saving
+space or enabling more counters to improve accuracy or confidence. This issue
+has been explored in recent work; we now review existing solutions and their
+limitations.
+}
 
 \textbf{Hybrid Methods.}
-A common strategy for tackling this problem is to track the heavy hitters
-separately in a hash table while leaving the rest of the keys to
+A common strategy for tackling \textcolor{blue}{skew} is to track the heavy
+hitters separately in a hash table while leaving the rest of the keys to
 CMS~\cite{AugmentedSketch,HeavyKeeper,HeavyGuardian,MVSketch,WavingSketch,ElasticSketch}.
 Such hybrid structures aim to cap the maximum counter value in CMS, thereby
 permitting shorter counters. Yet, this approach does not fundamentally resolve
@@ -724,8 +733,7 @@ may still follow a skewed distribution, leading to significant memory wastage.
 Moreover, the heavy hitters can vary over time. Identifying the next heavy
 hitter and ``promoting'' it from CMS into the hash table is error-prone, since
 collisions in CMS can cause many infrequent keys to be misclassified as heavy
-hitters. The hybrid structures in the literature explore different hash table
-implementations and promotion policies.
+hitters.
 
 \textbf{Compression-based Methods.}
 Other approaches compress the counters using algorithms such as compressive
@@ -822,7 +830,7 @@ Yet, these methods impose heavy decompression overheads on queries.
         \fi
 
         \def\labely{3*\treelevelsep+3.25*\arrayh}
-        \node[inner sep=0pt] (sharing_label) at (\currentarrayw/2,\labely) {\small Counter Sharing};
+        \node[inner sep=0pt] (sharing_label) at (\currentarrayw/2,\labely) {\small A) Counter Sharing};
 
         % Counter Merging
         \def\mergingoffx{\sharingarraywmult*\arrayw+\methodsep}
@@ -858,7 +866,7 @@ Yet, these methods impose heavy decompression overheads on queries.
             \node[inner sep=0pt] at (\mergingoffx+3.5*\currentcounterw,\arrayh/2) {\small 11100000};
         \fi
 
-        \node[inner sep=0pt] (merging_label) at (\mergingoffx+\currentarrayw/2,\labely) {\small Counter Merging};
+        \node[inner sep=0pt] (merging_label) at (\mergingoffx+\currentarrayw/2,\labely) {\small B) Counter Merging};
 
         % CMS
         \def\cmsmidx{\sharingarraywmult*\arrayw/2+\methodsep/2+\currentarrayw/2}
@@ -899,9 +907,9 @@ Yet, these methods impose heavy decompression overheads on queries.
       \vspace{-3mm}
     \fi
     \caption{Counter sharing and counter merging encode CMS's counters in less
-    space in exchange for blowing up some counter values. Here, the bits in the
-    binary representations are in increasing order of significance from left to
-    right.}
+    space in exchange for blowing up some counter values. Here,
+    \textcolor{blue}{the bits in each counter are in} increasing order of
+    significance from left to right.}
     \ifnoappendix
       \vspace{-8mm}
     \fi
@@ -909,37 +917,47 @@ Yet, these methods impose heavy decompression overheads on queries.
 \end{figure}
 
 \textbf{Counter Sharing.}
-Counter sharing approaches store the counter values in a hierarchy of counters,
-with the lowest level storing the counter values in short counters and the
-upper levels handling overflows using shared
-counters~\cite{BitSense,PyramidSketch,StingySketch,AdaptiveCounterSplicing,CounterTree,TreeSensing,TailoredSketch}.
-The left side of \Cref{fig:counter_sharing_merging} encodes four adjacent
-counters within CMS using such a hierarchy with 6{\nobreakdash-}bit and
-2{\nobreakdash-}bit counters. Whenever a counter in this hierarchy overflows,
-it increments its parent and resets itself back to zero. A counter's value is
-retrieved by concatenating the counters along its path to the root until
-reaching a delimiter, typically indicated using additional metadata. While
-counter sharing yields state-of-the-art accuracy and performance for short
-streams, its error rapidly deteriorates as the stream grows. In particular,
-after~$N$ insertions into an array of size~$w$, each counter overflows into
-the~$\Theta(\log (N/w))$ levels above it. This blows up the values
-of~$\Theta(N/w)$ other counters, increasing the estimation error by the same
-factor. The counter sharing methods in the literature experiment with the
-hierarchy’s structure by varying the counter sizes and the fanout.
+Counter sharing approaches store the counter values in a hierarchy of
+\textcolor{blue}{counters~\cite{CounterTree}. The bottom level employs short
+counters to store the lower-order bits of each counter, while the upper levels
+handle overflows using shared counters.
+For example, \Cref{fig:counter_sharing_merging}{\nobreakdash-}A)}
+encodes four adjacent counters within CMS using
+\textcolor{blue}{6{\nobreakdash-}bit counters in the bottom level and
+2{\nobreakdash-}bit counters in the upper levels}. Whenever a counter in this
+hierarchy overflows, it increments its parent and \textcolor{blue}{resets to}
+zero. \textcolor{blue}{A key's count is retrieved by concatenating its
+corresponding bottom-level counter with the shared counters along its path to
+the root until reaching an internal node to which no overflow has occurred.
+This node is identified using additional metadata.} \textcolor{blue}{The core
+issue with this approach is that the error rapidly deteriorates as the stream
+grows. Formally,} after~$N$ insertions into an array of size~$w$, each counter
+overflows into the~$\Theta(\log (N/w))$ levels above it. This blows up the
+values of~$\Theta(N/w)$ other counters, increasing the estimation error by the
+same factor. \textcolor{blue}{To mitigate this issue, prior works experiment
+with varying the counter sizes and the hierarchy's
+fanout~\cite{BitSense,PyramidSketch,StingySketch,AdaptiveCounterSplicing,TreeSensing,TailoredSketch}.
+Yet, they do not fundamentally resolve the problem.}
 
 \textbf{Counter Merging.}
 Counter merging is an alternative approach that starts with 8-bit counters and
-merges adjacent overflowing counters into a longer counter that
-\textcolor{blue}{sums the} original values~\cite{SALSA}. The right side of
-\Cref{fig:counter_sharing_merging}
-applies
-this scheme to CMS. After~$N$ insertions into an array of~$w$ counters, each
-counter will be merged with~$\Theta(\log (N/w))$ other counters, increasing the
-error by the same factor. Merging only continues until the counters become the
-same length as those of CMS, at which point error degradation stops. Counter
-merging has a higher metadata overhead than counter sharing for indicating
-which counters are merged, leaving less space for storing counters. Parsing
-this metadata is also complex, reducing performance.
+merges \textcolor{blue}{an overflowing counter with an adjacent counter into a
+longer counter that sums their values~\cite{SALSA}.
+\Cref{fig:counter_sharing_merging}{\nobreakdash-}B)
+shows an example applied to CMS.} After~$N$ insertions into an array of~$w$
+counters, each counter will be merged with~$\Theta(\log (N/w))$ other counters,
+increasing the error by the same factor. Merging only continues until
+\textcolor{blue}{each counter becomes four bytes long (similarly to CMS)}, at
+which point error degradation stops. Counter merging has a higher metadata
+overhead than counter sharing for indicating which counters are merged, leaving
+less space for storing counters. \textcolor{blue}{Parsing this metadata adds
+more complexity than alternative methods like counter
+sharing,~reducing~performance.}
+
+\textbf{Deletions.}
+Deletions deteriorate the accuracy of both counter sharing and counter merging
+methods since these techniques ambiguate how counters should be ``separated''
+\textcolor{blue}{as they decrease.}
 
 \ifnoappendix
 \begin{wrapfigure}{r}{0.5\textwidth}
@@ -1050,18 +1068,16 @@ this metadata is also complex, reducing performance.
 \end{wrapfigure}
 \fi
 
-\textbf{Deletions.}
-Deletions deteriorate the accuracy of both counter sharing and counter merging
-methods since these techniques ambiguate how counters should be ``separated''
-\textcolor{blue}{as their values decrease.}
-
 \textbf{Comparison.}
-\Cref{fig:counter_sharing_deterioration} qualitatively compares counter sharing
-and counter merging to a CMS with the same memory footprint to illustrate their
-error degradation with data growth. While these methods perform well for short
-streams, their error exceeds that of CMS as the stream grows. We empirically
-verify this behavior in Experiment~\hyperlink{experiment:expansion}{4} of
-\Cref{sec:evaluation}.
+\textcolor{blue}{Prior work has shown counter sharing and counter merging to
+subsume hybrid and compression-based methods in terms of both accuracy and
+performance~\cite{SALSA,TailoredSketch}. Thus, in
+\Cref{fig:counter_sharing_deterioration},
+we qualitatively compare} counter sharing and counter merging to a CMS with the
+same memory footprint to illustrate their error degradation with data growth.
+While these methods perform well for short streams, their error exceeds that of
+CMS as the stream grows. We empirically verify this behavior in
+Experiment~\hyperlink{experiment:expansion}{4} of \Cref{sec:evaluation}.
 
 \subsection{Challenge 2: Unbounded Growth}\label{sec:problem_analysis_unbounded_growth}
 In many streaming applications, the data stream grows continuously, and it is
@@ -1189,27 +1205,29 @@ key counts over recent time windows. For example, network management systems
 detect anomalous or malicious activity by counting packets from each source
 within fixed time
 windows~\cite{SketchBasedChangeDetection,WhatsNew,TrafficManagementSurvey}.
-With bursty streams such as network traffic, the number of keys~$N$ in each
-window is unpredictable.
+\textcolor{blue}{For bursty streams such as network traffic, the number of
+keys~$N$ in each window is unpredictable. Bounding~$N$ by defining windows
+based on insertion count fails to resolve the issue, as the notion of time is
+lost.}
 
 
 In existing \textcolor{blue}{FE sketches}, the number of counters~$w$ is fixed
 at allocation time. Consequently, the expected error degrades linearly with~$N$
-(e.g., $N/w$ in the case of CMS). Hoping to balance accuracy and memory,
-practitioners tune~$w$ without knowledge of the final stream length~$N$. This
-tuning is non-trivial, however, as having too few counters leads to significant
-errors, while having too many wastes memory. Deletions make the problem more
-challenging by causing~$N$ to fluctuate over time. Worse yet, even if the
-ultimate stream length is known upfront, allocating a large CMS from the start
-wastes memory during the early stages when the stream is short. 
+(e.g., $N/w$ in the case of CMS). \textcolor{blue}{In hope of balancing
+accuracy and memory, practitioners can tune~$w$.} This tuning is non-trivial,
+however, as having too few counters leads to significant errors, while having
+too many wastes memory. Deletions make the problem more challenging by
+causing~$N$ to fluctuate over time. Worse yet, even if the ultimate stream
+length is known upfront, allocating a large CMS from the start wastes memory
+during the early stages when the stream is short. 
 
 \textbf{Summary.}
 An ideal \textcolor{blue}{FE sketch} should: 1)~compactly encode counter values
 without incurring memory waste from skew, 2)~scale its size with the stream's
-length to keep both the memory footprint and the error rate under control,
+length to \textcolor{blue}{control both the memory footprint and the error rate,}
 3)~support deletions without sacrificing accuracy, and 4)~provide
-high-performance operations. Is it possible to achieve all these
-goals~simultaneously?
+high-performance \textcolor{blue}{queries, insertions, and deletions.} Is it
+possible to achieve \textcolor{blue}{these goals} simultaneously?
 
 \section{\sketch}\label{sec:sublime} 
 We present \sketch, a framework for generalizing an \textcolor{blue}{FE sketch}
@@ -1994,14 +2012,12 @@ that lack the above instructions. We employ two lookup tables structured as
 direct-access arrays: one for counting the number of 1s in a byte to compute
 rank, and one for applying select within a byte. \textcolor{blue}{The entry
 corresponding to the value of a byte and the parameter of the operation in each
-table indicates the result of the relevant operation with these inputs. Since
-each byte has~256 possible combinations of bits and the input of select ranges
-from~0 to 7, each array has at most~2048 entries. Therefore, these tables fit
-in the L1 cache.} \sketchcms iteratively applies these tables to the bytes
-within a bitmap to evaluate rank and select. \textcolor{blue}{Doing so slightly
-degrades query performance,} as queries must always retrieve the extension of a
-counter. Nevertheless, insertions and deletions remain unaffected since they
-rarely access a counter's~extension.
+table indicates the result of the relevant operation with these inputs.}
+\sketchcms iteratively applies these tables to the bytes within a bitmap to
+evaluate rank and select. \textcolor{blue}{Doing so slightly degrades query
+performance,} as queries must always retrieve the extension of a counter.
+Nevertheless, insertions and deletions remain unaffected since they rarely
+access a counter's~extension.
 
 \hypertarget{optimization:lookup_tables}{\textbf{Optimization~2: Lookup Tables.}}
 Since stubs are not byte-aligned, modifying them can be costly. This is because
@@ -2302,7 +2318,7 @@ proven in
 \ifappendix
 \Cref{sec:upper_bounds_cms},
 \else
-the appendix~\cite{SublimeArxiv},
+the Appendix~\cite{SublimeArxiv},
 \fi
 formalizes these claims.} In sum, compared to a standard CMS with linear errors and a fixed
 memory footprint, \sketchcms achieves significantly lower errors at a slightly
@@ -2609,7 +2625,7 @@ size as \sketchcms. The following theorem, proven in
 \ifappendix
 \Cref{sec:upper_bounds_cms},
 \else
-the appendix~\cite{SublimeArxiv},
+the Appendix~\cite{SublimeArxiv},
 \fi
 formalizes the above error bounds:\footnote{
 \textcolor{blue}{
@@ -2617,7 +2633,7 @@ formalizes the above error bounds:\footnote{
 In \Cref{sec:mg}, we show that
 similar bounds hold for \sketch\ when it is applied to Misra-Gries.
 \else
-In the appendix~\cite{SublimeArxiv}, we show that similar bounds hold for
+In the Appendix~\cite{SublimeArxiv}, we show that similar bounds hold for
 \sketch\ when it is applied to Misra-Gries.
 \fi
 }
@@ -2901,7 +2917,7 @@ In
 \ifappendix
 \Cref{sec:upper_bounds_cs},
 \else 
-the appendix~\cite{SublimeArxiv},
+the Appendix~\cite{SublimeArxiv},
 \fi
 we prove through a similar analysis to that of \sketchcms, the following
 variance bounds for \sketchcs:
@@ -3046,7 +3062,7 @@ are similar, i.e., their distribution is uniform. This is because skew gives
     absolute counter values~$|v_i|$ sum to~$k$ yields $s \leq 2+\log_2(k/w) = 4
     + \log_2(k/(4w))$. Plugging into the memory bound from before yields~$m
     \leq \sum_i 4 + \max(\log_2 (k/(4w)), 1.26 \cdot \log_2 |v_i|)$. We further
-    upper bound each individual max term by 
+    bound each individual max term by 
     \ifappendix
     \begin{align*}
       \max & \left( 1.26 \cdot \log_2 \frac{k}{4w}, 1.26 \cdot \log_2|v_i| \right) \\
