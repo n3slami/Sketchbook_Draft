@@ -3467,3 +3467,346 @@
   pages = {175--193},
   doi = {10.1007/bf02418571},
 }
+
+@inproceedings{AGM,
+  author = {Ahn, Kook Jin and Guha, Sudipto and McGregor, Andrew},
+  title = {Analyzing graph structure via linear measurements},
+  year = {2012},
+  publisher = {Society for Industrial and Applied Mathematics},
+  address = {USA},
+  abstract = {We initiate the study of graph sketching, i.e., algorithms that
+              use a limited number of linear measurements of a graph to determine
+              the properties of the graph. While a graph on n nodes is
+              essentially O(n2)-dimensional, we show the existence of a
+              distribution over random projections into d-dimensional "sketch"
+              space (d<< n2) such that the relevant properties of the original
+              graph can be inferred from the sketch with high probability.
+              Specifically, we show that:1. d = O(n · polylog n) suffices to
+              evaluate properties including connectivity, k-connectivity,
+              bipartiteness, and to return any constant approximation of the
+              weight of the minimum spanning tree.2. d = O(n1+γ) suffices to
+              compute graph sparsifiers, the exact MST, and approximate the
+              maximum weighted matchings if we permit O(1/γ)-round adaptive
+              sketches, i.e., a sequence of projections where each projection may
+              be chosen dependent on the outcome of earlier sketches.Our results
+              have two main applications, both of which have the potential to
+              give rise to fruitful lines of further research. First, our results
+              can be thought of as giving the first compressed-sensing style
+              algorithms for graph data. Secondly, our work initiates the study
+              of dynamic graph streams. There is already extensive literature on
+              processing massive graphs in the data-stream model. However, the
+              existing work focuses on graphs defined by a sequence of inserted
+              edges and does not consider edge deletions. We think this is a
+              curious omission given the existing work on both dynamic graphs in
+              the non-streaming setting and dynamic geometric streaming. Our
+              results include the first dynamic graph semi-streaming algorithms
+              for connectivity, spanning trees, sparsification, and matching
+              problems.},
+  booktitle = {Proceedings of the Twenty-Third Annual ACM-SIAM Symposium on
+               Discrete Algorithms},
+  pages = {459–467},
+  numpages = {9},
+  location = {Kyoto, Japan},
+  series = {SODA '12},
+}
+
+@inproceedings{LpSamplers,
+  author = {Jowhari, Hossein and Sa\u{g}lam, Mert and Tardos, G\'{a}bor},
+  title = {Tight bounds for Lp samplers, finding duplicates in streams, and
+           related problems},
+  year = {2011},
+  isbn = {9781450306607},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  url = {https://doi.org/10.1145/1989284.1989289},
+  doi = {10.1145/1989284.1989289},
+  abstract = {In this paper, we present near-optimal space bounds for
+              Lp-samplers. Given a stream of updates (additions and subtraction)
+              to the coordinates of an underlying vector x in Rn, a perfect Lp
+              sampler outputs the i-th coordinate with probability xipxpp. In
+              SODA 2010, Monemizadeh and Woodruff showed polylog space upper
+              bounds for approximate Lp-samplers and demonstrated various
+              applications of them. Very recently, Andoni, Krauthgamer and Onak
+              improved the upper bounds and gave a O(ε-plog3n) space ε relative
+              error and constant failure rate Lp-sampler for p є [1,2]. In this
+              work, we give another such algorithm requiring only O(ε-plog2n)
+              space for p є (1,2). For p є (0,1), our space bound is O(ε-1log2n),
+              while for the p=1 case we have an O(log(1/ε)ε-log2n) space
+              algorithm. We also give a O(log2n) bits zero relative error
+              L0-sampler, improving the O(log3n) bits algorithm due to Frahling,
+              Indyk and Sohler.As an application of our samplers, we give better
+              upper bounds for the problem of finding duplicates in data streams.
+              In case the length of the stream is longer than the alphabet size,
+              L1 sampling gives us an O(log2n) space algorithm, thus improving
+              the previous O(log3n) bound due to Gopalan and Radhakrishnan.In the
+              second part of our work, we prove an Ω (log2n) lower bound for
+              sampling from 0, ± 1 vectors (in this special case, the parameter p
+              is not relevant for Lp sampling). This matches the space of our
+              sampling algorithms for constant ε>0. We also prove tight space
+              lower bounds for the finding duplicates and heavy hitters problems.
+              We obtain these lower bounds using reductions from the
+              communication complexity problem augmented indexing.},
+  booktitle = {Proceedings of the Thirtieth ACM SIGMOD-SIGACT-SIGART Symposium
+               on Principles of Database Systems},
+  pages = {49–58},
+  numpages = {10},
+  keywords = {streaming algorithms, sampling, finding duplicates},
+  location = {Athens, Greece},
+  series = {PODS '11},
+}
+
+@article{10.1145/376284.375670,
+  author = {Greenwald, Michael and Khanna, Sanjeev},
+  title = {Space-efficient online computation of quantile summaries},
+  year = {2001},
+  issue_date = {June 2001},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  volume = {30},
+  number = {2},
+  issn = {0163-5808},
+  url = {https://doi.org/10.1145/376284.375670},
+  doi = {10.1145/376284.375670},
+  abstract = {An ∈-approximate quantile summary of a sequence of N elements is a
+              data structure that can answer quantile queries about the sequence
+              to within a precision of ∈N.We present a new online algorithm for
+              computing∈-approximate quantile summaries of very large data
+              sequences. The algorithm has a worst-case space requirement of
+              Ο(1undefined∈ log(∈N)). This improves upon the previous best result
+              of Ο(1undefined∈ log2(∈N)). Moreover, in contrast to earlier
+              deterministic algorithms, our algorithm does not require a priori
+              knowledge of the length of the input sequence.Finally, the actual
+              space bounds obtained on experimental data are significantly better
+              than the worst case guarantees of our algorithm as well as the
+              observed space requirements of earlier algorithms.},
+  journal = {SIGMOD Rec.},
+  month = may,
+  pages = {58–66},
+  numpages = {9},
+}
+
+@inproceedings{GK,
+  author = {Greenwald, Michael and Khanna, Sanjeev},
+  title = {Space-efficient online computation of quantile summaries},
+  year = {2001},
+  isbn = {1581133324},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  url = {https://doi.org/10.1145/375663.375670},
+  doi = {10.1145/375663.375670},
+  abstract = {An ∈-approximate quantile summary of a sequence of N elements is a
+              data structure that can answer quantile queries about the sequence
+              to within a precision of ∈N.We present a new online algorithm for
+              computing∈-approximate quantile summaries of very large data
+              sequences. The algorithm has a worst-case space requirement of
+              Ο(1undefined∈ log(∈N)). This improves upon the previous best result
+              of Ο(1undefined∈ log2(∈N)). Moreover, in contrast to earlier
+              deterministic algorithms, our algorithm does not require a priori
+              knowledge of the length of the input sequence.Finally, the actual
+              space bounds obtained on experimental data are significantly better
+              than the worst case guarantees of our algorithm as well as the
+              observed space requirements of earlier algorithms.},
+  booktitle = {Proceedings of the 2001 ACM SIGMOD International Conference on
+               Management of Data},
+  pages = {58–66},
+  numpages = {9},
+  location = {Santa Barbara, California, USA},
+  series = {SIGMOD '01},
+}
+
+@article{KLL,
+  title = {Optimal Quantile Approximation in Streams},
+  author = {Zohar S. Karnin and Kevin J. Lang and Edo Liberty},
+  journal = {2016 IEEE 57th Annual Symposium on Foundations of Computer Science
+             (FOCS)},
+  year = {2016},
+  pages = {71-78},
+  url = {https://api.semanticscholar.org/CorpusID:15640305},
+}
+
+@article{10.1145/276305.276342,
+  author = {Manku, Gurmeet Singh and Rajagopalan, Sridhar and Lindsay, Bruce G.},
+  title = {Approximate medians and other quantiles in one pass and with limited
+           memory},
+  year = {1998},
+  issue_date = {June 1998},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  volume = {27},
+  number = {2},
+  issn = {0163-5808},
+  url = {https://doi.org/10.1145/276305.276342},
+  doi = {10.1145/276305.276342},
+  abstract = {We present new algorithms for computing approximate quantiles of
+              large datasets in a single pass. The approximation guarantees are
+              explicit, and apply for arbitrary value distributions and arrival
+              distributions of the dataset. The main memory requirements are
+              smaller than those reported earlier by an order of magnitude.We
+              also discuss methods that couple the approximation algorithms with
+              random sampling to further reduce memory requirements. With
+              sampling, the approximation guarantees are explicit but
+              probabilistic, i.e. they apply with respect to a (user controlled)
+              confidence parameter.We present the algorithms, their theoretical
+              analysis and simulation results on different datasets.},
+  journal = {SIGMOD Rec.},
+  month = jun,
+  pages = {426–435},
+  numpages = {10},
+}
+
+@inproceedings{MRL,
+  author = {Manku, Gurmeet Singh and Rajagopalan, Sridhar and Lindsay, Bruce G.},
+  title = {Approximate medians and other quantiles in one pass and with limited
+           memory},
+  year = {1998},
+  isbn = {0897919955},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  url = {https://doi.org/10.1145/276304.276342},
+  doi = {10.1145/276304.276342},
+  abstract = {We present new algorithms for computing approximate quantiles of
+              large datasets in a single pass. The approximation guarantees are
+              explicit, and apply for arbitrary value distributions and arrival
+              distributions of the dataset. The main memory requirements are
+              smaller than those reported earlier by an order of magnitude.We
+              also discuss methods that couple the approximation algorithms with
+              random sampling to further reduce memory requirements. With
+              sampling, the approximation guarantees are explicit but
+              probabilistic, i.e. they apply with respect to a (user controlled)
+              confidence parameter.We present the algorithms, their theoretical
+              analysis and simulation results on different datasets.},
+  booktitle = {Proceedings of the 1998 ACM SIGMOD International Conference on
+               Management of Data},
+  pages = {426–435},
+  numpages = {10},
+  location = {Seattle, Washington, USA},
+  series = {SIGMOD '98},
+}
+
+@article{SplineSketch,
+  author = {\L{}ukasiewicz, Aleksander and T\v{e}tek, Jakub and Vesel\'{y},
+            Pavel},
+  title = {SplineSketch: Even More Accurate Quantiles with Error Guarantees},
+  year = {2025},
+  issue_date = {December 2025},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  volume = {3},
+  number = {6},
+  url = {https://doi.org/10.1145/3769827},
+  doi = {10.1145/3769827},
+  abstract = {Space-efficient streaming estimation of quantiles in massive
+              datasets is a fundamental problem with numerous applications in
+              data monitoring and analysis. While theoretical research led to
+              optimal algorithms, such as the Greenwald-Khanna algorithm or the
+              KLL sketch, practitioners often use other sketches that perform
+              significantly better in practice but lack theoretical guarantees.
+              Most notably, the widely used t-digest has unbounded worst-case
+              error. In this paper, we seek to get the best of both worlds. We
+              present a new quantile summary, SplineSketch, for numeric data,
+              offering near-optimal theoretical guarantees, namely uniformly
+              bounded rank error, and outperforming t-digest by a factor of 2-20
+              on a range of synthetic and real-world datasets. To achieve such
+              performance, we develop a novel approach that maintains a dynamic
+              subdivision of the input range into buckets while fitting the input
+              distribution using monotone cubic spline interpolation.},
+  journal = {Proc. ACM Manag. Data},
+  month = dec,
+  articleno = {362},
+  numpages = {26},
+  keywords = {cubic spline interpolation, data sketches, mergeable summaries,
+              quantile estimation, streaming algorithms},
+}
+
+@inproceedings{HLL,
+  TITLE = {{HyperLogLog: the analysis of a near-optimal cardinality estimation
+           algorithm}},
+  AUTHOR = {Flajolet, Philippe and Fusy, Eric and Gandouet, Olivier and Meunier,
+            Fr{\'e}d{\'e}ric},
+  URL = {https://hal.science/hal-00406166},
+  BOOKTITLE = {{Analysis of Algorithms 2007 (AofA07)}},
+  ADDRESS = {Juan les pins, France},
+  EDITOR = {Philippe Jacquet},
+  PAGES = {127--146},
+  YEAR = {2007},
+  MONTH = Jun,
+  KEYWORDS = {algorithmes probabilistes ; analyse d'algorithmes},
+  PDF = {https://hal.science/hal-00406166v1/file/FlFuGaMe07.pdf},
+  HAL_ID = {hal-00406166},
+  HAL_VERSION = {v1},
+}
+
+@inproceedings{HLLL,
+  author = {Karppa, Matti and Pagh, Rasmus},
+  title = {HyperLogLogLog: Cardinality Estimation With One Log More},
+  year = {2022},
+  isbn = {9781450393850},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  url = {https://doi.org/10.1145/3534678.3539246},
+  doi = {10.1145/3534678.3539246},
+  abstract = {We present HyperLogLogLog, a practical compression of the
+              HyperLogLog sketch that compresses the sketch from $O(m\l{}og\l{}og
+              n)$ bits down to $m \l{}og_2\l{}og_2\l{}og_2 m + O(m+\l{}og\l{}og
+              n)$ bits for estimating the number of distinct elements~n using m~
+              registers. The algorithm works as a drop-in replacement that
+              preserves all estimation properties of the HyperLogLog sketch, it
+              is possible to convert back and forth between the compressed and
+              uncompressed representations, and the compressed sketch maintains
+              mergeability in the compressed domain. The compressed sketch can be
+              updated in amortized constant time, assuming n is sufficiently
+              larger than m. We provide a C++ implementation of the sketch, and
+              show by experimental evaluation against well-known implementations
+              by Google and Apache that our implementation provides small
+              sketches while maintaining competitive update and merge times.
+              Concretely, we observed approximately a 40\% reduction in the
+              sketch size. Furthermore, we obtain as a corollary a theoretical
+              algorithm that compresses the sketch down to $m\l{}og_2\l{}og_2\l{}
+              og_2\l{}og_2 m+O(m\l{}og\l{}og\l{}og m/\l{}og\l{}og m+\l{}og\l{}og
+              n)$ bits.},
+  booktitle = {Proceedings of the 28th ACM SIGKDD Conference on Knowledge
+               Discovery and Data Mining},
+  pages = {753–761},
+  numpages = {9},
+  keywords = {cardinality estimation, distinct elements, hashing, hyperloglog},
+  location = {Washington DC, USA},
+  series = {KDD '22},
+}
+
+@article{ULL,
+  author = {Ertl, Otmar},
+  title = {UltraLogLog: A Practical and More Space-Efficient Alternative to
+           HyperLogLog for Approximate Distinct Counting},
+  year = {2024},
+  issue_date = {March 2024},
+  publisher = {VLDB Endowment},
+  volume = {17},
+  number = {7},
+  issn = {2150-8097},
+  url = {https://doi.org/10.14778/3654621.3654632},
+  doi = {10.14778/3654621.3654632},
+  abstract = {Since its invention HyperLogLog has become the standard algorithm
+              for approximate distinct counting. Due to its space efficiency and
+              suitability for distributed systems, it is widely used and also
+              implemented in numerous databases. This work presents UltraLogLog,
+              which shares the same practical properties as HyperLogLog. It is
+              commutative, idempotent, mergeable, and has a fast guaranteed
+              constant-time insert operation. At the same time, it requires 28\%
+              less space to encode the same amount of distinct count information,
+              which can be extracted using the maximum likelihood method.
+              Alternatively, a simpler and faster estimator is proposed, which
+              still achieves a space reduction of 24\%, but at an estimation
+              speed comparable to that of HyperLogLog. In a non-distributed
+              setting where martingale estimation can be used, UltraLogLog is
+              able to reduce space by 17\%. Moreover, its smaller entropy and its
+              8-bit registers lead to better compaction when using standard
+              compression algorithms. All this is verified by experimental
+              results that are in perfect agreement with the theoretical analysis
+              which also outlines potential for even more space-efficient data
+              structures. A production-ready Java implementation of UltraLogLog
+              has been released as part of the open-source Hash4j library.},
+  journal = {Proc. VLDB Endow.},
+  month = mar,
+  pages = {1655–1668},
+  numpages = {14},
+}
