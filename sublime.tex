@@ -132,6 +132,8 @@
 \newtheorem{corollary}{Corollary}[theorem]
 \newtheorem{lemma}[theorem]{Lemma}
 \newtheorem{claim}[theorem]{Claim}
+% The theorem counter resets by section; hyperlink destinations must do so too.
+\renewcommand{\theHtheorem}{\thesection.\arabic{theorem}}
 
 \usepackage{cleveref}
 
@@ -148,15 +150,6 @@
 \newcommand{\variance}[1]{\mathrm{Var}\left( #1 \right)}
 
 \graphicspath{{./figures/}}
-
-\ifappendix
-\usepackage{draftwatermark}
-\SetWatermarkScale{0.2}
-\SetWatermarkAngle{270}
-\SetWatermarkText{Accepted to SIGMOD 2026}
-\SetWatermarkHorCenter{0.95\paperwidth}
-\SetWatermarkVerCenter{0.5\paperheight}
-\fi
 
 %%
 %% end of the preamble, start of the body of the document source.
@@ -446,11 +439,7 @@ suits their needs.
         Count Sketch
         (\Cref{sec:cs}),
         and Misra-Gries
-    \ifappendix
         (\Cref{sec:mg}).
-    \else
-        (the Appendix~\cite{SublimeArxiv}).
-    \fi
       
 
     \item We prove a lower bound on the minimum space required for any
@@ -533,17 +522,9 @@ for space. That is, for any key~$x$, an FE sketch returns an
 estimate~$\hat{f}(x)$ of key $x$'s count~$f(x)$. We focus on Count-Min
 Sketch~\cite{CountMin} for now, as it is the simplest and most widely used FE
 sketch~\cite{ADSMassiveDatasetBook,SketchesTrafficManagementSurvey}.
-\ifappendix
-Later, we describe Count Sketch~\cite{CountSketch}
-(\Cref{sec:cs}) and
-Misra-Gries~\cite{MisraGries}
-(\Cref{sec:mg}) and apply our
-techniques~to~them. 
-\else
-Later in \Cref{sec:cs}, we
-describe Count Sketch~\cite{CountSketch} and apply our techniques to it. We do
-the same for Misra-Gries~\cite{MisraGries} in the~Appendix~\cite{SublimeArxiv}. 
-\fi
+Later, we describe Count Sketch~\cite{CountSketch} (\Cref{sec:cs}) and
+Misra-Gries~\cite{MisraGries} (\Cref{sec:mg}) and apply our techniques to them.
+Finally in \Cref{sec:any_sketch}, we provide a general strategy for applying \sketch to any FE sketch.
 
 \textbf{Count-Min Sketch (CMS).}
 The core design element of CMS is an array consisting of~$w$ counters, each
@@ -1221,12 +1202,7 @@ deletions and maintains high performance. We first describe \sketch\ as applied
 to the Count-Min Sketch~(CMS), denoted as \sketchcms. 
 We apply \sketch\ to Count Sketch in \Cref{sec:cs}
 and to
-\ifappendix
-Misra-Gries in
-\Cref{sec:mg}.
-\else
-Misra-Gries~in~the~Appendix~\cite{SublimeArxiv}.
-\fi
+Misra-Gries in \Cref{sec:mg}.
 
 \subsection{Accommodating Skew}\label{sec:accommodating_skew}
 Under skew, many counter values in CMS are small and do not use all the bits in
@@ -2664,13 +2640,8 @@ best achievable by any FE sketch of (approximately) the same size as
 the Appendix~\cite{SublimeArxiv},
 \fi
 formalizes the above error bounds:\footnote{
-\ifappendix
-In \Cref{sec:mg}, we show that
-similar bounds hold for \sketch\ when it is applied to Misra-Gries.
-\else
-In the Appendix~\cite{SublimeArxiv}, we show that similar bounds hold for
-\sketch\ when it is applied to Misra-Gries.
-\fi
+In \Cref{sec:mg}, we discuss the corresponding bounds for an expanding
+Misra-Gries reference model.
 }
 
 \begin{restatable}{theorem}{thmcms}
@@ -2790,7 +2761,7 @@ remain stable as the stream grows.
         & \footnotesize $1-e^{-d}$ 
         & \footnotesize $O(d)$ 
         & \footnotesize $O(d)$ 
-        & \footnotesize $O(d)$ \\
+        & \footnotesize $O(d)$ \\[2pt]
         \else
         \small CMS 
         & \small Over 
@@ -2798,7 +2769,7 @@ remain stable as the stream grows.
         & \small $1-e^{-d}$ 
         & \small $O(d)$ 
         & \small $O(d)$ 
-        & \small $O(d)$ \\
+        & \small $O(d)$ \\[2pt]
         \fi
 
         \ifappendix
@@ -2808,7 +2779,7 @@ remain stable as the stream grows.
         & \footnotesize $\geq 1-e^{-d}$ 
         & \footnotesize $O(d)$ 
         & \footnotesize $O(d)$ 
-        & \footnotesize $O(d)$ \\
+        & \footnotesize $O(d)$ \\[4pt]
         \else
         \small CS 
         & \small Unbiased 
@@ -2816,13 +2787,21 @@ remain stable as the stream grows.
         & \small $\geq 1-e^{-d}$ 
         & \small $O(d)$ 
         & \small $O(d)$ 
-        & \small $O(d)$ \\
+        & \small $O(d)$ \\[4pt]
         \fi
+
+        \footnotesize MG 
+        & \footnotesize Under 
+        & \footnotesize $\min_i \frac{N^{\text{res}(i)}}{w-i+1}$ 
+        & \footnotesize 1 
+        & \footnotesize $O(1)$ 
+        & --
+        & \footnotesize $O(1)$ \\
 
         \bottomrule
     \end{tabular}
-    \caption{CMS and CS strike different tradeoffs.}
-    \label{tab:classic_sketch_stats}
+    \caption{CMS, CS, and MG strike different tradeoffs.}
+    \label{tab:conventional_sketch_stats}
     \ifnoappendix
       \vspace{-8mm}
     \fi
@@ -2845,7 +2824,7 @@ provides such unbiased estimates and reaps its benefits.\footnote{One can also
 achieve unbiased estimation using CMS by, in each array, subtracting the
 average of the counter values a query key does not hash to from its
 counter~\cite{CountMeanMin}. Yet, the resulting estimate has a slightly higher
-variance~than~that~of~CS.} \Cref{tab:classic_sketch_stats}
+variance~than~that~of~CS.} \Cref{tab:conventional_sketch_stats}
 summarizes the properties of CS and compares it to CMS.
 
 Similarly to CMS, the core component of CS is a counter array of size~$w$
@@ -2928,11 +2907,7 @@ variance bounds for \sketchcs:
         \log_2 F \cdot \epsilon & \text{if $W(F)=F/\epsilon$.}
 	\end{cases}
     $$
-    Compared to a fixed-size CS allocated upfront with an array of~$W(N)$
-    counters with  knowledge of~$F$, the variance terms above are higher by at
-    most a constant and a logarithmic\footnote{This logarithmic term can be
-    bounded in terms of the total key count~$N$, as $F \leq N^2$ and thus
-    $\log_2 F \leq 2 \cdot \log_2 N$.} factor.
+    Compared to a fixed-size CS allocated upfront with an array of~$W(F)$ counters with  knowledge of~$F$, the variance terms above are higher by at most a constant and a logarithmic\footnote{This logarithmic term can be bounded in terms of the total key count~$N$, as $F \leq N^2$ and thus $\log_2 F \leq 2 \cdot \log_2 N$.} factor.
 \end{restatable}
 Applying Chebyshev's inequality and employing~$d$ independent arrays yields
 stable confidence bounds that match those of CS.
@@ -2972,17 +2947,339 @@ of~$F$ in constant time without the use of SIMD. We omit the corresponding
 algorithm and its proof of correctness due to space constraints.} and query
 these sketches after each insertion or deletion.
 
-\textbf{Applying \sketch\ to Other FE Sketches.}
-Using the same strategy as above, \sketch\ can be adapted to any FE sketch with
-an error bound of the form~$X/w$, where~$X$ is a measurable parameter of the
-workload that the error depends on, and~$w$ is the FE sketch's size. For
-example, in the case of CMS and Misra-Gries, $X$ is the stream's total key
-count~$N$, whereas in the case of CS, it is the stream's squared~$\ell_2$-norm
-$F$. In all these cases, $w$ is the number of counters within the FE sketch. By
-expanding when the quantity~$X$ more than doubles and defining the size
-function based on~$X$ (i.e., as $W(X)$), one obtains \sketch's sublinear
-scaling of error and memory.
+\subsection{Applying \sketch\ to Misra-Gries}\label{sec:mg}
+We apply \sketch\ to Misra-Gries~\cite{MisraGries} to derive \sketchmg.
 
+\textbf{Misra-Gries (MG).}
+As described in \Cref{sec:introduction}, CMS and CS can overestimate a key's frequency.
+While both structures can be used to identifying the stream's heavy hitters (i.e., the most frequent keys), their output would be more reliable if they avoided overestimates.
+MG bridges this gap by ensuring that it never overestimates a key's frequency.
+Moreover, unlike CMS and CS, which return only frequency estimates, MG can also return the full keys it identifies as heavy hitters.
+\Cref{tab:conventional_sketch_stats} compares MG's properties to CMS and CS.
+
+MG provides these two capabilities by tracking~$w$ potential heavy hitters with dedicated counters in an array of~$w$ slots, as illustrated in \Cref{fig:mg_overview}.
+Each slot stores a full key (shown in gray) along with its dedicated counter (shown in white).
+A key's counter never overestimates its frequency because MG increments it only when that key is inserted, as discussed shortly.
+Tracking heavy hitters with dedicated counters leads to more accurate estimates for these keys, thus reducing estimation error under skew.
+
+A query for a key tracked in MG's array returns that key's counter as the frequency estimate, while a query for an untracked key returns zero.
+The top-right corner of \Cref{fig:mg_overview} illustrate these cases.
+When inserting a key~$x$, MG first checks whether~$x$ has a dedicated counter in the array.
+If it does, MG increments~$x$'s counter. 
+Otherwise, if the array has an empty slot, $x$ is stored in it with a count of~1.
+If~$x$ is not in the array and the array is full, MG decrements all counters and evicts any keys whose counters become zero.
+A heavy hitter tends to accumulate enough increments to survive these decrements, whereas an infrequent key would eventually be evicted.
+If this process frees a slot, MG stores the incoming key~$x$ in that slot with a count of~1.
+The left side of \Cref{fig:mg_overview} illustrates these insertion cases.
+MG does not support deletions without weakening its error bound~\cite{BatchUpdateMisraGries}.
+This is because untracked keys may become heavy hitters after the current heavy hitters are deleted, yet MG lacks the information needed to identify \mbox{and place these keys in its array}.
+
+More slots allow MG to retain more keys, thereby improving its estimates.
+Since MG is deterministic and does not use hashing (unlike CMS and CS), its estimates are not affected by hash collisions that cause multiple keys to share the same counter.
+Consequently, its estimates always satisfy its error bounds.
+Using an array of~$w$ slots, MG estimates the frequency of any key with an error of at most~$\frac{N}{w}$, i.e., $|\hat{f}(x)-f(x)| \leq \frac{N}{w}$ for any key~$x$.
+Moreover, because it uses dedicated counters for heavy hitters, it provides a strong \emph{tail guarantee}: the error for any key is at most~$\min_{1 \leq i \leq w} \frac{N^{\text{res}(i)}}{w-i+1}$, where $N^{\text{res}(i)}$ is the total frequency of all keys not among the top~$i$.\footnote{CMS and CS provide similar tail guarantees~\cite{CMSCSTail}, although these guarantees hold only probabilistically.}
+Under skew, $N^{\text{res}(i)}$ is much smaller than~$N$. 
+In particular, under Zipfian workloads with exponent~$\gamma>1$, which closely model real-world streams, $N^{\text{res}(i)} = O(N/i^{\gamma-1})$~\cite{CMSCSTail}.
+
+\begin{figure}
+    \centering
+    \begin{tikzpicture}
+        \def\arrayw{4.75}
+        \def\arrayh{0.25}
+        \def\arraylen{5}
+        \def\arraylenminusone{4}
+        \def\cellw{0.95}
+        \def\elemw{0.65}
+        \def\counterw{0.30}
+        \def\annotationoffset{0.05}
+        \def\bottomymul{2.5}
+        \def\casebracewidth{1.5}
+        \def\casebracewidthquery{0.55}
+
+        \foreach \j in {1, ..., \arraylen} {
+            %\draw[white,pattern=north east lines] (\j*\cellw-\counterw,0.5*\arrayh) rectangle (\j*\cellw-\cellw,-0.5*\arrayh);
+            \draw[white,fill=gray!20] (\j*\cellw-\counterw,0.5*\arrayh) rectangle (\j*\cellw-\cellw,-0.5*\arrayh);
+            \draw[black,dotted,dash phase=4pt] (\j*\cellw-\counterw,0.5*\arrayh) -- (\j*\cellw-\counterw,-0.5*\arrayh);
+        }
+        \foreach \j in {2, ..., \arraylen} {
+            \draw (\j*\cellw-\cellw,0.5*\arrayh) -- (\j*\cellw-\cellw,-0.5*\arrayh);
+        }
+        \draw[black] (0,0.5*\arrayh) rectangle (\arrayw,-0.5*\arrayh);
+
+        \node[inner sep=4pt] (key) at (-2.5*\cellw,2.5*\arrayh) {\small Insert $x$};
+        \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt,mirror}] ($(key.east)+(1pt,0.5*\casebracewidth)$) -- ($(key.east)+(1pt,-0.5*\casebracewidth)$);
+        \node[inner sep=0pt,anchor=west,align=center] (case_1) at ($(key.east)+(2pt,0.35*\casebracewidth)$) {\footnotesize Exists \hspace*{1pt}};
+        \node[inner sep=0pt,anchor=west,align=center] (case_2) at ($(key.east)+(2pt,0.03*\casebracewidth)$) {\footnotesize Does not exist, \\[-4pt] \footnotesize Empty slot};
+        \node[inner sep=0pt,anchor=west,align=center] (case_3) at ($(key.east)+(2pt,-0.35*\casebracewidth)$) {\footnotesize Does not exist, \\[-4pt] \footnotesize No empty slot};
+
+        \draw[-stealth] (case_1.east) -| (1.0*\cellw+\elemw+0.5*\counterw,0.5*\arrayh) node[pos=0.25,above=2pt,align=center,inner sep=0pt] {\footnotesize $+1$};
+        \draw[-stealth] (case_2.east) -| (\arraylen*\cellw-0.5*\cellw,1.2*\arrayh) node[pos=0.1045,above=1pt,align=center,inner sep=0pt] {\footnotesize Store $x,1$};
+        \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt}] (\arraylen*\cellw-\cellw,0.65*\arrayh) -- (\arraylen*\cellw,0.65*\arrayh);
+        \draw (case_3.east) -| (-0.15*\cellw,-\bottomymul*\arrayh);
+        \draw (-0.15*\cellw,-\bottomymul*\arrayh) -- (\arraylen*\cellw-0.493*\cellw,-\bottomymul*\arrayh) node[pos=0.119,below=2pt,align=center,inner sep=0pt] {\footnotesize $-1$};
+        \foreach \j in {1, ..., \arraylenminusone} {
+            \draw[-stealth] (\j*\cellw-0.5*\counterw,-\bottomymul*\arrayh) -- (\j*\cellw-0.5*\counterw,-0.5*\arrayh);
+        }
+        \draw[-stealth] (\arraylen*\cellw-0.5*\cellw,-\bottomymul*\arrayh) -- (\arraylen*\cellw-0.5*\cellw,-1.15*\arrayh);
+
+        \node[inner sep=4pt] (query) at (\arrayw+0.05*\cellw,4.25*\arrayh) {\small Query $q$};
+        \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt}] ($(query.west)+(-1pt,0.5*\casebracewidthquery)$) -- ($(query.west)+(-1pt,-0.5*\casebracewidthquery)$);
+        \node[inner sep=0pt,anchor=east,align=center] (case_1) at ($(query.west)+(-2pt,0.3*\casebracewidthquery)$) {\hspace*{1pt} \footnotesize Tracked, 4};
+        \node[inner sep=0pt,anchor=east,align=center] (case_2) at ($(query.west)+(-2pt,-0.3*\casebracewidthquery)$) {\footnotesize Otherwise, 0};
+        \draw[stealth-] (case_1.west) -| (2.0*\cellw+\elemw+0.5*\counterw,0.5*\arrayh);
+        \node[inner sep=0pt] at (2.0*\cellw+0.5*\elemw,-0.02*\arrayh) {\footnotesize $q$};
+        \node[inner sep=0pt] at (2.0*\cellw+\elemw+0.5*\counterw,0.0*\arrayh) {\footnotesize $4$};
+
+        \node[inner sep=0pt] at (4.0*\cellw+0.5*\elemw,0.0*\arrayh) {\footnotesize $x$};
+        \node[inner sep=0pt] at (4.0*\cellw+\elemw+0.5*\counterw,0.0*\arrayh) {\footnotesize $1$};
+        \node[inner sep=3pt,align=left,anchor=west] at (4.5*\cellw,-2.1*\arrayh) {\footnotesize Freed \\[-4pt] \footnotesize Store $x,1$};
+
+        \draw[decorate,decoration={brace,mirror,raise=1pt,amplitude=2pt}] (\arraylen*\cellw-\cellw,-0.65*\arrayh) -- (\arraylen*\cellw,-0.65*\arrayh);
+
+        %\node[inner sep=0pt,anchor=west] at (-3.2*\cellw,5.25*\arrayh) {\textbf{C) MG}};
+    \end{tikzpicture}
+    \caption{MG uses dedicated counters to track frequent keys.}
+    \label{fig:mg_overview}
+\end{figure}
+
+MG can be modified to provide unbiased estimates by probabilistically evicting the least frequent key in the array upon the insertion of an untracked key~\cite{UnbiasedSpaceSaving}.
+Other variants of MG achieve higher accuracy in practice, but at the cost \mbox{of allowing overestimation~\cite{SpaceSaving}}.
+
+\textbf{Conventional Implementations.}
+A direct implementation of MG incurs an~$O(w)$ cost for both insertions and queries, as each operation must scan the array of~$w$ slots to find a matching key.
+Practical implementations avoid this scan by organizing the key--counter pairs in a hash table rather than a flat array.
+This enables constant-time queries, as well as constant-time insertions for keys already tracked by MG.
+However, inserting an untracked key when the table is full still requires decrementing all counters.
+To avoid this cost, the decrement is applied lazily using a global offset~$L$.
+A stored counter value~$v$ now represents an effective count of~$v-L$, and a newly admitted key is assigned a counter value of~$L+1$.
+Thus, incrementing~$L$ decreases all effective counts by one, simulating a global decrement in constant time.
+
+Lazy decrements still require identifying and evicting keys whose effective counts reach zero.
+A common solution is to maintain an auxiliary min-heap that orders the tracked keys by count.
+Each heap record must identify its corresponding key so that it can be evicted from the hash table.
+Conversely, each hash table entry must reference its heap record so that the heap can be reordered when the key's counter is incremented.
+Global decrements do not require modification of the heap, as they do not change its ordering.
+The heap reduces eviction time from~$O(w)$ to~$O(\log w)$, but incurs a significant memory overhead.
+The eviction time can be reduced to~$O(1)$ by instead maintaining the keys in count order using a doubly linked list~\cite{SpaceSaving}.
+However, the additional pointers required by this approach would further increase the memory overhead.
+
+\textbf{\sketchmg.}
+\sketchmg builds on the practical MG implementation described above while avoiding the use of a heap or linked list for eviction.
+Instead, it buffers insertions of untracked keys and evicts multiple tracked keys in a single sweep over the hash table to amortize the eviction cost, as discussed near the end of this section.
+\sketchmg also saves memory under skew by applying \counterencodingabbrv\ to the counters.
+Finally, it accommodates stream growth by expanding its hash table.
+
+\textbf{Accommodating Skew.}
+Although MG focuses on tracking heavy hitters, their counts often exhibit substantial skew.
+As with CMS and CS, using uniformly sized counters in such a scenario wastes significant memory on the leading zeros of smaller counts.
+\sketchmg addresses this issue by applying \counterencodingabbrv\ to the counters.
+However, \counterencodingabbrv\ requires the counters to be tightly packed, whereas a conventional hash table stores each counter alongside its key.
+To resolve this incompatibility, \sketchmg separates the counters from the keys while preserving a direct correspondence between them.
+Specifically, it implements the hash table using open addressing to store the keys in a contiguous array of slots, and maintains a separate counter array mirroring the same layout: the counter for the key in the~$i${\nobreakdash-}th slot of the hash table is stored at position~$i$.
+\sketchmg then applies \counterencodingabbrv\ to this counter array.
+
+Separating the counters from the keys introduces an additional cache miss when accessing a key's counter during a query or update.
+To mitigate this overhead, \sketchmg speculatively prefetches the region of the counter array corresponding to the location to which the key hashes.
+This allows the relevant counters to be loaded into CPU cache while the hash table resolves the key.
+
+\textbf{Accommodating Unbounded Data Growth.}
+Earlier in this section, we expressed MG's estimation error in terms of the stream length~$N$ (and the tail~$N^{\text{res}(i)}$).
+Since these error bounds are similar to those of CMS, a natural approach to accommodating stream growth is to expand \sketchmg whenever~$N$ more than doubles, similarly to \sketchcms.
+However, in Experiment~? of \Cref{sec:evaluation}, we observe that this expansion policy consumes excessive memory to achieve the desired accuracy.
+The reason is that, unlike in CMS, not all~$N$ insertions increase MG's estimation error.
+In CMS, every insertion can increase the error through hash collisions, whereas in MG, inserting an already tracked key increments its dedicated counter and therefore introduces no additional error.
+MG's error increases only when an untracked key is inserted, for two reasons:
+(1)~the counters of all tracked keys are decremented, increasing their estimation errors by one, and
+(2)~if the inserted key is not admitted to MG, its insertion is omitted from its estimate, increasing that key's error by one.
+
+Thus, the number of untracked-key insertions~$M$ characterizes MG's estimation error more precisely than the stream length~$N$.
+Accordingly, \sketchmg controls its worst-case estimation error by expanding whenever~$M$ more than doubles.
+As with \sketchcs in the previous section, this corresponds to defining the size function in terms of~$M$, i.e., as~$W(M)$.
+
+Unlike \sketchcms and \sketchcs, \sketchmg is able to expand by factors smaller than~2 because it employs a hash table that stores full keys.
+Rather than doubling the hash table's capacity whenever~$M$ more than doubles, \sketchmg grows its capacity by one whenever~$W(M)$ increases by one.
+This finer-grained expansion leads to a smaller constant-factor in \sketchmg's error bound than the bounds of \sketchcms and \sketchcs.
+
+In \Cref{sec:upper_bounds_mg_normal}, we follow a similar argument to the analysis of \sketchcms to bound \sketchmg's estimation error:
+\begin{restatable}{theorem}{thmmgnormal}
+    \label{thm:mg-normal} When using a size function~$W(\cdot)$ on a stream where a total of~$M$ insertions of untracked keys occur, \sketchmg provides an estimation error~$E(M)$ satisfying
+    $$
+    E(M) \leq  
+    \begin{cases}
+        O(1) \cdot \epsilon {M}^{1-\alpha} & \text{if $W(M)=M^{\alpha}/\epsilon$, for $\alpha \in [0,1)$,} \\
+        \ln M \cdot \epsilon & \text{if $W(M)=M/\epsilon$.}
+    \end{cases}
+    $$
+    Compared to a fixed-size MG that, given prior knowledge of~$M$, is allocated upfront with~$W(M)$ counters, the error terms above are higher by at most a constant and a logarithmic factor.
+    The above expressions are smaller than or equal to the corresponding expressions with the stream length~$N$ in place of~$M$, since~$M \leq N$.
+\end{restatable}
+Compared to \sketchcms and \sketchcs's bounds (Theorems~\ref{thm:cms-w} and \ref{thm:cs-w}), the logarithmic term in the linear case of~$W(M)$ is a natural logarithm, which is smaller by a constant factor.
+Note that setting~$\epsilon \leq 1$ in the linear case trivially yields an error bound of~0, as \sketchmg will always grow enough to admit all keys and track their exact counts.
+Interestingly, setting~$\epsilon$ even slightly larger than~1 creates the logarithmic overhead of \Cref{thm:mg-normal}.
+
+Additionally, \Cref{sec:upper_bounds_mg_res} shows that \sketchmg provides a generalized version of MG's tail guarantee with the same sublinear scaling as in \Cref{thm:mg-normal}:
+\begin{restatable}{theorem}{thmmgres}
+    \label{thm:mg-res}
+    When using a size function~$W(\cdot)$ on a stream where a total of~$M$ insertions of untracked keys occur, \sketchmg provides an estimation error~$E(M)$ satisfying
+    $$
+    E(M) \leq  
+    \begin{cases}
+        O(1) \cdot \epsilon \parentheses{M^{\text{res}(k)}}^{1-\alpha} + O(k^{1/\alpha-1}) & \text{if $W(M)=M^{\alpha}/\epsilon$} \\
+        \ln M^{\text{res}(k)} \cdot \epsilon + \log_2 k  & \text{if $W(M)=M/\epsilon$,}
+    \end{cases}
+    $$
+    where~$M^{res(k)}$ is the total number of untracked-key insertions of all keys not among the top~$k$.
+\end{restatable}
+The additive terms on the right side of the above error bounds arise because \sketchmg may initially have fewer than~$k$ counters.
+This forces \sketchmg to ``wait out'' the stream until the hash table's capacity reaches~$k$, introducing the additive error.
+These terms vanish if \sketchmg is allocated~$k$ counters from the start.
+
+\begin{figure}
+    \centering
+    \begin{tikzpicture}
+        \def\arrayh{0.3}
+        \def\arraylen{7}
+        \def\arraylenminusone{6}
+        \def\cellw{0.95}
+        \def\arrayw{\cellw*\arraylen}
+        \def\elemw{0.65}
+        \def\counterw{0.30}
+        \def\annotationoffset{0.05}
+        \def\bottomymul{2.5}
+        \def\casebracewidth{1.5}
+        \def\casebracewidthquery{0.55}
+
+        \foreach \j in {1, ..., \arraylen} {
+            %\draw[white,pattern=north east lines] (\j*\cellw-\counterw,0.5*\arrayh) rectangle (\j*\cellw-\cellw,-0.5*\arrayh);
+            \draw[white,fill=gray!20] (\j*\cellw-\counterw,0.5*\arrayh) rectangle (\j*\cellw-\cellw,-0.5*\arrayh);
+            \draw[black,dotted,dash phase=4pt] (\j*\cellw-\counterw,0.5*\arrayh) -- (\j*\cellw-\counterw,-0.5*\arrayh);
+        }
+        \foreach \j in {2, ..., \arraylen} {
+            \draw (\j*\cellw-\cellw,0.5*\arrayh) -- (\j*\cellw-\cellw,-0.5*\arrayh);
+        }
+        \draw[black] (0,0.5*\arrayh) rectangle (\arrayw,-0.5*\arrayh);
+
+        \def\keyh{-0.26*\arrayh}
+        \node[inner sep=0pt,anchor=south] at (0*\cellw+0.5*\elemw,\keyh) {\footnotesize $a$};
+        \node[inner sep=0pt] at (0*\cellw+\elemw+0.5*\counterw,0.0*\arrayh) {\footnotesize $4$};
+        \node[inner sep=0pt,anchor=south] at (1*\cellw+0.5*\elemw,\keyh) {\footnotesize $b$};
+        \node[inner sep=0pt] at (1*\cellw+\elemw+0.5*\counterw,0.0*\arrayh) {\footnotesize $5$};
+        \node[inner sep=0pt,anchor=south] at (2*\cellw+0.5*\elemw,\keyh) {\footnotesize $c$};
+        \node[inner sep=0pt] at (2*\cellw+\elemw+0.5*\counterw,0.0*\arrayh) {\footnotesize $4$};
+        \node[inner sep=0pt,anchor=south] at (3*\cellw+0.5*\elemw,\keyh) {\footnotesize $d$};
+        \node[inner sep=0pt] at (3*\cellw+\elemw+0.5*\counterw,0.0*\arrayh) {\footnotesize $7$};
+        \node[inner sep=0pt,anchor=south] at (4*\cellw+0.5*\elemw,\keyh) {\footnotesize $e$};
+        \node[inner sep=0pt] at (4*\cellw+\elemw+0.5*\counterw,0.0*\arrayh) {\footnotesize $3$};
+        \node[inner sep=0pt] at (5*\cellw+0.5*\elemw,0.0*\arrayh) {\footnotesize $f$};
+        \node[inner sep=0pt] at (5*\cellw+\elemw+0.5*\counterw,0.0*\arrayh) {\footnotesize $3$};
+        \node[inner sep=0pt,anchor=south] at (6*\cellw+0.5*\elemw,-0.45*\arrayh) {\footnotesize $g$};
+        \node[inner sep=0pt] at (6*\cellw+\elemw+0.5*\counterw,0.0*\arrayh) {\footnotesize $9$};
+
+        \node[inner sep=0pt,align=center] at (-0.8*\cellw,0.625*\arrayh) {\small Lazy Offset \\[-1pt] \small $L=1$};
+
+        \def\pendingspacing{8mm}
+        \node[inner sep=0pt,anchor=west] (pending_label) at (1.65*\cellw,-2.0*\arrayh) {\small Buffer:};
+        \node[inner sep=0pt,right=\pendingspacing/2 of pending_label] (x) {\small $x$};
+        \node[inner sep=0pt,below right=-3.9pt and \pendingspacing of x] (y1) {\small $y$};
+        \node[inner sep=0pt,right=\pendingspacing of y1] (y2) {\small $y$};
+        \node[inner sep=0pt,above right=-4.1pt and \pendingspacing of y2] (z) {\small $z$};
+
+        \node[inner sep=0pt,below=4.9mm of pending_label.east,anchor=east] (eviction_candidates_label) {\small $B=4$ Eviction Candidates:};
+        \node[inner sep=1pt,below=2.77mm of x] (cand_1) {\small $(e,2)$};
+        \node[inner sep=1pt,below=2.11mm of y1] (cand_2) {\small $(f,2)$};
+        \node[inner sep=1pt,below=2.11mm of y2] (cand_3) {\small $(a,3)$};
+        \node[inner sep=1pt,below=2.69mm of z] (cand_4) {\small $(c,3)$};
+
+        \node[inner sep=0pt,below=9.7mm of eviction_candidates_label.east,anchor=east] (action_label) {\small Buffer Action:};
+        \node[inner sep=1pt,below=7.4mm of cand_1] (x_action) {\small $-$};
+        \node[inner sep=1pt,below=6.325mm of cand_2] (y1_action) {\small $-$, Admit};
+        \node[inner sep=1pt,below=6.925mm of cand_3] (y2_action) {\small $+$};
+        \node[inner sep=1pt,below=6.42mm of cand_4] (z_action) {\small Admit};
+
+        \draw[-stealth] (y1_action.160) -- node[pos=0.4,left=0pt] {\small Evict} (cand_1);
+        \draw[-stealth] (y1_action.160) -- (cand_2);
+
+        \node[inner sep=0pt,below=16.0mm of eviction_candidates_label.west,anchor=west] (second_pass_op_label) {\small No Remaining Evictions, Subtract Offset~$L=1$};
+
+        \node[inner sep=0pt,below left=-2.17mm and 2mm of eviction_candidates_label] (pass_1_label) {\small \textbf{Pass 1)}};
+        \node[inner sep=0pt,below=12.9mm of pass_1_label] (pass_2_label) {\small \textbf{Pass 2)}};
+
+        \def\offy{-3.25}
+        \foreach \j in {1, ..., \arraylen} {
+            %\draw[white,pattern=north east lines] (\j*\cellw-\counterw,0.5*\arrayh) rectangle (\j*\cellw-\cellw,-0.5*\arrayh);
+            \draw[white,fill=gray!20] (\j*\cellw-\counterw,0.5*\arrayh+\offy) rectangle (\j*\cellw-\cellw,-0.5*\arrayh+\offy);
+            \draw[black,dotted,dash phase=4pt] (\j*\cellw-\counterw,0.5*\arrayh+\offy) -- (\j*\cellw-\counterw,-0.5*\arrayh+\offy);
+        }
+        \foreach \j in {2, ..., \arraylen} {
+            \draw (\j*\cellw-\cellw,0.5*\arrayh+\offy) -- (\j*\cellw-\cellw,-0.5*\arrayh+\offy);
+        }
+        \draw[black] (0,0.5*\arrayh+\offy) rectangle (\arrayw,-0.5*\arrayh+\offy);
+
+        \def\keyh{-0.26*\arrayh}
+        \node[inner sep=0pt,anchor=south] at (0*\cellw+0.5*\elemw,\keyh+\offy) {\footnotesize $a$};
+        \node[inner sep=0pt] at (0*\cellw+\elemw+0.5*\counterw,0.0*\arrayh+\offy) {\footnotesize $1$};
+        \node[inner sep=0pt,anchor=south] at (1*\cellw+0.5*\elemw,\keyh+\offy) {\footnotesize $b$};
+        \node[inner sep=0pt] at (1*\cellw+\elemw+0.5*\counterw,0.0*\arrayh+\offy) {\footnotesize $2$};
+        \node[inner sep=0pt,anchor=south] at (2*\cellw+0.5*\elemw,\keyh+\offy) {\footnotesize $c$};
+        \node[inner sep=0pt] at (2*\cellw+\elemw+0.5*\counterw,0.0*\arrayh+\offy) {\footnotesize $1$};
+        \node[inner sep=0pt,anchor=south] at (3*\cellw+0.5*\elemw,\keyh+\offy) {\footnotesize $d$};
+        \node[inner sep=0pt] at (3*\cellw+\elemw+0.5*\counterw,0.0*\arrayh+\offy) {\footnotesize $4$};
+        \node[inner sep=0pt,anchor=south] at (4*\cellw+0.5*\elemw,-0.45*\arrayh+\offy) {\footnotesize $y$};
+        \node[inner sep=0pt] at (4*\cellw+\elemw+0.5*\counterw,0.0*\arrayh+\offy) {\footnotesize $2$};
+        \node[inner sep=0pt] at (5*\cellw+0.5*\elemw,-0.05*\arrayh+\offy) {\footnotesize $z$};
+        \node[inner sep=0pt] at (5*\cellw+\elemw+0.5*\counterw,0.0*\arrayh+\offy) {\footnotesize $1$};
+        \node[inner sep=0pt,anchor=south] at (6*\cellw+0.5*\elemw,-0.45*\arrayh+\offy) {\footnotesize $g$};
+        \node[inner sep=0pt] at (6*\cellw+\elemw+0.5*\counterw,0.0*\arrayh+\offy) {\footnotesize $6$};
+
+        \node[inner sep=0pt] at (-0.8*\cellw,\offy) {\small $L=0$};
+
+        \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt}] (6*\cellw,-0.5*\arrayh+\offy) -- (4*\cellw,-0.5*\arrayh+\offy)
+            node[pos=0.5,below=4pt,inner sep=1pt] {\small Admitted};
+    \end{tikzpicture}
+    \caption{\sketchmg amortizes the cost of evictions by buffering untracked key insertions, evicting keys, and applying the corresponding updates to the hash table \mbox{in two passes}.}
+    \label{fig:sketchmg_buffering}
+\end{figure}
+
+\textbf{Heap Elimination.}
+Inserting an untracked key into a full MG requires decrementing all counters and evicting keys whose counts reach zero.
+As discussed earlier in this section, conventional MG implementations identify eviction victims using an auxiliary heap, at the cost of significant memory overhead.
+\sketchmg avoids this overhead by eliminating the heap and instead scanning the hash table to identify eviction victims.
+Under skewed workloads, these scans are infrequent because few insertions involve untracked keys.
+This follows from MG's tail guarantee: since each such insertion increases the estimation error by one, an MG of size~$w$ can encounter at most~$\min_{1 \leq i \leq w} \frac{N^{\text{res}(i)}}{w-i+1} \ll N$ untracked-key insertions.
+However, under less skewed workloads, the cost of these scans \mbox{can remain significant}.
+
+\textbf{Buffering Untracked Insertions.}
+To reduce the scan cost, \sketchmg buffers up to~$B$ insertions of untracked keys ($B=64$ by default), amortizing each scan across multiple insertions.
+The top part of \Cref{fig:sketchmg_buffering} illustrates a buffer of size~$B=4$.
+Once the buffer fills, \sketchmg applies the buffered updates to the hash table in two passes:
+
+\emph{In the first pass}, \sketchmg scans the hash table to identify~$B$ eviction candidates, i.e., the~$B$ keys with the smallest effective counts after accounting for the lazy offset~$L$.
+In the example of \Cref{fig:sketchmg_buffering}, these candidates are~$e$, $f$, $a$, and~$c$, with effective counts of~2, 2, 3, and~3, respectively.
+\sketchmg then processes the buffered insertions in order.
+If a buffered key has already been admitted, \sketchmg increments its count.
+Otherwise, if the sketch is full, the buffered key triggers a global decrement by incrementing the lazy offset~$L$.
+Any eviction candidate whose effective count reaches zero is then evicted, allowing the buffered key to be admitted with an effective count of~1.
+If a global decrement evicts multiple candidates, subsequent buffered keys are admitted into the resulting empty slots without triggering decrements.
+
+In \Cref{fig:sketchmg_buffering}, the first two buffered insertions trigger global decrements (indicated by the minus symbols below the keys).
+The second decrement, triggered by~$y$, reduces the effective counts of~$e$ and~$f$ to zero, causing both to be evicted and~$y$ to be admitted with an effective count of~1.
+The third buffered insertion is also~$y$, which is now tracked, so its count is incremented (indicated by the plus symbol below it).
+The last buffered key~$z$ is admitted without a global decrement because the eviction of~$e$ and~$f$ has \mbox{created sufficient space}.
+
+\emph{In the second pass} over the hash table, \sketchmg evicts any remaining keys whose effective counts have reached zero due to the global decrements.
+Such keys may remain if all~$B$ eviction candidates identified in the first pass were evicted.
+\sketchmg also saves space by subtracting the lazy offset~$L$ from every counter, after which it resets~$L$ to zero.
+The bottom of \Cref{fig:sketchmg_buffering} shows the resulting sketch for the example above.
+In this case, no additional keys were evicted, and every counter was reduced by the lazy offset~$L=1$.
+After this pass, \sketchmg further reduces its memory footprint by adapting \counterencodingabbrv's tuning as needed, according to the criteria \mbox{described in \Cref{sec:accommodating_skew}}.
+
+\subsection{Applying \sketch\ to Other FE Sketches}\label{sec:any_sketch}
+Using the same strategies as in the preceding sections, \sketch\ can be adapted to any FE sketch.
+In particular, \counterencodingabbrv\ can be used to compactly encode the sketch's counters and accommodate skew.
+Moreover, for an FE sketch with an error bound of the form~$X/w$, where~$X$ is a measurable workload parameter and~$w$ is the sketch's size, \sketch's expansion policy can be used to accommodate stream growth.
+For CMS, CS, and MG, $X$ corresponds to the stream's total key count~$N$, squared~$\ell_2$-norm~$F$, and number of untracked-key insertions~$M$, respectively.
+As in Sections~\ref{sec:accommodating_unknown_stream_lengths}, \ref{sec:cs}, and \ref{sec:mg}, defining the size function in terms of~$X$ (i.e., as~$W(X)$) and expanding whenever~$X$ more than doubles yields sublinear scaling of both error and memory with respect to~$X$.
 
 \section{Memory Analysis}\label{sec:memory_analysis}
 So far in Section~\ref{sec:sublime}, we characterized
@@ -3076,12 +3373,10 @@ are similar, i.e., their distribution is uniform. This is because skew gives
     \vspace{-8pt}
 \end{proof}
 
-We cannot simply set~$k$ to the stream length~$N$ and multiply the space bound
-of~\Cref{thm:counter_array_per_counter_space} by the number of
-arrays~$d$ to derive \sketch's memory footprint. This is because \sketch\
-increases the sum of the absolute values of the counters during expansions by
-copying them. By accounting for this, we show the following space bound for
-\sketch:
+Setting~$k$ to the stream length~$N$ in \Cref{thm:counter_array_per_counter_space} leads to a memory footprint bound for \sketchmg's counters.
+For \sketchcms and \sketchcs, however, we cannot simply set~$k$~to~$N$ and multiply the space bound by the number of arrays~$d$ to derive the memory footprint.
+This is because the sum of the absolute values of the counters increases during expansions by copying them.
+By accounting for this, we show the following result:
 \begin{theorem}
     \label{thm:all_counters_space}
     When using a sublinear power size as the function~$W(N)$, \sketchcms, has a
@@ -3157,40 +3452,33 @@ least~$n \cdot [ \Omega( \log 1/\delta + \log\log n) - \Theta(1)]$ bits of
 memory at some point in time~\cite{PaghExpandability}. Thus, an FE sketch that
 can implement such a filter must also use at least this much memory.
 
-Our reduction works as follows. Consider a FE sketch (e.g., CMS). Suppose this
-sketch never underestimates a key's count and guarantees an error of at
-most~$E(N)$ with a confidence of~$1-\delta$ for streams of length~$N$. We use
-it to implement a filter with an FPR of~$\delta$ over a set of
-size~$n=N/(E(N)+1)$. Specifically, we insert each key in the set~$E(N)+1$ times
-into the FE sketch. This causes the FE sketch to return an estimate of at
-least~$E(N)+1$ during a query to an existing key within the set. In contrast,
-the FE sketch's accuracy guarantees imply that a query to a non-existent key
-returns an estimate of at most~$E(N)$ with a probability of~$1-\delta$. Thus,
-by thresholding the estimate by~$E(N)+1$, we return a true positive for
-existing keys and a false positive for non-existent keys with an FPR of at
-most~$\delta$. The following theorem formalizes these intuitions:
-
+Our reduction works as follows.
+Consider an FE sketch (e.g., CMS).
+Suppose this sketch never underestimates a key's count and guarantees an error of at most~$E(N)$ with a confidence of~$1-\delta$ for streams of length~$N$.
+We use it to implement a filter with an FPR of~$\delta$ over a set of size~$n=N/(E(N)+1)$.
+Specifically, we insert each key in the set~$E(N)+1$ times into the FE sketch.
+This causes the FE sketch to return an estimate of at least~$E(N)+1$ during a query to an existing key within the set.
+In contrast, the FE sketch's accuracy guarantees imply that a query to a non-existent key returns an estimate of at most~$E(N)$ with a probability of~$1-\delta$.
+Thus, by thresholding the estimate by~$E(N)+1$, we return a true positive for existing keys and a false positive for non-existent keys with an FPR of at most~$\delta$.
+The following theorem formalizes these intuitions:
 \begin{theorem}
     \label{thm:sketch_expandability_special_case}
-    Consider an FE sketch with only overestimation errors that processes
-    growing streams with an error bound of~$E(N)$ and a confidence
-    of~$1-\delta$. Such a sketch must use at least~$N/E(N) \cdot [\Omega\left(
-    \log 1/\delta + \log\log (N/E(N)) \right) - \Theta(1)]$ bits of memory at
-    some point in time while processing a stream.
+    Consider an FE sketch with only overestimation errors that processes growing streams with an error bound of~$E(N)$ and a confidence of~$1-\delta$.
+    Such a sketch must use at least~$N/E(N) \cdot [\Omega\left( \log 1/\delta + \log\log (N/E(N)) \right) - \Theta(1)]$ bits of memory at some point in time while processing a stream.\footnote{This expression cannot be used to reason about an FE sketch that has full confidence (e.g., MG).
+Such FE sketches satisfy~$\delta=0$, making the term~$\log 1/\delta$ in the expression undefined. 
+Redoing the analysis of~\cite{PaghExpandability} with~$\delta=0$ remedies this issue: the term~$\log 1/\delta$ must simply be replaced with~$\log u$, where~$u \gg N$ is the size of the universe from which the keys originate.}
 \end{theorem}
 
-\Cref{thm:sketch_expandability_special_case} only holds for FE
-sketches that do not underestimate (e.g., CMS). It is non-trivial to adapt the
-same argument to FE sketches that can underestimate (e.g., CS), since
-underestimations can introduce false negatives and violate filtering semantics.
-Nevertheless, by accounting for the estimation variance, we reason about the
-false negatives and
+\Cref{thm:sketch_expandability_special_case} holds for FE sketches that do not underestimate (e.g., CMS).
+The same results also apply to FE sketches that never overestimate and have a deterministic error bound (e.g., MG), since such an FE sketch can be converted into one that never underestimates by adding its error bound to each estimate.
+However, applying \Cref{thm:sketch_expandability_special_case} to FE sketches that can both overestimate and underestimate (e.g., CS) is non-trivial, as two-sided errors can introduce false negatives and violate filtering semantics.
+Nevertheless, by accounting for the estimation variance, we reason about the false negatives and
 \ifappendix
 prove in \Cref{sec:ommitted_proofs_lower}
 \else 
 prove in our Appendix~\cite{SublimeArxiv}
 \fi
-that the same lower bound holds for these sketches as well:
+that the same lower bound holds for these sketches:
 \begin{restatable}{theorem}{thmsketchexpandabilitylabel}
     \label{thm:sketch_expandability}
     Consider an FE sketch providing estimates with an expected absolute error
@@ -3739,7 +4027,7 @@ fundamental shift from fixed-size sketches with degrading accuracy to adaptive
 structures that maintain stable accuracy for always-on analytics.
 
 \begin{acks}
-    We thank Yakub Tetek for early and insightful discussions and the reviewers
+    We thank Yakub T\v{e}tek for early and insightful discussions and the reviewers
     for their constructive comments. This research was supported by the NSERC
     grant \#RGPIN-2023-03580.
 \end{acks}
@@ -3755,189 +4043,7 @@ structures that maintain stable accuracy for always-on analytics.
 
 \appendix
 
-\section{Applying \sketch\ to Misra-Gries}\label{sec:mg}
-We now apply \sketch\ to Misra-Gries to derive \sketchmg.
-
-\textbf{Misra-Gries (MG).}
-By using dedicated counters to track the most frequent keys, MG achieves high
-accuracy under skewed workloads. Moreover, by only incrementing a key's
-dedicated counter when it is inserted, MG ensures that it never overestimates
-the key counts. This property is ideal for finding the most frequent keys, as
-described in \Cref{sec:introduction}, since it guarantees that the frequency of
-those keys is at least as large as the estimates.
-
-\begin{figure}
-    \centering
-    \begin{tikzpicture}
-        \def\arrayw{4.75}
-        \def\arrayh{0.25}
-        \def\arraylen{5}
-        \def\cellw{0.95}
-        \def\elemw{0.65}
-        \def\counterw{0.30}
-        \def\annotationoffset{0.05}
-        \def\bottomymul{2.5}
-        \def\casebracewidth{1.5}
-        \def\casebracewidthquery{0.55}
-
-        \foreach \j in {1, ..., \arraylen} {
-            %\draw[white,pattern=north east lines] (\j*\cellw-\counterw,0.5*\arrayh) rectangle (\j*\cellw-\cellw,-0.5*\arrayh);
-            \draw[white,fill=gray!20] (\j*\cellw-\counterw,0.5*\arrayh) rectangle (\j*\cellw-\cellw,-0.5*\arrayh);
-            \draw[dotted,thick] (\j*\cellw-\counterw,0.5*\arrayh) -- (\j*\cellw-\counterw,-0.5*\arrayh);
-        }
-        \foreach \j in {2, ..., \arraylen} {
-            \draw (\j*\cellw-\cellw,0.5*\arrayh) -- (\j*\cellw-\cellw,-0.5*\arrayh);
-        }
-        \draw[black] (0,0.5*\arrayh) rectangle (\arrayw,-0.5*\arrayh);
-
-        \node[inner sep=4pt] (key) at (-2.5*\cellw,2.5*\arrayh) {\small Insert $x$};
-        \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt,mirror}] ($(key.east)+(1pt,0.5*\casebracewidth)$) -- ($(key.east)+(1pt,-0.5*\casebracewidth)$);
-        \node[inner sep=0pt,anchor=west,align=center] (case_1) at ($(key.east)+(2pt,0.35*\casebracewidth)$) {\footnotesize Exists \hspace*{1pt}};
-        \node[inner sep=0pt,anchor=west,align=center] (case_2) at ($(key.east)+(2pt,0.03*\casebracewidth)$) {\footnotesize Does not exist, \\[-4pt] \footnotesize Empty slot};
-        \node[inner sep=0pt,anchor=west,align=center] (case_3) at ($(key.east)+(2pt,-0.35*\casebracewidth)$) {\footnotesize Does not exist, \\[-4pt] \footnotesize No empty slot};
-
-        \draw[-stealth] (case_1.east) -| (1.0*\cellw+\elemw+0.5*\counterw,0.5*\arrayh) node[pos=0.25,above=2pt,align=center,inner sep=0pt] {\footnotesize $+1$};
-        \draw[-stealth] (case_2.east) -| (\arraylen*\cellw-0.5*\cellw,1.2*\arrayh) node[pos=0.1,above=1pt,align=center,inner sep=0pt] {\footnotesize Store $(x,1)$};
-        \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt}] (\arraylen*\cellw-\cellw,0.65*\arrayh) -- (\arraylen*\cellw,0.65*\arrayh);
-        \draw (case_3.east) -| (-0.15*\cellw,-\bottomymul*\arrayh);
-        \draw (-0.15*\cellw,-\bottomymul*\arrayh) -- (\arraylen*\cellw-0.5*\counterw,-\bottomymul*\arrayh) node[pos=0.1,below=2pt,align=center,inner sep=0pt] {\footnotesize $-1$};
-        \foreach \j in {1, ..., \arraylen} {
-            \draw[-stealth] (\j*\cellw-0.5*\counterw,-\bottomymul*\arrayh) -- (\j*\cellw-0.5*\counterw,-0.5*\arrayh);
-        }
-
-        \node[inner sep=4pt] (query) at (\arrayw+0.05*\cellw,4.25*\arrayh) {\small Query $q$};
-        \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt}] ($(query.west)+(-1pt,0.5*\casebracewidthquery)$) -- ($(query.west)+(-1pt,-0.5*\casebracewidthquery)$);
-        \node[inner sep=0pt,anchor=east,align=center] (case_1) at ($(query.west)+(-2pt,0.3*\casebracewidthquery)$) {\hspace*{1pt} \footnotesize Exists, 4};
-        \node[inner sep=0pt,anchor=east,align=center] (case_2) at ($(query.west)+(-2pt,-0.3*\casebracewidthquery)$) {\footnotesize Otherwise, 0};
-        \draw[stealth-] (case_1.west) -| (2.0*\cellw+\elemw+0.5*\counterw,0.5*\arrayh);
-        \node[inner sep=0pt] at (2.0*\cellw+0.5*\elemw,0.0*\arrayh) {\footnotesize $q$};
-        \node[inner sep=0pt] at (2.0*\cellw+\elemw+0.5*\counterw,0.0*\arrayh) {\footnotesize $4$};
-
-        %\node[inner sep=0pt,anchor=west] at (-3.2*\cellw,5.25*\arrayh) {\textbf{C) MG}};
-    \end{tikzpicture}
-    \caption{MG uses dedicated counters to track frequent keys.}
-    \label{fig:mg_overview}
-\end{figure}
-
-\Cref{fig:mg_overview} presents an overview of MG. MG maintains an array of
-slots, each storing a key (shown in gray) and a dedicated frequency counter
-(shown in white). MG estimates the frequency of each key in the array as the
-value of its counter. It returns an estimate of zero for untracked keys. When
-inserting a key~$x$, MG first checks if it has a dedicated counter in some
-slot. If it does, MG increments~$x$'s counter. If not, and the array has an
-empty slot, MG stores~$x$ in it with a count of~$1$. If~$x$ is not in the array
-and the array is full, MG decrements all counters and discards any keys whose
-counters become zero. Such keys are unlikely to be among the most frequent, and
-their slots are better used for tracking more frequent keys. Note that~$x$ is
-not stored in the newly emptied slots and is only stored if it is inserted when
-some slot is already empty. MG does not support deletions without deteriorating
-the error bound~\cite{BatchUpdateMisraGries}. This is because it lacks
-information about the untracked keys, which may become the heavy hitters after
-the current heavy hitters are deleted, thereby failing to place them in its
-array.
-
-Having more slots in the array allows MG to track more keys without discarding
-them, leading to more accurate estimates. Since MG is a deterministic data
-structure that does not use hashing, unlike CMS and CS, it does not suffer from
-hash collisions, and its estimations are within the error bounds with full
-confidence. Using an array of~$w$ slots, MG estimates the frequency of any key
-with an error of at most~$\frac{N}{w}$, i.e., $|\hat{f}(x)-f(x)| \leq
-\frac{N}{w}$ for any key~$x$. Since it uses dedicated counters for the heavy
-hitters, it also provides a strong ``\emph{Tail Guarantee},'' stating that the
-error for any key is at most~$\min_{1 \leq i \leq w}
-\frac{N^{\text{res}(i)}}{w-i+1}$, where $N^{\text{res}(i)}$ is the total
-frequency of all keys not among the top~$i$. Note that~$N^{\text{res}(i)}$ is
-much smaller than~$N$ when the data is skewed.
-
-It is possible to modify MG to support unbiased estimation by probabilistically
-replacing the array's least frequent key newly inserted
-keys~\cite{UnbiasedSpaceSaving}. Other variations of MG achieve higher accuracy
-in practice, but suffer from two-sided errors in exchange~\cite{SpaceSaving}.
-
-Typical implementations of MG use a hash table to implement the array of keys,
-yielding constant-time queries. They also optimize insertions by lazily
-decrementing the counters and employing an auxiliary heap to locate and discard
-keys with zero counts in~$O(\log w)$ time. Insertions can be sped up to
-constant time using a specialized data structure similar to a linked list in
-exchange for a higher memory footprint~\cite{SpaceSaving}.
-
-\textbf{Accommodating Skew.}
-The counts of the heavy hitters stored in MG may still exhibit skew among
-themselves. This leads to memory wastage if the counter values are stored in
-uniformly-sized counters, as in the case of CMS and CS. \sketchmg addresses
-this issue by applying \counterencodingabbrv\ to the counters. Since
-\counterencodingabbrv\ requires the counters to be tightly packed in memory
-without any keys in-between them, \sketchmg stores the counter values in a
-separate array that mirrors the ordering of the keys within the slots before
-applying \counterencodingabbrv.
-
-\textbf{Accommodating Unbounded Data Growth.}
-As MG's estimation error is~$N/w$ (or $\min_{1 \leq i \leq w}
-N^{\text{res}(i)}/(w-i+1)$ in the tail case), which mirrors that of CMS,
-\sketchmg expands based on the growth of the total number of keys~$N$. Since MG
-does not hash keys and can place them in any slot within the array, \sketchmg
-expands on a slot-by-slot basis. This is in contrast to \sketchcms and
-\sketchcs, which must double the size of their arrays to enable consistent
-hashing. As such, \sketchmg smoothly increases its number of slots while
-ensuring that it doubles every time~$N$ more than doubles. This approach
-ensures that the number of counters in the array matches the size
-function~$W(N)$ encoding the expansion policy at all times. Moreover, this
-incremental approach always maintains at least as many counters as doubling the
-number of counters in one go. Therefore, it allows for attaining errors that
-grow at a slower rate{\textemdash}by a constant factor.
-
-Because MG does not support deletions, \sketchmg does not need to support
-contractions and can forgo storing a record of the sketch's state.
-
-\textbf{Theoretical Analysis.} 
-Following a similar argument as that for \sketchcms, we analyze the interaction
-of the number of times the count of each is decremented in \sketchmg with the
-size function to bound its estimation error:
-\begin{restatable}{theorem}{thmmgnormal}
-    \label{thm:mg-normal}
-    When using a size function~$W(\cdot)$ on a stream with a total key count
-    of~$N$, \sketchmg provides an estimation error~$E(N)$ satisfying
-    $$
-    E(N) \leq  
-    \begin{cases}
-        O(1) \cdot \epsilon N^{1-\alpha} & \text{if $W(N)=N^{\alpha}/\epsilon$, for $\alpha \in [0,1)$,} \\
-        \ln N \cdot \epsilon & \text{if $W(N)=N/\epsilon$.}
-    \end{cases}
-    $$
-    Compared to a fixed-size MG allocated upfront with an array of~$W(N)$
-    counters with knowledge of~$N$, the error terms above are higher by at most
-    a constant and a logarithmic factor.
-\end{restatable}
-Compared to the bounds from Theorems~\ref{thm:cms-w} and \ref{thm:cs-w}, the
-logarithmic term in the linear case of~$W(N)$ is a natural logarithmic, which
-is smaller by a constant factor. Note that setting~$\epsilon \leq 1$ in the
-linear case trivially yields an error bound of~0, as \sketchmg will always grow
-enough to store the exact counts of the keys without ever decrementing
-counters. Interestingly, setting~$\epsilon$ to be even slightly larger than~1
-creates the logarithmic overhead of \Cref{thm:mg-normal}.
-
-In addition, MG's tail guarantee generalized to \sketchmg with the same
-sublinearity property as that of \Cref{thm:mg-normal}:
-\begin{restatable}{theorem}{thmmgres}
-    \label{thm:mg-res}
-    When using a size function~$W(\cdot)$ on a stream with a total key count
-    of~$N$, \sketchmg provides an estimation error~$E(N)$ satisfying
-    $$
-    E(N) \leq  
-    \begin{cases}
-        O(1) \cdot \epsilon \parentheses{N^{\text{res}(k)}}^{1-\alpha} + O(k^{1/\alpha-1}) & \text{if $W(N)=N^{\alpha}/\epsilon$} \\
-        \ln N^{\text{res}(k)} \cdot \epsilon + \log_2 k  & \text{if $W(N)=N/\epsilon$,}
-    \end{cases}
-    $$
-    where~$N^{res(k)}$ is the total count of the keys not among the top~$k$.
-\end{restatable}
-The additive terms in the error bounds above come from the possibility of
-\sketchmg not having $k$ counters from the onset. This forces it to ``wait
-out'' the stream until the array grows enough to contain at least~$k$ counters,
-introducing these additive error. These additive terms vanish if \sketchmg is
-allocated~$k$ counters from the start.
-
-\section{Upper bounds: \sketchcms, \sketchcs, and \sketchmg}\label{sec:ommitted_proofs_upper}
+\section{Upper Bounds: \sketchcms, \sketchcs, and \sketchmg}\label{sec:ommitted_proofs_upper}
 For simplicity, we will first discuss the analysis for the case in which we
 have an insertion-only stream, and later discuss why our arguments carry over
 when we also have deletions. In the following, we will also assume that, for
@@ -4279,13 +4385,16 @@ than the total key count~$N$. We include these derivations for~completeness:
 \end{proof}
 
 \subsection{Upper Bounds for \sketchmg}\label{sec:upper_bounds_mg_normal}
-In the case of \sketchmg, we consider a slightly more general division of time
-into epochs. We start with a sketch that uses~$W(N_0)$ counters until the
-stream length reaches~$N_0$. At this point in time, the sketch sets the number
-of counters to~$W(N_1)$. We leave the relationship between~$W(N_0)$ and
-$W(N_1)$ undefined for now. The sketch uses~$W(N_1)$ counters until the stream
-length reaches~$N_1$, and we call this period of time epoch~1. Once~$N_2$ is
-reached, the sketch switches to~$W(N_2)$ counters (starting epoch~2) and so on.
+We simplify our exposition of \sketchmg by assuming, w.l.o.g., that every insertion is of an untracked key.
+That is, we assume that the number of untracked-key insertions~$M$ equals the total number of insertions~$N$, which corresponds to the sketch's worst-case error.
+Thus, the expressions we derive also hold with~$N$ replaced by~$M$.
+
+To handle the case of \sketchmg, we consider a slightly more general division of time into epochs.
+We start with a sketch that uses~$W(N_0)$ counters until the stream length reaches~$N_0$.
+At this point in time, the sketch sets the number of counters to~$W(N_1)$.
+We leave the relationship between~$W(N_0)$ and $W(N_1)$ undefined for now.
+The sketch uses~$W(N_1)$ counters until the stream length reaches~$N_1$, and we call this period of time epoch~1.
+Once~$N_2$ is reached, the sketch switches to~$W(N_2)$ counters (starting epoch~2) and so on.
 We then prove the following lemma:
 
 \begin{lemma}
@@ -4365,13 +4474,12 @@ prove \Cref{thm:mg-normal}:
 \noindent
 We are now ready to prove \Cref{thm:mg-normal}:
 \thmmgnormal*
-\begin{proof} ‌\\
+\begin{proof} ‌
+    As described at the start of this section, we may assume, w.l.o.g., that every insertion is of an untracked key and thus treat~$M$ and $N$ interchangeably. \\
     \textbf{The Linear Case of~$W(N)=N/\epsilon$.} 
-    In this case, we use the fact that in \sketchmg we increase the counters
-    one by one as opposed to doubling them. In other words, we consider
-    divisions into epochs for which~$W(N_{i+1})=W(N_i)+1$ and hence
-    $N_{i+1}=N_i+\epsilon$. Plugging this into~\Cref{lemma:mg-w}, we get
-    at the end of epoch~$i$ that 
+    In this case, we use the fact that in \sketchmg we expand the hash table by one slot as opposed to doubling its capacity.
+    In other words, we consider divisions into epochs for which~$W(N_{i+1})=W(N_i)+1$ and hence $N_{i+1}=N_i+\epsilon$.
+    Plugging this into~\Cref{lemma:mg-w}, we get at the end of epoch~$i$ that 
 	\begin{align*}
 		E(N_i)&\leq \sum_{j=0}^i  \frac{N_j - N_{j-1}}{W(N_j)+1} = \frac{N_0}{W(N_0)} + \sum_{j=1}^i  \frac{\epsilon}{W(N_0)+j} \\
 		&= \epsilon + \epsilon \cdot \sum_{j=1}^i  \frac{1}{W(N_0)+j} \leq \epsilon + \epsilon \cdot \int_{W(N_0)+1}^{W(N_0)+i} \frac{1}{x} \,dx\\
@@ -4383,11 +4491,9 @@ We are now ready to prove \Cref{thm:mg-normal}:
 
     \medskip\noindent
     \textbf{The Sublinear Case of~$W(N)=N^{\alpha}/\epsilon$.}
-    In this case, it is easier to think of divisions into time in which we
-    double the number of counters instead of increasing them one by one. That
-    is, we define the epochs such that~$W(N_{i+1}) = 2\cdot W(N_i)$ and hence
-    $N_{i+1} = 2^{1/\alpha} \cdot N_i$. Noting that~\Cref{lemma:mg-w} holds
-    irrespective of the specific definition of the epochs then yields
+    In this case, it is easier to think of divisions into time in which we double the hash table's capacity instead of increasing it by one.
+    That is, we define the epochs such that~$W(N_{i+1}) = 2\cdot W(N_i)$ and hence $N_{i+1} = 2^{1/\alpha} \cdot N_i$.
+    Noting that~\Cref{lemma:mg-w} holds irrespective of the specific definition of the epochs then yields
     \begin{align*}
         \sum_{j=0}^i \frac{N_j - N_{j-1}}{W(N_j)+1} & = \sum_{j=0}^i \frac{2^{j/\alpha} \cdot N_0 - 2^{(j-1)/\alpha} \cdot N_0} {2^j \cdot W(N_0)} \\
         & = \sum_{j=0}^i  \frac{2^{j/\alpha}- 2^{(j-1)/\alpha}} {2^j} \cdot \frac{N_0}{W(N_0)}.
@@ -4400,8 +4506,8 @@ We are now ready to prove \Cref{thm:mg-normal}:
 \end{proof}
 
 \subsection{Tail Bounds for \sketchmg}\label{sec:upper_bounds_mg_res}
-We prove the tail error guarantees for \sketchmg following the same general
-argument structure of \Cref{sec:upper_bounds_mg_normal}.
+We prove the tail error guarantees for \sketchmg by following the same general argument of \Cref{sec:upper_bounds_mg_normal}.
+As before, we consider the worst-case scenario in which every insertion into \sketchmg is of an untracked key, making~$N^{\text{res(k)}}$ and~$M^{\text{res(k)}}$ interchangeable.
 
 \begin{lemma}\label{lemma:mg-res-w}
     Letting~$E(N)$ denote the error of \sketchmg when using a size
@@ -4435,13 +4541,10 @@ We now proceed to prove the full tail bound of \Cref{thm:mg-res} following the
 same proof structure as that of \Cref{thm:mg-normal}:
 \thmmgres*
 \begin{proof}
-    Note that the additive terms in the bounds of \Cref{thm:mg-res} come from
-    the application of \Cref{thm:mg-normal} to the portion of the stream that
-    must be ``waited out'' by \sketchmg to create the~$k${\nobreakdash-}th
-    counter for the first time. We therefore focus on deriving the remaining
-    part of the error bound, which corresponds to the error resulting from
-    processing the stream with an instance of \sketchmg initialized with at
-    least~$k$ counters.
+    As mentioned at the start of this section, we assume the worst-case scenario wherein every insertion is of an untracked key, allowing us to treat~$M$ and $N$ interchangeably.
+
+    Note that the additive terms in the bounds of \Cref{thm:mg-res} come from the application of \Cref{thm:mg-normal} to the portion of the stream that must be ``waited out'' by \sketchmg until the~$k${\nobreakdash-}th is introduced.
+    We therefore focus on deriving the remaining part of the error bound, which corresponds to the error resulting from processing the stream with an instance of \sketchmg initialized with \mbox{at least~$k$ counters}.
 
     \textbf{The Linear Case of~$W(N)=N/\epsilon$.} 
     In this case, $W(N_{i+1})=W(N_i)+1$ and $N_{i+1}=N_i +
@@ -4853,4 +4956,3 @@ same proof structure as that of \Cref{thm:mg-normal}:
 %%\acmBooktitle{Woodstock '18: ACM Symposium on Neural Gaze Detection,
 %%  June 03--05, 2018, Woodstock, NY}
 %\acmISBN{978-1-4503-XXXX-X/2018/06}
-
