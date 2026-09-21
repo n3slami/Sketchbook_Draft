@@ -4029,3 +4029,217 @@
                 line with their analytic bounds. },
 }
 
+
+@inproceedings{10.1145/633025.633056,
+    author = {Estan, Cristian and Varghese, George},
+    title = {New directions in traffic measurement and accounting},
+    year = {2002},
+    isbn = {158113570X},
+    publisher = {Association for Computing Machinery},
+    address = {New York, NY, USA},
+    url = {https://doi.org/10.1145/633025.633056},
+    doi = {10.1145/633025.633056},
+    abstract = {Accurate network traffic measurement is required for accounting,
+                bandwidth provisioning and detecting DoS attacks. These
+                applications see the traffic as a collection of flows they need
+                to measure. As link speeds and the number of flows increase,
+                keeping a counter for each flow is too expensive (using SRAM) or
+                slow (using DRAM). The current state-of-the-art methods (Cisco's
+                sampled NetFlow) which log periodically sampled packets are slow,
+                inaccurate and resource-intensive. Previous work showed that at
+                different granularities a small number of "heavy hitters"
+                accounts for a large share of traffic. Our paper introduces a
+                paradigm shift for measurement by concentrating only on large
+                flows --- those above some threshold such as 0.1\% of the link
+                capacity.We propose two novel and scalable algorithms for
+                identifying the large flows: sample and hold and multistage
+                filters, which take a constant number of memory references per
+                packet and use a small amount of memory. If $M$ is the available
+                memory, we show analytically that the errors of our new
+                algorithms are proportional to $1/M$; by contrast, the error of
+                an algorithm based on classical sampling is proportional to
+                $1/sqrtM$, thus providing much less accuracy for the same amount
+                of memory. We also describe further optimizations such as early
+                removal and conservative update that further improve the accuracy
+                of our algorithms, as measured on real traffic traces, by an
+                order of magnitude. Our schemes allow a new form of accounting
+                called threshold accounting in which only flows above a threshold
+                are charged by usage while the rest are charged a fixed fee.
+                Threshold accounting generalizes usage-based and duration based
+                pricing.},
+    booktitle = {Proceedings of the 2002 Conference on Applications,
+                 Technologies, Architectures, and Protocols for Computer
+                 Communications},
+    pages = {323–336},
+    numpages = {14},
+    keywords = {identifying large flows, network traffic measurement, on-line
+                algorithms, scalability, usage based accounting},
+    location = {Pittsburgh, Pennsylvania, USA},
+    series = {SIGCOMM '02},
+}
+
+@article{NetworkThrottling1,
+    author = {Estan, Cristian and Varghese, George},
+    title = {New directions in traffic measurement and accounting},
+    year = {2002},
+    issue_date = {October 2002},
+    publisher = {Association for Computing Machinery},
+    address = {New York, NY, USA},
+    volume = {32},
+    number = {4},
+    issn = {0146-4833},
+    url = {https://doi.org/10.1145/964725.633056},
+    doi = {10.1145/964725.633056},
+    abstract = {Accurate network traffic measurement is required for accounting,
+                bandwidth provisioning and detecting DoS attacks. These
+                applications see the traffic as a collection of flows they need
+                to measure. As link speeds and the number of flows increase,
+                keeping a counter for each flow is too expensive (using SRAM) or
+                slow (using DRAM). The current state-of-the-art methods (Cisco's
+                sampled NetFlow) which log periodically sampled packets are slow,
+                inaccurate and resource-intensive. Previous work showed that at
+                different granularities a small number of "heavy hitters"
+                accounts for a large share of traffic. Our paper introduces a
+                paradigm shift for measurement by concentrating only on large
+                flows --- those above some threshold such as 0.1\% of the link
+                capacity.We propose two novel and scalable algorithms for
+                identifying the large flows: sample and hold and multistage
+                filters, which take a constant number of memory references per
+                packet and use a small amount of memory. If $M$ is the available
+                memory, we show analytically that the errors of our new
+                algorithms are proportional to $1/M$; by contrast, the error of
+                an algorithm based on classical sampling is proportional to
+                $1/sqrtM$, thus providing much less accuracy for the same amount
+                of memory. We also describe further optimizations such as early
+                removal and conservative update that further improve the accuracy
+                of our algorithms, as measured on real traffic traces, by an
+                order of magnitude. Our schemes allow a new form of accounting
+                called threshold accounting in which only flows above a threshold
+                are charged by usage while the rest are charged a fixed fee.
+                Threshold accounting generalizes usage-based and duration based
+                pricing.},
+    journal = {SIGCOMM Comput. Commun. Rev.},
+    month = aug,
+    pages = {323–336},
+    numpages = {14},
+    keywords = {identifying large flows, network traffic measurement, on-line
+                algorithms, scalability, usage based accounting},
+}
+
+@inproceedings{NetworkThrottling2,
+    author = {Demaine, Erik D. and L{\'o}pez-Ortiz, Alejandro and Munro, J. Ian},
+    title = {Frequency Estimation of Internet Packet Streams with Limited Space},
+    year = {2002},
+    isbn = {3540441808},
+    publisher = {Springer-Verlag},
+    address = {Berlin, Heidelberg},
+    abstract = {We consider a router on the Internet analyzing the statistical
+                properties of a TCP/IP packet stream. A fundamental difficulty
+                with measuring traffic behavior on the Internet is that there is
+                simply too much data to be recorded for later analysis, on the
+                order of gigabytes a second. As a result, network routers can
+                collect only relatively few statistics about the data. The
+                central problem addressed here is to use the limited memory of
+                routers to determine essential features of the network traffic
+                stream. A particularly difficult and representative subproblem is
+                to determine the top k categories to which the most packets
+                belong, for a desired value of k and for a given notion of
+                categorization such as the destination IP address.We present an
+                algorithm that deterministically finds (in particular) all
+                categories having a frequency above 1/( m +1) using m counters,
+                which we prove is best possible in the worst case. We also
+                present a sampling-based algorithm for the case that packet
+                categories follow an arbitrary distribution, but their order over
+                time is permuted uniformly at random. Under this model, our
+                algorithm identifies flows above a frequency threshold of roughly
+                1/ nm with high probability, where m is the number of counters
+                and n is the number of packets observed. This guarantee is not
+                far off from the ideal of identifying all flows (probability 1/ n
+                ), and we prove that it is best possible up to a logarithmic
+                factor. We show that the algorithm ranks the identified flows
+                according to frequency within any desired constant factor of
+                accuracy.},
+    booktitle = {Proceedings of the 10th Annual European Symposium on Algorithms
+                 },
+    pages = {348–360},
+    numpages = {13},
+    series = {ESA '02},
+}
+
+@inproceedings{NetworkThrottling3,
+    author = {Bose, Prosenjit and Kranakis, Evangelos and Morin, Pat and Tang,
+              Yihui},
+    title = {Bounds for Frequency Estimation of Packet Streams},
+    booktitle = {Proceedings of the 10th International Colloquium on Structural
+                 Information and Communication Complexity (SIROCCO 10)},
+    pages = {33--42},
+    year = {2003},
+    publisher = {Carleton Scientific},
+}
+
+@inproceedings{IcebergQueries,
+    author = {Fang, Min and Shivakumar, Narayanan and Garcia-Molina, Hector and
+              Motwani, Rajeev and Ullman, Jeffrey D.},
+    title = {Computing Iceberg Queries Efficiently},
+    year = {1998},
+    isbn = {1558605665},
+    publisher = {Morgan Kaufmann Publishers Inc.},
+    address = {San Francisco, CA, USA},
+    booktitle = {Proceedings of the 24rd International Conference on Very Large
+                 Data Bases},
+    pages = {299–310},
+    numpages = {12},
+    series = {VLDB '98},
+}
+
+@article{TinyLFU,
+    author = {Einziger, Gil and Friedman, Roy and Manes, Ben},
+    title = {TinyLFU: A Highly Efficient Cache Admission Policy},
+    year = {2017},
+    issue_date = {November 2017},
+    publisher = {Association for Computing Machinery},
+    address = {New York, NY, USA},
+    volume = {13},
+    number = {4},
+    issn = {1553-3077},
+    url = {https://doi.org/10.1145/3149371},
+    doi = {10.1145/3149371},
+    abstract = {This article proposes to use a frequency-based cache admission
+                policy in order to boost the effectiveness of caches subject to
+                skewed access distributions. Given a newly accessed item and an
+                eviction candidate from the cache, our scheme decides, based on
+                the recent access history, whether it is worth admitting the new
+                item into the cache at the expense of the eviction candidate.This
+                concept is enabled through a novel approximate LFU structure
+                called TinyLFU, which maintains an approximate representation of
+                the access frequency of a large sample of recently accessed
+                items. TinyLFU is very compact and lightweight as it builds upon
+                Bloom filter theory.We study the properties of TinyLFU through
+                simulations of both synthetic workloads and multiple real traces
+                from several sources. These simulations demonstrate the
+                performance boost obtained by enhancing various replacement
+                policies with the TinyLFU admission policy. Also, a new combined
+                replacement and eviction policy scheme nicknamed W-TinyLFU is
+                presented. W-TinyLFU is demonstrated to obtain equal or better
+                hit ratios than other state-of-the-art replacement policies on
+                these traces. It is the only scheme to obtain such good results
+                on all traces.},
+    journal = {ACM Trans. Storage},
+    month = nov,
+    articleno = {35},
+    numpages = {31},
+    keywords = {Caching, admission policy, counting bloom filter, eviction
+                policy, sketches},
+}
+
+@inproceedings{SpaceSavingBoundedDeletes,
+    author = {Zhao, Haoyu and Agrawal, Pankaj and others},
+    title = {The SpaceSaving$\pm$ Family of Algorithms for Data Streams with
+             Bounded Deletions},
+    booktitle = {Proceedings of the IEEE International Conference on Data
+                 Engineering (ICDE)},
+    year = {2025},
+    publisher = {IEEE},
+    doi = {10.1109/ICDE.2025.360300d153},
+}
+
