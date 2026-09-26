@@ -326,7 +326,7 @@ Frequency estimation sketches differ in the nature of the errors they
 introduce. The Count-Min Sketch~\cite{CountMin} either matches or overestimates
 a key's true count. This one-sided error makes the Count-Min Sketch suitable
 for security-critical applications such as detecting
-denial-of-service~\cite{CoDDoS} and hardware row hammer~\cite{CoMeT} attacks,
+denial-of-service~\cite{CoDDoS} and hardware RowHammer~\cite{CoMeT} attacks,
 where misclassifying malicious behavior is unacceptable. The Count
 Sketch~\cite{CountSketch} can both overestimate and underestimate a key's
 count. Yet, these errors cancel out on average, yielding unbiased estimates.
@@ -2777,22 +2777,16 @@ remain stable as the stream grows.
 \end{table}
 
 \subsection{Applying \sketch\ to Count Sketch}\label{sec:cs}
-As discussed in \Cref{sec:introduction}, many FE sketches differ from CMS in their error guarantees and use cases.
-We now demonstrate the generality of \sketch\ by applying it to Count Sketch to derive \sketchcs. 
+As discussed in the previous sections, CMS may overestimate a key's frequency but never underestimates it.
+Such a one-sided guarantee is useful in systems that use each frequency estimate in isolation, such as monitoring network traffic to individual hosts~\cite{SketchBasedChangeDetection,WhatsNew,SketchingStreamsNet,TrafficManagementSurvey,RandomizedAdmissionEstimation,Blink,LOFT} and mitigating RowHammer attacks based on the number of accesses to each memory row~\cite{CoMeT}.
+However, many applications combine frequency estimates to derive more complex statistics.
+For example, frequency estimates are multiplied in query planning to estimate join sizes~\cite{Compass,QueryOptimizationSketches,ConvolutionSketch} and in large-scale machine learning to estimate covariance matrices~\cite{ASCS}.
+In such applications, CMS's biased errors compound under multiplication, degrading end-to-end accuracy and performance.
+Count Sketch~\cite{CountSketch} addresses this issue by providing unbiased frequency estimates, which equal the true frequency in expectation.\footnote{CMS can also provide unbiased estimates by subtracting, in each array, the average of the counters that a query key does not hash to from the counter that it does hash to~\cite{CountMeanMin}. However, the resulting estimate has slightly higher variance than that of CS.}
+\Cref{tab:conventional_sketch_stats} summarizes the properties of Count Sketch and compares them with those of CMS.
+In this section, we demonstrate \sketch's generality by applying it to Count Sketch to derive \sketchcs.
 
 \textbf{Count Sketch (CS).}
-Recall from \Cref{sec:introduction} that unbiased
-estimates equal the ground-truth frequency on average. This allows for
-multiplying estimates, as required in join
-size~\cite{Compass,QueryOptimizationSketches,ConvolutionSketch} and
-covariance~\cite{ASCS} estimation, without the risk of compounding errors. CS
-provides such unbiased estimates and reaps its benefits.\footnote{One can also
-achieve unbiased estimation using CMS by, in each array, subtracting the
-average of the counter values a query key does not hash to from its
-counter~\cite{CountMeanMin}. Yet, the resulting estimate has a slightly higher
-variance~than~that~of~CS.} \Cref{tab:conventional_sketch_stats}
-summarizes the properties of CS and compares it to CMS.
-
 Similarly to CMS, the core component of CS is a counter array of size~$w$
 coupled with a hash function~$h$ that maps each key to a counter. Unlike CMS,
 CS further associates each key with a random ``update direction'' from the
@@ -2914,16 +2908,87 @@ algorithm and its proof of correctness due to space constraints.} and query
 these sketches after each insertion or deletion.
 
 \subsection{Applying \sketch\ to Misra-Gries}\label{sec:mg}
-In this section, we apply \sketch\ to Misra-Gries (MG)~\cite{MisraGries}, another popular FE sketch with properties distinct from CMS and CS, to obtain \sketchmg.
-
-\textbf{Misra-Gries (MG).}
 As described in \Cref{sec:introduction}, CMS and CS may overestimate a key's true frequency.
 While overestimation is acceptable for some applications, others require conservative frequency estimates~\cite{IcebergQueries}.
-For example, in a system that throttles a network connection~\cite{NetworkThrottling1,NetworkThrottling2,NetworkThrottling3} or prioritizes a data item for further processing~\cite{TinyLFU} when its estimated frequency exceeds a threshold, an overestimate may trigger an unwarranted action, thereby degrading quality of service or wasting resources.
-MG avoids these issues by eliminating overestimation.
-Moreover, unlike CMS and CS, which return only frequency estimates, MG can also return the full keys it identifies as heavy hitters.
-\Cref{tab:conventional_sketch_stats} compares MG with CMS and CS.
+For example, some systems throttle a network connection~\cite{NetworkThrottling1,NetworkThrottling2,NetworkThrottling3} or prioritize a data item for further processing~\cite{TinyLFU} when its estimated frequency exceeds a threshold.
+In such cases, an overestimate may trigger an unwarranted action, degrading quality of service or wasting resources.
+Misra-Gries~\cite{MisraGries} avoids such issues by ensuring that its frequency estimates never exceed the true frequency, although they may underestimate it.
+In addition, some applications need to report the heavy hitters themselves, e.g., to identify the network flows consuming the most bandwidth~\cite{HeavyGuardian,HeavyKeeper,WavingSketch} or unusually frequent events for anomaly detection~\cite{NetworkAnomalyDetection1,NetworkAnomalyDetection2}.
+CMS and CS do not directly support this task because they hash keys to counters without storing the keys.
+Misra-Gries, in contrast, stores the heavy hitters and can therefore directly report them.
+\Cref{tab:conventional_sketch_stats} compares Misra-Gries with CMS and CS.
 
+\begin{figure}
+    \centering
+    \begin{tikzpicture}
+        \def\arrayw{4.75}
+        \def\arrayh{0.3}
+        \def\arraylen{5}
+        \def\arraylenminusone{4}
+        \def\cellw{0.95}
+        \def\elemw{0.65}
+        \def\counterw{0.30}
+        \def\annotationoffset{0.05}
+        \def\bottomymul{3.1}
+        \def\casebracewidth{1.5}
+        \def\casebracewidthquery{0.55}
+
+        \foreach \j in {1, ..., \arraylen} {
+            \draw[white,fill=gray!20] (\j*\cellw-\counterw,0.5*\arrayh) rectangle (\j*\cellw-\cellw,-0.5*\arrayh);
+            \draw[black,dotted,dash phase=4pt] (\j*\cellw-\counterw,0.5*\arrayh) -- (\j*\cellw-\counterw,-0.5*\arrayh);
+        }
+        \foreach \j in {2, ..., \arraylen} {
+            \draw (\j*\cellw-\cellw,0.5*\arrayh) -- (\j*\cellw-\cellw,-0.5*\arrayh);
+        }
+        \draw[black] (0,0.5*\arrayh) rectangle (\arrayw,-0.5*\arrayh);
+
+        \node[inner sep=4pt] (key) at (-2.6*\cellw,2.5*\arrayh) {\small Insert $x$};
+        \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt,mirror}] ($(key.east)+(1pt,0.5*\casebracewidth)$) -- ($(key.east)+(1pt,-0.5*\casebracewidth)$);
+        \node[inner sep=0pt,anchor=west,align=center] (case_1) at ($(key.east)+(2pt,0.35*\casebracewidth)$) {\footnotesize Exists \hspace*{1pt}};
+        \node[inner sep=0pt,anchor=west,align=center] (case_2) at ($(key.east)+(2pt,0.03*\casebracewidth)$) {\footnotesize Does not exist, \\[-4pt] \footnotesize Empty slot};
+        \node[inner sep=0pt,anchor=west,align=center] (case_3) at ($(key.east)+(2pt,-0.35*\casebracewidth)$) {\footnotesize Does not exist, \\[-4pt] \footnotesize No empty slot};
+
+        \draw[-stealth] (case_1.east) -| (1.0*\cellw+\elemw+0.5*\counterw,0.5*\arrayh) node[pos=0.25,above=2pt,align=center,inner sep=0pt] {\footnotesize $+1$};
+        \draw[-stealth] (case_2.east) -| (1.5*\cellw,1.2*\arrayh) node[pos=0.2855,above=1pt,align=center,inner sep=0pt] {\footnotesize Store $x,1$};
+        \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt}] (1*\cellw,0.65*\arrayh) -- (2*\cellw,0.65*\arrayh);
+        \draw (case_3.east) -| (-0.15*\cellw,-\bottomymul*\arrayh);
+        \draw (-0.15*\cellw,-\bottomymul*\arrayh) -- (\arraylen*\cellw-0.4765*\counterw,-\bottomymul*\arrayh) node[pos=0.119,below=2pt,align=center,inner sep=0pt] {\footnotesize $-1$};
+        \foreach \j in {1, ..., \arraylen} {
+            \ifnum \j = 2 {
+            }
+            \else {
+                \draw[-stealth] (\j*\cellw-0.5*\counterw,-\bottomymul*\arrayh) -- (\j*\cellw-0.5*\counterw,-0.5*\arrayh);
+            }
+            \fi
+        }
+        \draw[-stealth] (1.5*\cellw,-\bottomymul*\arrayh) -- (1.5*\cellw,-1.15*\arrayh);
+
+        \node[inner sep=4pt] (query) at (\arrayw+0.05*\cellw,4.25*\arrayh) {\small Query $q$};
+        \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt}] ($(query.west)+(-1pt,0.5*\casebracewidthquery)$) -- ($(query.west)+(-1pt,-0.5*\casebracewidthquery)$);
+        \node[inner sep=0pt,anchor=east,align=center] (case_1) at ($(query.west)+(-2pt,0.3*\casebracewidthquery)$) {\hspace*{1pt} \footnotesize Tracked, 4};
+        \node[inner sep=0pt,anchor=east,align=center] (case_2) at ($(query.west)+(-2pt,-0.3*\casebracewidthquery)$) {\footnotesize Otherwise, 0};
+        \draw[stealth-] (case_1.west) -| (2.0*\cellw+\elemw+0.5*\counterw,0.5*\arrayh);
+
+        \node[inner sep=3pt,align=left,anchor=west] at (1.5*\cellw,-2.1*\arrayh) {\footnotesize Freed \\[-4pt] \footnotesize Store $x,1$};
+
+        \draw[decorate,decoration={brace,mirror,raise=1pt,amplitude=2pt}] (1*\cellw,-0.65*\arrayh) -- (2*\cellw,-0.65*\arrayh);
+
+        \node[inner sep=0pt] at (0.0*\cellw+0.5*\elemw,0.0*\arrayh) {\footnotesize $a$};
+        \node[inner sep=0pt] at (0.0*\cellw+\elemw+0.5*\counterw,0.0*\arrayh) {\footnotesize $5$};
+        \node[inner sep=0pt] at (1.0*\cellw+0.5*\elemw,0.0*\arrayh) {\footnotesize $x$};
+        \node[inner sep=0pt] at (1.0*\cellw+\elemw+0.5*\counterw,0.0*\arrayh) {\footnotesize $1$};
+        \node[inner sep=0pt] at (2.0*\cellw+0.5*\elemw,-0.095*\arrayh) {\footnotesize $q$};
+        \node[inner sep=0pt] at (2.0*\cellw+\elemw+0.5*\counterw,0.0*\arrayh) {\footnotesize $4$};
+        \node[inner sep=0pt] at (3.0*\cellw+0.5*\elemw,0.0*\arrayh) {\footnotesize $c$};
+        \node[inner sep=0pt] at (3.0*\cellw+\elemw+0.5*\counterw,0.0*\arrayh) {\footnotesize $9$};
+        \node[inner sep=0pt] at (4.0*\cellw+0.5*\elemw,0.0*\arrayh) {\footnotesize $b$};
+        \node[inner sep=0pt] at (4.0*\cellw+\elemw+0.5*\counterw,0.0*\arrayh) {\footnotesize $7$};
+    \end{tikzpicture}
+    \caption{MG uses dedicated counters to track frequent keys.}
+    \label{fig:mg_overview}
+\end{figure}
+
+\textbf{Misra-Gries (MG).}
 MG maintains an array of~$w$ slots, as illustrated in \Cref{fig:mg_overview}.
 Each slot stores a full key (shown in gray) together with a dedicated counter (shown in white).
 To insert a key~$x$, MG first checks whether~$x$ is already stored in the array.
@@ -2935,82 +3000,21 @@ A query for a key currently stored in the array returns that key's counter as th
 \Cref{fig:mg_overview} illustrates these insertion and query cases.
 
 These design choices give MG three useful properties.
-First, because a key's counter is incremented only when that key itself is inserted, MG never overestimates.
+First, because a key's counter is incremented only when that key itself is inserted, MG never overestimates its frequency.
 Second, because frequent keys accumulate enough increments to survive repeated global decrements while infrequent keys are more likely to be evicted, MG tends to retain the stream's heavy hitters.
-Moreover, under skew, heavy hitters receive many increments relative to the number of global decrements, making their dedicated counters relatively accurate frequency estimates.
+Under skew, these heavy hitters also receive many more increments than the number of global decrements, making their dedicated counters relatively accurate frequency estimates.
 Finally, because MG stores the full keys, it can directly report the heavy hitters it retains.
 
-Unlike CMS and CS, which support deletions through negative updates with the same error guarantees, MG cannot support deletions without weakening its error bound~\cite{BatchUpdateMisraGries,SpaceSavingBoundedDeletes}.
-This limitation arises because MG explicitly retains only a bounded set of candidate heavy hitters.
-If tracked heavy hitters are deleted, previously untracked keys may become heavy hitters, but MG has already discarded the information needed to identify and promote them into its array.
+Unlike CMS and CS, which support deletions through negative updates while preserving the same error guarantees, MG cannot support deletions without weakening its error bound~\cite{BatchUpdateMisraGries,SpaceSavingBoundedDeletes}.
+This is because MG retains dedicated counters for only a bounded set of candidate heavy hitters.
+If the tracked heavy hitters are deleted, previously untracked keys may become heavy hitters, but MG has discarded their historical frequencies and can identify them only from future updates.
 
 Increasing the number of slots~$w$ allows MG to retain more keys and improve its estimates.
 With~$w$ slots, MG guarantees an additive error of at most~$N/w$, i.e., $|\hat{f}(x)-f(x)| \leq N/w$ for any key~$x$.
 Unlike the guarantees of CMS and CS, this guarantee holds deterministically because MG does not use hashing and therefore does not suffer from hash collisions that force different keys to share the same counter.
 MG's dedicated counters for frequent keys also yield a stronger tail guarantee: the error for any key is at most~$\min_{1 \leq i \leq w} \frac{N^{\mathrm{res}(i)}}{w-i+1}$, where~$N^{\mathrm{res}(i)}$ is the total frequency of all keys outside the top~$i$.
 Under skew, this residual mass can be much smaller than~$N$, yielding a correspondingly smaller error bound.
-In particular, for Zipfian workloads with exponent~$\gamma > 1$, which closely model many real-world streams, $N^{\mathrm{res}(i)} = O(N/i^{\gamma-1})$~\cite{CMSCSTail}.
-
-\begin{figure}
-    \centering
-    \begin{tikzpicture}
-        \def\arrayw{4.75}
-        \def\arrayh{0.25}
-        \def\arraylen{5}
-        \def\arraylenminusone{4}
-        \def\cellw{0.95}
-        \def\elemw{0.65}
-        \def\counterw{0.30}
-        \def\annotationoffset{0.05}
-        \def\bottomymul{2.5}
-        \def\casebracewidth{1.5}
-        \def\casebracewidthquery{0.55}
-
-        \foreach \j in {1, ..., \arraylen} {
-            %\draw[white,pattern=north east lines] (\j*\cellw-\counterw,0.5*\arrayh) rectangle (\j*\cellw-\cellw,-0.5*\arrayh);
-            \draw[white,fill=gray!20] (\j*\cellw-\counterw,0.5*\arrayh) rectangle (\j*\cellw-\cellw,-0.5*\arrayh);
-            \draw[black,dotted,dash phase=4pt] (\j*\cellw-\counterw,0.5*\arrayh) -- (\j*\cellw-\counterw,-0.5*\arrayh);
-        }
-        \foreach \j in {2, ..., \arraylen} {
-            \draw (\j*\cellw-\cellw,0.5*\arrayh) -- (\j*\cellw-\cellw,-0.5*\arrayh);
-        }
-        \draw[black] (0,0.5*\arrayh) rectangle (\arrayw,-0.5*\arrayh);
-
-        \node[inner sep=4pt] (key) at (-2.5*\cellw,2.5*\arrayh) {\small Insert $x$};
-        \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt,mirror}] ($(key.east)+(1pt,0.5*\casebracewidth)$) -- ($(key.east)+(1pt,-0.5*\casebracewidth)$);
-        \node[inner sep=0pt,anchor=west,align=center] (case_1) at ($(key.east)+(2pt,0.35*\casebracewidth)$) {\footnotesize Exists \hspace*{1pt}};
-        \node[inner sep=0pt,anchor=west,align=center] (case_2) at ($(key.east)+(2pt,0.03*\casebracewidth)$) {\footnotesize Does not exist, \\[-4pt] \footnotesize Empty slot};
-        \node[inner sep=0pt,anchor=west,align=center] (case_3) at ($(key.east)+(2pt,-0.35*\casebracewidth)$) {\footnotesize Does not exist, \\[-4pt] \footnotesize No empty slot};
-
-        \draw[-stealth] (case_1.east) -| (1.0*\cellw+\elemw+0.5*\counterw,0.5*\arrayh) node[pos=0.25,above=2pt,align=center,inner sep=0pt] {\footnotesize $+1$};
-        \draw[-stealth] (case_2.east) -| (\arraylen*\cellw-0.5*\cellw,1.2*\arrayh) node[pos=0.1045,above=1pt,align=center,inner sep=0pt] {\footnotesize Store $x,1$};
-        \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt}] (\arraylen*\cellw-\cellw,0.65*\arrayh) -- (\arraylen*\cellw,0.65*\arrayh);
-        \draw (case_3.east) -| (-0.15*\cellw,-\bottomymul*\arrayh);
-        \draw (-0.15*\cellw,-\bottomymul*\arrayh) -- (\arraylen*\cellw-0.493*\cellw,-\bottomymul*\arrayh) node[pos=0.119,below=2pt,align=center,inner sep=0pt] {\footnotesize $-1$};
-        \foreach \j in {1, ..., \arraylenminusone} {
-            \draw[-stealth] (\j*\cellw-0.5*\counterw,-\bottomymul*\arrayh) -- (\j*\cellw-0.5*\counterw,-0.5*\arrayh);
-        }
-        \draw[-stealth] (\arraylen*\cellw-0.5*\cellw,-\bottomymul*\arrayh) -- (\arraylen*\cellw-0.5*\cellw,-1.15*\arrayh);
-
-        \node[inner sep=4pt] (query) at (\arrayw+0.05*\cellw,4.25*\arrayh) {\small Query $q$};
-        \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt}] ($(query.west)+(-1pt,0.5*\casebracewidthquery)$) -- ($(query.west)+(-1pt,-0.5*\casebracewidthquery)$);
-        \node[inner sep=0pt,anchor=east,align=center] (case_1) at ($(query.west)+(-2pt,0.3*\casebracewidthquery)$) {\hspace*{1pt} \footnotesize Tracked, 4};
-        \node[inner sep=0pt,anchor=east,align=center] (case_2) at ($(query.west)+(-2pt,-0.3*\casebracewidthquery)$) {\footnotesize Otherwise, 0};
-        \draw[stealth-] (case_1.west) -| (2.0*\cellw+\elemw+0.5*\counterw,0.5*\arrayh);
-        \node[inner sep=0pt] at (2.0*\cellw+0.5*\elemw,-0.02*\arrayh) {\footnotesize $q$};
-        \node[inner sep=0pt] at (2.0*\cellw+\elemw+0.5*\counterw,0.0*\arrayh) {\footnotesize $4$};
-
-        \node[inner sep=0pt] at (4.0*\cellw+0.5*\elemw,0.0*\arrayh) {\footnotesize $x$};
-        \node[inner sep=0pt] at (4.0*\cellw+\elemw+0.5*\counterw,0.0*\arrayh) {\footnotesize $1$};
-        \node[inner sep=3pt,align=left,anchor=west] at (4.5*\cellw,-2.1*\arrayh) {\footnotesize Freed \\[-4pt] \footnotesize Store $x,1$};
-
-        \draw[decorate,decoration={brace,mirror,raise=1pt,amplitude=2pt}] (\arraylen*\cellw-\cellw,-0.65*\arrayh) -- (\arraylen*\cellw,-0.65*\arrayh);
-
-        %\node[inner sep=0pt,anchor=west] at (-3.2*\cellw,5.25*\arrayh) {\textbf{C) MG}};
-    \end{tikzpicture}
-    \caption{MG uses dedicated counters to track frequent keys.}
-    \label{fig:mg_overview}
-\end{figure}
+In particular, for Zipfian workloads with exponent~$\gamma \geq 1$, which closely model many real-world streams, $N^{\mathrm{res}(i)} = O(N/i^{\gamma-1})$~\cite{CMSCSTail}.
 
 MG has several variants with different estimation and update properties.
 Randomized variants can provide unbiased estimates by probabilistically evicting the least frequent key when an untracked key arrives~\cite{UnbiasedSpaceSaving}.
@@ -3018,29 +3022,27 @@ Some variants improve practical accuracy at the cost of permitting overestimatio
 Others provide limited support for deletions at the cost of a larger memory footprint~\cite{SpaceSavingBoundedDeletes}.
 We apply \sketch\ to the original MG design; our approach could be applied to these variants as well.
 
-\textbf{Conventional Implementations.}
-A direct implementation of MG incurs an~$O(w)$ cost for both insertions and queries, as each operation must scan the array of~$w$ slots for its key.
-Practical implementations avoid this scan by organizing the key--counter pairs in a hash table rather than a flat array.
-This enables constant-time queries, as well as constant-time insertions for keys already tracked by MG.
-However, inserting an untracked key when the hash table is full still requires decrementing all counters.
-To avoid this cost, the decrement is applied lazily using a global offset~$L$.
-A stored counter value~$v$ now represents an effective count of~$v-L$, and a newly admitted key is assigned a counter value of~$L+1$.
-Thus, incrementing~$L$ decreases all effective counts by one, simulating a global decrement in constant time.
+\textbf{Implementations.}
+MG is typically implemented using a hash table that maps each tracked key to its counter, enabling constant-time queries and constant-time insertions for already tracked keys.
+However, inserting an untracked key when the table is full requires decrementing all counters, which would take~$O(w)$ time if performed directly.
+Instead, this decrement is often applied lazily using a global offset~$L$.
+Under this scheme, a stored counter value~$v$ represents an effective count of~$v-L$, while a newly admitted key is assigned~$L+1$.
+Incrementing~$L$ then decreases every effective count by one, implementing the global decrement in constant time.
 
-Lazy decrements still require identifying and evicting keys whose effective counts reach zero.
-A common solution is to maintain an auxiliary min-heap that orders the tracked keys by count.
-Each heap record must store a reference to its corresponding hash table entry so that the key can be evicted.
-Conversely, each hash table entry must reference its heap record so that the heap can be reordered when the key's counter is incremented.
-Global decrements do not require modification of the heap, as they do not change its ordering.
-The heap reduces eviction time from~$O(w)$ to~$O(\log w)$ but incurs significant memory overhead comparable to the size of the hash table.
-The eviction time can be reduced to~$O(1)$ by maintaining the keys in count order using a doubly linked list instead of a heap~\cite{SpaceSaving}.
-However, the additional pointers required by this approach would further increase the memory overhead.
+A remaining challenge is efficiently identifying entries whose effective counters reach zero for eviction.
+While many MG implementations use a min-heap for this purpose~\cite{MGH1,MGH2,BatchUpdateMisraGries}, the most theoretically efficient implementation maintains a doubly linked list representing the counter values in increasing order~\cite{SpaceSaving}.
+Each node corresponds to a distinct counter value and points to all keys having that value.
+Incrementing a counter moves its key by at most one position in the list, enabling constant-time updates, while keys with zero-valued counters appear at the head and can be evicted in constant time.
+The drawback of this approach is the space overhead of the associated pointers, which increase MG's overall memory footprint by~$2$--$3\times$.
 
 \textbf{\sketchmg.}
-\sketchmg builds on the practical MG implementation described above while avoiding the use of a heap or linked list for eviction.
-Instead, it buffers insertions of untracked keys and evicts multiple tracked keys in a single sweep over the hash table to amortize the eviction cost, as discussed near the end of this section.
-\sketchmg also saves memory under skew by applying \counterencodingabbrv\ to the counters.
-Finally, it accommodates stream growth by expanding its hash table.
+We now introduce \sketchmg, a generalization of MG that incorporates \sketch's two core techniques.
+\sketchmg uses \counterencodingabbrv\ to compress its counters by exploiting skew in their values.
+It also dynamically expands as the stream grows to prevent its estimation error from deteriorating.
+To further reduce space, \sketchmg avoids the doubly linked list used for eviction in the most efficient classical MG implementations.
+Instead, it scans the hash table to decrement all counters and evict keys whose counts reach zero.
+We show that these scans are infrequent and incur a constant amortized cost while reducing the memory footprint by~$2$--$3\times$.
+Finally, for applications requiring faster worst-case performance, we show how a compact segment tree enables logarithmic-time evictions while using significantly less space than heap- and linked-list-based solutions.
 
 \textbf{Accommodating Skew.}
 Although MG focuses on tracking heavy hitters, their counts often exhibit substantial skew.
@@ -3106,144 +3108,17 @@ The additive terms on the right side of the above error bounds arise because \sk
 This forces \sketchmg to ``wait out'' the stream until the hash table's capacity reaches~$k$, introducing the additive error.
 These terms vanish if \sketchmg is allocated~$k$ counters from the start.
 
-\begin{figure}
-    \centering
-    \begin{tikzpicture}
-        \def\arrayh{0.3}
-        \def\arraylen{7}
-        \def\arraylenminusone{6}
-        \def\cellw{0.95}
-        \def\arrayw{\cellw*\arraylen}
-        \def\elemw{0.65}
-        \def\counterw{0.30}
-        \def\annotationoffset{0.05}
-        \def\bottomymul{2.5}
-        \def\casebracewidth{1.5}
-        \def\casebracewidthquery{0.55}
-
-        \foreach \j in {1, ..., \arraylen} {
-            %\draw[white,pattern=north east lines] (\j*\cellw-\counterw,0.5*\arrayh) rectangle (\j*\cellw-\cellw,-0.5*\arrayh);
-            \draw[white,fill=gray!20] (\j*\cellw-\counterw,0.5*\arrayh) rectangle (\j*\cellw-\cellw,-0.5*\arrayh);
-            \draw[black,dotted,dash phase=4pt] (\j*\cellw-\counterw,0.5*\arrayh) -- (\j*\cellw-\counterw,-0.5*\arrayh);
-        }
-        \foreach \j in {2, ..., \arraylen} {
-            \draw (\j*\cellw-\cellw,0.5*\arrayh) -- (\j*\cellw-\cellw,-0.5*\arrayh);
-        }
-        \draw[black] (0,0.5*\arrayh) rectangle (\arrayw,-0.5*\arrayh);
-
-        \def\keyh{-0.26*\arrayh}
-        \node[inner sep=0pt,anchor=south] at (0*\cellw+0.5*\elemw,\keyh) {\footnotesize $a$};
-        \node[inner sep=0pt] at (0*\cellw+\elemw+0.5*\counterw,0.0*\arrayh) {\footnotesize $4$};
-        \node[inner sep=0pt,anchor=south] at (1*\cellw+0.5*\elemw,\keyh) {\footnotesize $b$};
-        \node[inner sep=0pt] at (1*\cellw+\elemw+0.5*\counterw,0.0*\arrayh) {\footnotesize $5$};
-        \node[inner sep=0pt,anchor=south] at (2*\cellw+0.5*\elemw,\keyh) {\footnotesize $c$};
-        \node[inner sep=0pt] at (2*\cellw+\elemw+0.5*\counterw,0.0*\arrayh) {\footnotesize $4$};
-        \node[inner sep=0pt,anchor=south] at (3*\cellw+0.5*\elemw,\keyh) {\footnotesize $d$};
-        \node[inner sep=0pt] at (3*\cellw+\elemw+0.5*\counterw,0.0*\arrayh) {\footnotesize $7$};
-        \node[inner sep=0pt,anchor=south] at (4*\cellw+0.5*\elemw,\keyh) {\footnotesize $e$};
-        \node[inner sep=0pt] at (4*\cellw+\elemw+0.5*\counterw,0.0*\arrayh) {\footnotesize $3$};
-        \node[inner sep=0pt] at (5*\cellw+0.5*\elemw,0.0*\arrayh) {\footnotesize $f$};
-        \node[inner sep=0pt] at (5*\cellw+\elemw+0.5*\counterw,0.0*\arrayh) {\footnotesize $3$};
-        \node[inner sep=0pt,anchor=south] at (6*\cellw+0.5*\elemw,-0.45*\arrayh) {\footnotesize $g$};
-        \node[inner sep=0pt] at (6*\cellw+\elemw+0.5*\counterw,0.0*\arrayh) {\footnotesize $9$};
-
-        \node[inner sep=0pt,align=center] at (-0.8*\cellw,0.625*\arrayh) {\small Lazy Offset \\[-1pt] \small $L=1$};
-
-        \def\pendingspacing{8mm}
-        \node[inner sep=0pt,anchor=west] (pending_label) at (1.65*\cellw,-2.0*\arrayh) {\small Buffer:};
-        \node[inner sep=0pt,right=\pendingspacing/2 of pending_label] (x) {\small $x$};
-        \node[inner sep=0pt,below right=-3.9pt and \pendingspacing of x] (y1) {\small $y$};
-        \node[inner sep=0pt,right=\pendingspacing of y1] (y2) {\small $y$};
-        \node[inner sep=0pt,above right=-4.1pt and \pendingspacing of y2] (z) {\small $z$};
-
-        \node[inner sep=0pt,below=4.9mm of pending_label.east,anchor=east] (eviction_candidates_label) {\small $B=4$ Eviction Candidates:};
-        \node[inner sep=1pt,below=2.77mm of x] (cand_1) {\small $(e,2)$};
-        \node[inner sep=1pt,below=2.11mm of y1] (cand_2) {\small $(f,2)$};
-        \node[inner sep=1pt,below=2.11mm of y2] (cand_3) {\small $(a,3)$};
-        \node[inner sep=1pt,below=2.69mm of z] (cand_4) {\small $(c,3)$};
-
-        \node[inner sep=0pt,below=9.7mm of eviction_candidates_label.east,anchor=east] (action_label) {\small Buffer Action:};
-        \node[inner sep=1pt,below=7.4mm of cand_1] (x_action) {\small $-$};
-        \node[inner sep=1pt,below=6.325mm of cand_2] (y1_action) {\small $-$, Admit};
-        \node[inner sep=1pt,below=6.925mm of cand_3] (y2_action) {\small $+$};
-        \node[inner sep=1pt,below=6.42mm of cand_4] (z_action) {\small Admit};
-
-        \draw[-stealth] (y1_action.160) -- node[pos=0.4,left=0pt] {\small Evict} (cand_1);
-        \draw[-stealth] (y1_action.160) -- (cand_2);
-
-        \node[inner sep=0pt,below=16.0mm of eviction_candidates_label.west,anchor=west] (second_pass_op_label) {\small No Remaining Evictions, Subtract Offset~$L=1$};
-
-        \node[inner sep=0pt,below left=-2.17mm and 2mm of eviction_candidates_label] (pass_1_label) {\small \textbf{Pass 1)}};
-        \node[inner sep=0pt,below=12.9mm of pass_1_label] (pass_2_label) {\small \textbf{Pass 2)}};
-
-        \def\offy{-3.25}
-        \foreach \j in {1, ..., \arraylen} {
-            %\draw[white,pattern=north east lines] (\j*\cellw-\counterw,0.5*\arrayh) rectangle (\j*\cellw-\cellw,-0.5*\arrayh);
-            \draw[white,fill=gray!20] (\j*\cellw-\counterw,0.5*\arrayh+\offy) rectangle (\j*\cellw-\cellw,-0.5*\arrayh+\offy);
-            \draw[black,dotted,dash phase=4pt] (\j*\cellw-\counterw,0.5*\arrayh+\offy) -- (\j*\cellw-\counterw,-0.5*\arrayh+\offy);
-        }
-        \foreach \j in {2, ..., \arraylen} {
-            \draw (\j*\cellw-\cellw,0.5*\arrayh+\offy) -- (\j*\cellw-\cellw,-0.5*\arrayh+\offy);
-        }
-        \draw[black] (0,0.5*\arrayh+\offy) rectangle (\arrayw,-0.5*\arrayh+\offy);
-
-        \def\keyh{-0.26*\arrayh}
-        \node[inner sep=0pt,anchor=south] at (0*\cellw+0.5*\elemw,\keyh+\offy) {\footnotesize $a$};
-        \node[inner sep=0pt] at (0*\cellw+\elemw+0.5*\counterw,0.0*\arrayh+\offy) {\footnotesize $1$};
-        \node[inner sep=0pt,anchor=south] at (1*\cellw+0.5*\elemw,\keyh+\offy) {\footnotesize $b$};
-        \node[inner sep=0pt] at (1*\cellw+\elemw+0.5*\counterw,0.0*\arrayh+\offy) {\footnotesize $2$};
-        \node[inner sep=0pt,anchor=south] at (2*\cellw+0.5*\elemw,\keyh+\offy) {\footnotesize $c$};
-        \node[inner sep=0pt] at (2*\cellw+\elemw+0.5*\counterw,0.0*\arrayh+\offy) {\footnotesize $1$};
-        \node[inner sep=0pt,anchor=south] at (3*\cellw+0.5*\elemw,\keyh+\offy) {\footnotesize $d$};
-        \node[inner sep=0pt] at (3*\cellw+\elemw+0.5*\counterw,0.0*\arrayh+\offy) {\footnotesize $4$};
-        \node[inner sep=0pt,anchor=south] at (4*\cellw+0.5*\elemw,-0.45*\arrayh+\offy) {\footnotesize $y$};
-        \node[inner sep=0pt] at (4*\cellw+\elemw+0.5*\counterw,0.0*\arrayh+\offy) {\footnotesize $2$};
-        \node[inner sep=0pt] at (5*\cellw+0.5*\elemw,-0.05*\arrayh+\offy) {\footnotesize $z$};
-        \node[inner sep=0pt] at (5*\cellw+\elemw+0.5*\counterw,0.0*\arrayh+\offy) {\footnotesize $1$};
-        \node[inner sep=0pt,anchor=south] at (6*\cellw+0.5*\elemw,-0.45*\arrayh+\offy) {\footnotesize $g$};
-        \node[inner sep=0pt] at (6*\cellw+\elemw+0.5*\counterw,0.0*\arrayh+\offy) {\footnotesize $6$};
-
-        \node[inner sep=0pt] at (-0.8*\cellw,\offy) {\small $L=0$};
-
-        \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt}] (6*\cellw,-0.5*\arrayh+\offy) -- (4*\cellw,-0.5*\arrayh+\offy)
-            node[pos=0.5,below=4pt,inner sep=1pt] {\small Admitted};
-    \end{tikzpicture}
-    \caption{\sketchmg amortizes the cost of evictions by buffering untracked key insertions, evicting keys, and applying the corresponding updates to the hash table \mbox{in two passes}.}
-    \label{fig:sketchmg_buffering}
-\end{figure}
-
-\textbf{Heap Elimination.}
+\textbf{Eviction: Scans.}
 Inserting an untracked key into a full MG requires decrementing all counters and evicting keys whose counts reach zero.
-As discussed earlier in this section, conventional MG implementations identify eviction victims using an auxiliary heap, at the cost of significant memory overhead.
-\sketchmg avoids this overhead by eliminating the heap and instead scanning the hash table to identify eviction victims.
-Under skewed workloads, these scans are infrequent because few insertions involve untracked keys.
-This follows from MG's tail guarantee: since each such insertion increases the estimation error by one, an MG of size~$w$ can encounter at most~$\min_{1 \leq i \leq w} \frac{N^{\text{res}(i)}}{w-i+1} \ll N$ untracked-key insertions.
-However, under less skewed workloads, the cost of these scans \mbox{can remain significant}.
+As discussed earlier in this section, classic MG implementations identify eviction victims using an auxiliary structure such as a heap or a doubly linked list, at the cost of significant memory overhead.
+\sketchmg avoids this overhead by eliminating the auxiliary structure and instead scanning the hash table to identify eviction victims.
+These scans are infrequent for two reasons: (1)~each untracked-key insertion increases the estimation error by one, and (2)~an MG with~$w$ counters has an estimation error of at most~$N/w$ after~$N$ insertions.
+Together, these properties limit the number of untracked-key insertions and the corresponding eviction scans to~$N/w$.
+Because each scan costs~$\Theta(w)$, the total eviction cost over the stream is~$O(N)$, yielding an amortized cost of~$O(1)$ per insertion.
+While this approach works well for applications that prioritize high throughput, its~$\Theta(w)$ worst-case eviction cost may be unsuitable for applications requiring strict latency guarantees.
 
-\textbf{Buffering Untracked Insertions.}
-To reduce the scan cost, \sketchmg buffers up to~$B$ insertions of untracked keys ($B=64$ by default), amortizing each scan across multiple insertions.
-The top part of \Cref{fig:sketchmg_buffering} illustrates a buffer of size~$B=4$.
-Once the buffer fills, \sketchmg applies the buffered updates to the hash table in two passes:
-
-\emph{In the first pass}, \sketchmg scans the hash table to identify~$B$ eviction candidates, i.e., the~$B$ keys with the smallest effective counts after accounting for the lazy offset~$L$.
-In the example of \Cref{fig:sketchmg_buffering}, these candidates are~$e$, $f$, $a$, and~$c$, with effective counts of~2, 2, 3, and~3, respectively.
-\sketchmg then processes the buffered insertions in order.
-If a buffered key has already been admitted, \sketchmg increments its count.
-Otherwise, if the sketch is full, the buffered key triggers a global decrement by incrementing the lazy offset~$L$.
-Any eviction candidate whose effective count reaches zero is then evicted, allowing the buffered key to be admitted with an effective count of~1.
-If a global decrement evicts multiple candidates, subsequent buffered keys are admitted into the resulting empty slots without triggering decrements.
-
-In \Cref{fig:sketchmg_buffering}, the first two buffered insertions trigger global decrements (indicated by the minus symbols below the keys).
-The second decrement, triggered by~$y$, reduces the effective counts of~$e$ and~$f$ to zero, causing both to be evicted and~$y$ to be admitted with an effective count of~1.
-The third buffered insertion is also~$y$, which is now tracked, so its count is incremented (indicated by the plus symbol below it).
-The last buffered key~$z$ is admitted without a global decrement because the eviction of~$e$ and~$f$ has \mbox{created sufficient space}.
-
-\emph{In the second pass} over the hash table, \sketchmg evicts any remaining keys whose effective counts have reached zero due to the global decrements.
-Such keys may remain if all~$B$ eviction candidates identified in the first pass were evicted.
-\sketchmg also saves space by subtracting the lazy offset~$L$ from every counter, after which it resets~$L$ to zero.
-The bottom of \Cref{fig:sketchmg_buffering} shows the resulting sketch for the example above.
-In this case, no additional keys were evicted, and every counter was reduced by the lazy offset~$L=1$.
-After this pass, \sketchmg further reduces its memory footprint by adapting \counterencodingabbrv's tuning as needed, according to the criteria \mbox{described in \Cref{sec:accommodating_skew}}.
+\textbf{Eviction: Segment Tree.}
+We now show how, in exchange for a slightly larger memory footprint, \sketchmg improves its worst-case insertion cost to~$O(\log w)$ while retaining constant amortized insertions.
 
 \subsection{Applying \sketch\ to Other FE Sketches}\label{sec:any_sketch}
 Using the same strategies as in the preceding sections, \sketch\ can be adapted to any FE sketch, whether existing or yet to be proposed.
