@@ -2201,20 +2201,12 @@ maintains~$d$ arrays across expansions to ensure a stable confidence bound on
 the estimation errors while retaining the same~$O(d)$ time complexity~as~CMS.
 
 \textbf{Consistent Hash Functions.}
-\sketchcms uses the same hash function for each of its arrays across
-expansions. It hashes a key to a counter within an array of size~$w$ by taking
-the~$\log_2 w$ lower-order bits of its hash. This ensures that after an
-expansion, a key hashes to either the same counter it would have hashed to
-before or its copy.\footnote{Consistent hashing also grants \sketchcms
-mergeability: the ability to merge sketches constructed on distinct streams to
-represent their union without needing to rescan them.} For example, the queried
-key~$q$ in \Cref{fig:sketch_chain}
-has~$h_1(q)=011\dots$
-as its hash. Since the size of the array before expansion was~4, we only needed
-the first~$\log_2 4=2$ bits of $q$'s hash, i.e., 01, to map it to the 2nd
-counter in the first array. After expansion, we use the first~$\log_2 8=3$ bits
-of the hash, i.e., 011, to map it to the~6th counter, which is a copy of the
-2nd counter before expansion.
+\sketchcms uses the same hash function for each of its arrays across expansions.
+It hashes a key to a counter within an array of size~$w$ by taking the~$\log_2 w$ lower-order bits of its hash.
+This ensures that after an expansion, a key hashes to either the same counter it would have hashed to before or its copy.\footnote{Consistent hashing also grants \sketchcms mergeability: the ability to merge multiple sketches constructed on distinct streams to represent their union without needing to rescan them.}
+For example, the queried key~$q$ in \Cref{fig:sketch_chain} has~$h_1(q)=011\dots$ as its hash.
+Since the size of the array before expansion was~4, we only needed the first~$\log_2 4=2$ bits of $q$'s hash, i.e., 01, to map it to the 2nd counter in the first array.
+After expansion, we use the first~$\log_2 8=3$ bits of the hash, i.e., 011, to map it to the~6th counter, which is a copy of the 2nd counter before expansion.
 
 \textbf{Initial Size.}
 By default, \sketchcms initializes each of its~$d$ arrays to a single chunk
@@ -2608,10 +2600,7 @@ best achievable by any FE sketch of (approximately) the same size as
 \Cref{sec:upper_bounds_cms}, \else
 the Appendix~\cite{SublimeArxiv},
 \fi
-formalizes the above error bounds:\footnote{
-In \Cref{sec:mg}, we discuss the corresponding bounds for an expanding
-Misra-Gries reference model.
-}
+formalizes the above error bounds:
 
 \begin{restatable}{theorem}{thmcms}
     \label{thm:cms-w}
@@ -2633,6 +2622,36 @@ Applying Markov's inequality to the expected error bounds above yields the same
 confidence bounds as CMS. Moreover, employing~$d$ independent arrays in
 \sketchcms raises this confidence to the power of~$d$. These confidence bounds
 remain stable as the stream grows.
+
+\textbf{Tail Guarantees.}
+In addition to the error bound discussed in \Cref{sec:background}, CMS satisfies a stronger \emph{tail guarantee}.
+Rather than relating the estimation error to the total stream length~$N$, the tail guarantee relates it to the total frequency of all but the~$i$ most frequent keys, denoted by~$N^{\mathrm{res}(i)}$~\cite{CMSCSTail}.
+Under skew, this residual mass can be much smaller than~$N$, yielding a correspondingly tighter error bound.
+In particular, for Zipfian workloads with exponent~$\gamma \geq 1$, which closely model many real-world streams, $N^{\mathrm{res}(i)} = O(N/i^{\gamma-1})$~\cite{CMSCSTail}.
+
+For a single array of~$w$ counters, CMS's tail guarantee states that, after excluding the~$w/4$ most frequent keys, the estimation error is at most~$4$ times the expected error contributed by collisions with the remaining keys, with confidence at least~$1/2$.
+That is, for any key~$x$, $\Pr(|\hat{f}(x)-f(x)| \leq 4 \cdot N^{\mathrm{res}(w/4)}/w) \geq 1/2$.
+This bound follows from two observations:
+(1)~By a union bound over collision probabilities, the probability that~$x$ shares a counter with any of the~$w/4$ most frequent keys (other than itself) is at most~$1/4$.
+(2)~The expected error contributed by collisions with the remaining keys is~$N^{\mathrm{res}(w/4)}/w$, so Markov's inequality implies that this error exceeds~$4 \cdot N^{\mathrm{res}(w/4)}/w$ with probability at most~$1/4$.
+Thus, neither event occurs with probability at least~$1-1/4-1/4=1/2$, yielding the stated tail bound.
+As with Euler's number~$e$ in CMS's standard error bound (\Cref{sec:background}), the choice of the top~$w/4$ keys and the multiplier~4 is conventional; other suitable constants yield analogous tail guarantees.
+
+\sketchcms improves upon CMS's tail bound with the same sublinearity as \Cref{thm:cms-w}.
+This follows by modifying the proof of \Cref{thm:cms-w} with an argument similar to the above:
+\begin{theorem}
+    \label{thm:cms-w-tail}
+    When using a size function~$W(\cdot)$ and a single array, \sketchcms provides an estimation error~$E(N)$ satisfying 
+	$$
+    E(N) \leq  
+    \begin{cases}
+        O(1) \cdot \epsilon \left( N^{\textup{res}(W(N)/4)} \right)^{1-\alpha} & \text{if $W(N)=N^{\alpha}/\epsilon$, for $\alpha \in [0,1)$,} \\
+        \log_2 N^{\textup{res}(W(N)/4)} \cdot \epsilon & \text{if $W(N)=N/\epsilon$,}
+	\end{cases}
+    $$
+    with a confidence of at least~$1/2$.
+\end{theorem}
+As before, using~$d$ arrays improves the confidence bound of \Cref{thm:cms-w-tail} to~$1-2^{-d}$.
 
 \ifnoappendix
 \begin{figure}
@@ -2761,7 +2780,7 @@ remain stable as the stream grows.
 
         \footnotesize MG 
         & \footnotesize Under 
-        & \footnotesize $\min_i \frac{N^{\text{res}(i)}}{w-i+1}$ 
+        & \footnotesize $\frac{N}{w}$ 
         & \footnotesize 1 
         & \footnotesize $O(1)$ 
         & --
@@ -2907,15 +2926,36 @@ of~$F$ in constant time without the use of SIMD. We omit the corresponding
 algorithm and its proof of correctness due to space constraints.} and query
 these sketches after each insertion or deletion.
 
+\textbf{Tail Guarantees.}
+As discussed near the end of \Cref{sec:accommodating_unknown_stream_lengths}, CMS satisfies a tail guarantee that relates the estimation error to the total frequency of all keys except the heavy hitters.
+A similar guarantee holds for CS: with an array of~$w$ counters, after excluding the~$w/4$ most frequent keys, the estimation variance is at most~$4$ times the variance induced by the remaining keys, with confidence at least~$1/2$.
+That is, for any key~$x$, $\Pr\left(|\hat{f}(x)-f(x)| \leq 2\sqrt{F^{\mathrm{res}(w/4)}/w}\right) \geq 1/2$, where~$F^{\mathrm{res}(i)}$ denotes the squared~$\ell_2$-norm of the stream after excluding the~$i$ most frequent keys.
+This bound follows from an argument similar to that for CMS: a given key avoids collisions with the top~$w/4$ keys with sufficiently high probability, and Chebyshev's inequality bounds the error induced by the remaining keys.
+
+\sketchcs provides the same improvement to CS's tail bound as \Cref{thm:cs-w} provides for the standard bound.
+This result follows from an argument analogous to that for \sketchcms's tail bound:
+\begin{theorem}
+    \label{thm:cs-w-tail}
+    When using a size function~$W(\cdot)$ and a single array, \sketchcs provides unbiased estimates with a variance~$V(F)$ satisfying
+	$$
+    V(F) \leq  
+    \begin{cases}
+        O(1) \cdot \epsilon \left( F^{\textup{res}(W(F)/4)} \right)^{1-\alpha} & \text{if $W(F)=F^{\alpha}/\epsilon$, for $\alpha \in [0,1)$, } \\
+        \log_2 F^{\textup{res}(W(F)/4)} \cdot \epsilon & \text{if $W(F)=F/\epsilon$.}
+	\end{cases}
+    $$
+    with confidence at least~$1/2$.
+\end{theorem}
+
+
 \subsection{Applying \sketch\ to Misra-Gries}\label{sec:mg}
 As described in \Cref{sec:introduction}, CMS and CS may overestimate a key's true frequency.
 While overestimation is acceptable for some applications, others require conservative frequency estimates~\cite{IcebergQueries}.
 For example, some systems throttle a network connection~\cite{NetworkThrottling1,NetworkThrottling2,NetworkThrottling3} or prioritize a data item for further processing~\cite{TinyLFU} when its estimated frequency exceeds a threshold.
 In such cases, an overestimate may trigger an unwarranted action, degrading quality of service or wasting resources.
 Misra-Gries~\cite{MisraGries} avoids such issues by ensuring that its frequency estimates never exceed the true frequency, although they may underestimate it.
-In addition, some applications need to report the heavy hitters themselves, e.g., to identify the network flows consuming the most bandwidth~\cite{HeavyGuardian,HeavyKeeper,WavingSketch} or unusually frequent events for anomaly detection~\cite{NetworkAnomalyDetection1,NetworkAnomalyDetection2}.
-CMS and CS do not directly support this task because they hash keys to counters without storing the keys.
-Misra-Gries, in contrast, stores the heavy hitters and can therefore directly report them.
+In addition, Misra-Gries can report the heavy-hitter keys themselves, whereas CMS and CS do not directly support this task because they hash keys to counters without storing the keys.
+This capability is useful in applications such as identifying the network flows consuming the most bandwidth~\cite{HeavyGuardian,HeavyKeeper,WavingSketch} or unusually frequent events for anomaly detection~\cite{NetworkAnomalyDetection1,NetworkAnomalyDetection2}.
 \Cref{tab:conventional_sketch_stats} compares Misra-Gries with CMS and CS.
 
 \begin{figure}
@@ -2989,32 +3029,33 @@ Misra-Gries, in contrast, stores the heavy hitters and can therefore directly re
 \end{figure}
 
 \textbf{Misra-Gries (MG).}
-MG maintains an array of~$w$ slots, as illustrated in \Cref{fig:mg_overview}.
-Each slot stores a full key (shown in gray) together with a dedicated counter (shown in white).
+As shown in \Cref{fig:mg_overview}, MG maintains an array of~$w$ slots.
+Each slot stores a full key (shown in gray) along with a dedicated counter (shown in white).
 To insert a key~$x$, MG first checks whether~$x$ is already stored in the array.
 If so, it increments~$x$'s counter.
 Otherwise, if the array contains an empty slot, MG stores~$x$ in that slot with a count of~1.
-If~$x$ is not present and the array is full, MG decrements all counters and evicts any keys whose counters become zero.
-If this process frees a slot, MG stores the incoming key~$x$ in that slot with a count of~1.
+If~$x$ is not present and the array is full, MG decrements all counters.
+It then evicts every key whose counter reached zero, freeing its slot.
+If at least one slot is freed, MG admits the incoming key~$x$ into the array with a count of~1.
 A query for a key currently stored in the array returns that key's counter as the frequency estimate, while a query for an untracked key returns zero.
-\Cref{fig:mg_overview} illustrates these insertion and query cases.
+\Cref{fig:mg_overview} illustrates these \mbox{insertion and query cases}.
 
-These design choices give MG three useful properties.
-First, because a key's counter is incremented only when that key itself is inserted, MG never overestimates its frequency.
-Second, because frequent keys accumulate enough increments to survive repeated global decrements while infrequent keys are more likely to be evicted, MG tends to retain the stream's heavy hitters.
-Under skew, these heavy hitters also receive many more increments than the number of global decrements, making their dedicated counters relatively accurate frequency estimates.
-Finally, because MG stores the full keys, it can directly report the heavy hitters it retains.
+MG's design gives rise to three useful properties.
+First, because a key's counter is incremented only when that key itself is inserted, MG never overestimates its frequency, though it may underestimate it due to the global decrement operations.
+Second, MG tends to retain the stream's heavy hitters because these keys accumulate enough increments to survive repeated global decrements, while infrequent keys are more likely to be evicted.
+Moreover, under skew, these heavy hitters receive many more increments than the number of global decrements, making their dedicated counters relatively accurate frequency estimates.
+Third, because MG stores the full keys, it can directly report the heavy hitters it stores in the array.
 
 Unlike CMS and CS, which support deletions through negative updates while preserving the same error guarantees, MG cannot support deletions without weakening its error bound~\cite{BatchUpdateMisraGries,SpaceSavingBoundedDeletes}.
 This is because MG retains dedicated counters for only a bounded set of candidate heavy hitters.
 If the tracked heavy hitters are deleted, previously untracked keys may become heavy hitters, but MG has discarded their historical frequencies and can identify them only from future updates.
 
-Increasing the number of slots~$w$ allows MG to retain more keys and improve its estimates.
-With~$w$ slots, MG guarantees an additive error of at most~$N/w$, i.e., $|\hat{f}(x)-f(x)| \leq N/w$ for any key~$x$.
-Unlike the guarantees of CMS and CS, this guarantee holds deterministically because MG does not use hashing and therefore does not suffer from hash collisions that force different keys to share the same counter.
-MG's dedicated counters for frequent keys also yield a stronger tail guarantee: the error for any key is at most~$\min_{1 \leq i \leq w} \frac{N^{\mathrm{res}(i)}}{w-i+1}$, where~$N^{\mathrm{res}(i)}$ is the total frequency of all keys outside the top~$i$.
-Under skew, this residual mass can be much smaller than~$N$, yielding a correspondingly smaller error bound.
-In particular, for Zipfian workloads with exponent~$\gamma \geq 1$, which closely model many real-world streams, $N^{\mathrm{res}(i)} = O(N/i^{\gamma-1})$~\cite{CMSCSTail}.
+Increasing the number of slots~$w$ allows MG to retain more keys, making global decrements less frequent and thereby improving the accuracy of its frequency estimates.
+With~$w$ slots, MG guarantees an additive error of at most~$N/w$, i.e., $0 \leq f(x)-\hat{f}(x) \leq N/w$ for any key~$x$.
+This bound holds because each global decrement subtracts one from~$w$ stored counters and can therefore be charged against~$w$ stream insertions.
+Since there are~$N$ insertions in total, at most~$N/w$ global decrements can occur, so the estimate of any key can fall below its true frequency by at most~$N/w$.
+Unlike the guarantees of CMS and CS, this guarantee always holds (i.e., with a confidence of~1).
+The reason is that MG does not use hashing and therefore does not suffer from hash collisions that force different keys to share the same counter.
 
 MG has several variants with different estimation and update properties.
 Randomized variants can provide unbiased estimates by probabilistically evicting the least frequent key when an untracked key arrives~\cite{UnbiasedSpaceSaving}.
@@ -3022,51 +3063,55 @@ Some variants improve practical accuracy at the cost of permitting overestimatio
 Others provide limited support for deletions at the cost of a larger memory footprint~\cite{SpaceSavingBoundedDeletes}.
 We apply \sketch\ to the original MG design; our approach could be applied to these variants as well.
 
-\textbf{Implementations.}
-MG is typically implemented using a hash table that maps each tracked key to its counter, enabling constant-time queries and constant-time insertions for already tracked keys.
-However, inserting an untracked key when the table is full requires decrementing all counters, which would take~$O(w)$ time if performed directly.
-Instead, this decrement is often applied lazily using a global offset~$L$.
-Under this scheme, a stored counter value~$v$ represents an effective count of~$v-L$, while a newly admitted key is assigned~$L+1$.
-Incrementing~$L$ then decreases every effective count by one, implementing the global decrement in constant time.
+\textbf{Classic Implementations.}
+MG is typically implemented using a hash table that maps each tracked key to its counter, enabling constant-time queries and constant-time updates for keys already being tracked.
+To avoid scanning the entire hash table whenever all counters must be decremented, these decrements are applied lazily through a global offset~$L$.
+A stored counter value~$v$ then represents an effective count of~$v-L$, while a newly admitted key is assigned~$L+1$ to give it an effective count of~1, as in \mbox{the original MG}.
 
-A remaining challenge is efficiently identifying entries whose effective counters reach zero for eviction.
+A remaining challenge is efficiently identifying entries whose effective counters reach zero so they can be evicted.
 While many MG implementations use a min-heap for this purpose~\cite{MGH1,MGH2,BatchUpdateMisraGries}, the most theoretically efficient implementation maintains a doubly linked list representing the counter values in increasing order~\cite{SpaceSaving}.
 Each node corresponds to a distinct counter value and points to all keys having that value.
-Incrementing a counter moves its key by at most one position in the list, enabling constant-time updates, while keys with zero-valued counters appear at the head and can be evicted in constant time.
-The drawback of this approach is the space overhead of the associated pointers, which increase MG's overall memory footprint by~$2$--$3\times$.
+Incrementing a counter moves its key by at most one position in the linked list, enabling constant-time updates, while keys with zero-valued counters appear at the head and can be evicted in constant time.
+The drawback of this approach is the space overhead of the associated pointers: each linked-list node stores three pointers, two linking it to its neighbors and one to the corresponding hash-table entry, while each hash-table entry stores an additional pointer back to its linked-list node.
+Together, these pointers increase MG's overall memory footprint by~$2$--$3\times$.
 
 \textbf{\sketchmg.}
-We now introduce \sketchmg, a generalization of MG that incorporates \sketch's two core techniques.
-\sketchmg uses \counterencodingabbrv\ to compress its counters by exploiting skew in their values.
-It also dynamically expands as the stream grows to prevent its estimation error from deteriorating.
-To further reduce space, \sketchmg avoids the doubly linked list used for eviction in the most efficient classical MG implementations.
-Instead, it scans the hash table to decrement all counters and evict keys whose counts reach zero.
-We show that these scans are infrequent and incur a constant amortized cost while reducing the memory footprint by~$2$--$3\times$.
-Finally, for applications requiring faster worst-case performance, we show how a compact segment tree enables logarithmic-time evictions while using significantly less space than heap- and linked-list-based solutions.
+A shortcoming of traditional MG is its use of fixed-length counters: under skewed workloads, many counters store relatively small values, leaving their higher-order bits unused.
+Moreover, as discussed earlier, traditional MG's error grows linearly with the stream length, causing its estimates to become increasingly inaccurate as the stream grows.
+We now introduce \sketchmg, a generalization of MG that addresses both shortcomings.
+
+We also present an important new insight that substantially simplifies MG's implementation: global decrements occur infrequently.
+In particular, they are sufficiently rare that, even if each performs a linear scan over the hash table to decrement all counters and evict keys, the total cost remains amortized constant per stream insertion.
+This observation allows us to eliminate the linked list traditionally used for efficient eviction, reducing the sketch's memory footprint by~2--3$\times$.
+We further show that these scans can be de-amortized using a compact segment tree with an overhead of only~2~bits~per~key.
 
 \textbf{Accommodating Skew.}
-Although MG focuses on tracking heavy hitters, their counts often exhibit substantial skew.
-As with CMS and CS, using uniformly sized counters in such a scenario wastes significant memory on the leading zeros of smaller counts.
-One can address this issue by applying \counterencodingabbrv\ (\Cref{sec:accommodating_skew}) to MG's counters.
-However, \counterencodingabbrv\ requires the counters to be tightly packed, whereas a conventional hash table stores each counter alongside its key.
-To resolve this incompatibility, \sketchmg separates the counters from the keys while preserving a one-to-one correspondence between them.
-Specifically, it implements the hash table using open addressing (e.g., linear probing) to store the keys in a contiguous array of slots, and maintains a separate counter array (encoded with \counterencodingabbrv) mirroring the same layout: the~$i${\nobreakdash-}th counter corresponds to the key \mbox{in the~$i${\nobreakdash-}th slot}.
+Recall from \Cref{sec:accommodating_skew} that \counterencodingabbrv\ compresses contiguous counters by packing them into the same cache line together with their extensions.
+\counterencodingabbrv\ therefore applies directly to CMS and CS, which consist purely of arrays of counters.
+MG, however, stores keys and counters together within a hash table, making \counterencodingabbrv\ less straightforward to apply.
 
-Separating the counters from the keys introduces an additional cache miss when accessing a key's counter during an insertion or query.
-\sketchmg mitigates this overhead by speculatively prefetching the counter array chunk corresponding to the key's initial probe position in the hash table.
-Although the hash table may place the key beyond its initial probe position, the key often remains nearby, so the prefetched chunk is likely to contain its counter.
+To address this, \sketchmg separates the counters from the keys while preserving a one-to-one correspondence between them.
+It first implements the hash table using open addressing so that the keys are stored in a contiguous array of slots.
+It then stores the counters in a separate array mirroring the hash table's layout, with the~$i${\nobreakdash-}th counter corresponding to the key in the~$i${\nobreakdash-}th slot.
+This organization allows the counter array to be encoded directly using \counterencodingabbrv.
+Our implementation uses a Cuckoo hash table~\cite{CuckooHashing,CuckooHashingConference}, though other open-addressing schemes such as \mbox{linear probing are also viable}.
+
+However, separating the counters from the keys introduces two sources of overhead:
+(1)~The one-to-one correspondence between each key and its counter must be maintained.
+\sketchmg does this by mirroring the hash table's collision resolution policy in the counter array.
+In particular, it swaps two counter values whenever their corresponding keys are swapped.
+This process introduces a small constant overhead in expectation, since the additional work matches that of the hash table's collision resolution.
+(2)~Accessing a key's counter during an insertion or query may incur additional cache misses to the counter array.
+\sketchmg mitigates this overhead by speculatively prefetching the regions of the counter array likely to contain the key's counter.
+For example, in a Cuckoo hash table, a key can reside in one of two locations, so \sketchmg prefetches the counters corresponding to both locations.
+Similarly, with linear probing, a key is likely to remain near its initial probe position, allowing the corresponding region of the counter \mbox{array to be prefetched}.
 
 \textbf{Accommodating Unbounded Data Growth.}
-Earlier in this section, we expressed MG's estimation error in terms of the stream length~$N$ (and the tail~$N^{\text{res}(i)}$).
-Since these error bounds are similar to those of CMS, a natural approach to accommodating stream growth is to expand \sketchmg whenever~$N$ more than doubles, similarly to \sketchcms (\Cref{sec:accommodating_unknown_stream_lengths}).
-However, in Experiment~? of \Cref{sec:evaluation}, we observe that this expansion policy consumes excessive memory to achieve the desired accuracy.
-The reason is that, unlike in CMS, not all~$N$ insertions increase MG's estimation error.
-In CMS, every insertion can increase the error through hash collisions, whereas in MG, inserting an already tracked key increments its dedicated counter and therefore introduces no additional error.
-MG's error increases only when an untracked key is inserted, for two reasons:
-(1)~the counters of all tracked keys are decremented, increasing their estimation errors by one, and
-(2)~if the inserted key is not admitted to MG, its insertion is omitted from its estimate, increasing that key's error by one.
-
-Thus, the number of untracked-key insertions~$M$, rather than the stream length~$N$, governs MG's estimation error.
+Earlier in this section, we expressed MG's estimation error as~$N/w$, where~$N$ is the stream length and~$w$ is the number of counters in the sketch.
+Since this bound resembles that of CMS, a natural approach to accommodating stream growth is to expand \sketchmg whenever~$N$ more than doubles, similarly to \sketchcms (\Cref{sec:accommodating_unknown_stream_lengths}).
+However, Experiment~? in \Cref{sec:evaluation} shows that this expansion policy consumes excessive memory to achieve the desired accuracy.
+The reason is that CMS's error can increase with every insertion due to hash collisions, whereas MG's error increases only through global decrements.
+Since a global decrement occurs only when an untracked key is inserted, MG's estimation error is governed by the number of untracked-key insertions~$M$ rather than the total stream length~$N$.
 Accordingly, \sketchmg controls its worst-case estimation error by expanding whenever~$M$ more than doubles.
 As with \sketchcs in the previous section, this corresponds to defining the size function in terms of~$M$, i.e., as~$W(M)$.
 
@@ -3091,15 +3136,17 @@ Compared to \sketchcms and \sketchcs's bounds (Theorems~\ref{thm:cms-w} and \ref
 Note that setting~$\epsilon \leq 1$ in the linear case trivially yields an error bound of~0, as \sketchmg will always grow enough to admit all keys and track their exact counts.
 Interestingly, setting~$\epsilon$ even slightly larger than~1 creates the logarithmic overhead of \Cref{thm:mg-normal}.
 
-Additionally, \Cref{sec:upper_bounds_mg_res} shows that \sketchmg provides a generalized version of MG's tail guarantee with the same sublinear scaling as in \Cref{thm:mg-normal}:
+\textbf{Tail Guarantees.}
+As with CMS and CS, MG also provides a tail guarantee: any key's estimation error is at most~$\min_{1 \leq i \leq w} \frac{M^{\mathrm{res}(i)}}{w-i+1}$, where~$M^{\mathrm{res}(i)}$ is the total number of insertions for untracked keys that are not among the~$i$ most frequent.
+The following theorem, proven in \Cref{sec:upper_bounds_mg_res}, shows that \sketchmg improves upon this tail bound with the same sublinear scaling as in \Cref{thm:mg-normal}:
 \begin{restatable}{theorem}{thmmgres}
     \label{thm:mg-res}
     When using a size function~$W(\cdot)$ on a stream where a total of~$M$ insertions of untracked keys occur, \sketchmg provides an estimation error~$E(M)$ satisfying
     $$
     E(M) \leq  
     \begin{cases}
-        O(1) \cdot \epsilon \parentheses{M^{\text{res}(k)}}^{1-\alpha} + O(k^{1/\alpha-1}) & \text{if $W(M)=M^{\alpha}/\epsilon$} \\
-        \ln M^{\text{res}(k)} \cdot \epsilon + \log_2 k  & \text{if $W(M)=M/\epsilon$,}
+        O(1) \cdot \epsilon \parentheses{M^{\textup{res}(k)}}^{1-\alpha} + O(k^{1/\alpha-1}) & \text{if $W(M)=M^{\alpha}/\epsilon$} \\
+        \ln M^{\textup{res}(k)} \cdot \epsilon + \log_2 k  & \text{if $W(M)=M/\epsilon$,}
     \end{cases}
     $$
     where~$M^{res(k)}$ is the total number of untracked-key insertions of all keys not among the top~$k$.
@@ -3113,8 +3160,8 @@ Inserting an untracked key into a full MG requires decrementing all counters and
 As discussed earlier in this section, classic MG implementations identify eviction victims using an auxiliary structure such as a heap or a doubly linked list, at the cost of significant memory overhead.
 \sketchmg avoids this overhead by eliminating the auxiliary structure and instead scanning the hash table to identify eviction victims.
 These scans are infrequent for two reasons: (1)~each untracked-key insertion increases the estimation error by one, and (2)~an MG with~$w$ counters has an estimation error of at most~$N/w$ after~$N$ insertions.
-Together, these properties limit the number of untracked-key insertions and the corresponding eviction scans to~$N/w$.
-Because each scan costs~$\Theta(w)$, the total eviction cost over the stream is~$O(N)$, yielding an amortized cost of~$O(1)$ per insertion.
+Together, these properties limit the number of untracked-key insertions and the corresponding scans to~$N/w$.
+Because each scan costs~$\Theta(w)$, their total cost over the stream is~$O(N)$, yielding an amortized cost of~$O(1)$ per insertion.
 While this approach works well for applications that prioritize high throughput, its~$\Theta(w)$ worst-case eviction cost may be unsuitable for applications requiring strict latency guarantees.
 
 \textbf{Eviction: Segment Tree.}
