@@ -2949,14 +2949,15 @@ This result follows from an argument analogous to that for \sketchcms's tail bou
 
 
 \subsection{Applying \sketch\ to Misra-Gries}\label{sec:mg}
-As described in \Cref{sec:introduction}, CMS and CS may overestimate a key's true frequency.
+As we have seen, CMS and CS may overestimate a key's true frequency.
 While overestimation is acceptable for some applications, others require conservative frequency estimates~\cite{IcebergQueries}.
 For example, some systems throttle a network connection~\cite{NetworkThrottling1,NetworkThrottling2,NetworkThrottling3} or prioritize a data item for further processing~\cite{TinyLFU} when its estimated frequency exceeds a threshold.
 In such cases, an overestimate may trigger an unwarranted action, degrading quality of service or wasting resources.
-Misra-Gries~\cite{MisraGries} avoids such issues by ensuring that its frequency estimates never exceed the true frequency, although they may underestimate it.
+The Misra-Gries sketch~\cite{MisraGries} avoids such issues by ensuring that its frequency estimates never exceed the true frequency, although they may underestimate it.
 In addition, Misra-Gries can report the heavy-hitter keys themselves, whereas CMS and CS do not directly support this task because they hash keys to counters without storing the keys.
 This capability is useful in applications such as identifying the network flows consuming the most bandwidth~\cite{HeavyGuardian,HeavyKeeper,WavingSketch} or unusually frequent events for anomaly detection~\cite{NetworkAnomalyDetection1,NetworkAnomalyDetection2}.
 \Cref{tab:conventional_sketch_stats} compares Misra-Gries with CMS and CS.
+In this section, we apply \sketch\ to Misra-Gries.
 
 \begin{figure}
     \centering
@@ -2966,8 +2967,8 @@ This capability is useful in applications such as identifying the network flows 
         \def\arraylen{5}
         \def\arraylenminusone{4}
         \def\cellw{0.95}
-        \def\elemw{0.65}
-        \def\counterw{0.30}
+        \def\elemw{0.5*\cellw}
+        \def\counterw{0.5*\cellw}
         \def\annotationoffset{0.05}
         \def\bottomymul{3.1}
         \def\casebracewidth{1.5}
@@ -3034,34 +3035,28 @@ Each slot stores a full key (shown in gray) along with a dedicated counter (show
 To insert a key~$x$, MG first checks whether~$x$ is already stored in the array.
 If so, it increments~$x$'s counter.
 Otherwise, if the array contains an empty slot, MG stores~$x$ in that slot with a count of~1.
-If~$x$ is not present and the array is full, MG decrements all counters.
-It then evicts every key whose counter reached zero, freeing its slot.
+If~$x$ is not present and the array is full, MG decrements all counters, and it evicts any key whose counter reached zero, freeing its slot.
 If at least one slot is freed, MG admits the incoming key~$x$ into the array with a count of~1.
+Otherwise, the key~$x$ is discarded.
 A query for a key currently stored in the array returns that key's counter as the frequency estimate, while a query for an untracked key returns zero.
 \Cref{fig:mg_overview} illustrates these \mbox{insertion and query cases}.
 
 MG's design gives rise to three useful properties.
 First, because a key's counter is incremented only when that key itself is inserted, MG never overestimates its frequency, though it may underestimate it due to the global decrement operations.
-Second, MG tends to retain the stream's heavy hitters because these keys accumulate enough increments to survive repeated global decrements, while infrequent keys are more likely to be evicted.
-Moreover, under skew, these heavy hitters receive many more increments than the number of global decrements, making their dedicated counters relatively accurate frequency estimates.
+Second, MG tends to retain the stream's heavy hitters because these keys accumulate enough increments to survive repeated global decrements, while less frequent keys are more likely to be evicted.
+Moreover, under skew, these heavy hitters accrue many more increments than the number of global decrements, making their dedicated counters relatively accurate frequency estimates.
 Third, because MG stores the full keys, it can directly report the heavy hitters it stores in the array.
 
-Unlike CMS and CS, which support deletions through negative updates while preserving the same error guarantees, MG cannot support deletions without weakening its error bound~\cite{BatchUpdateMisraGries,SpaceSavingBoundedDeletes}.
+In contrast to CMS and CS, MG cannot support deletions without weakening its error bound~\cite{BatchUpdateMisraGries,SpaceSavingBoundedDeletes}.
 This is because MG retains dedicated counters for only a bounded set of candidate heavy hitters.
 If the tracked heavy hitters are deleted, previously untracked keys may become heavy hitters, but MG has discarded their historical frequencies and can identify them only from future updates.
 
 Increasing the number of slots~$w$ allows MG to retain more keys, making global decrements less frequent and thereby improving the accuracy of its frequency estimates.
 With~$w$ slots, MG guarantees an additive error of at most~$N/w$, i.e., $0 \leq f(x)-\hat{f}(x) \leq N/w$ for any key~$x$.
-This bound holds because each global decrement subtracts one from~$w$ stored counters and can therefore be charged against~$w$ stream insertions.
+This bound holds because each global decrement subtracts one from~$w$ stored counters and can therefore be ``charged'' against~$w$ stream insertions.
 Since there are~$N$ insertions in total, at most~$N/w$ global decrements can occur, so the estimate of any key can fall below its true frequency by at most~$N/w$.
-Unlike the guarantees of CMS and CS, this guarantee always holds (i.e., with a confidence of~1).
-The reason is that MG does not use hashing and therefore does not suffer from hash collisions that force different keys to share the same counter.
-
-MG has several variants with different estimation and update properties.
-Randomized variants can provide unbiased estimates by probabilistically evicting the least frequent key when an untracked key arrives~\cite{UnbiasedSpaceSaving}.
-Some variants improve practical accuracy at the cost of permitting overestimation~\cite{SpaceSaving}.
-Others provide limited support for deletions at the cost of a larger memory footprint~\cite{SpaceSavingBoundedDeletes}.
-We apply \sketch\ to the original MG design; our approach could be applied to these variants as well.
+% Some note about determinism
+This deterministic upper bound on the number of decrements results in MG's estimation guarantees always holding (i.e., with a confidence of~1), which is in contrast to the guarantees of CMS and CS.
 
 \textbf{Classic Implementations.}
 MG is typically implemented using a hash table that maps each tracked key to its counter, enabling constant-time queries and constant-time updates for keys already being tracked.
@@ -3077,7 +3072,7 @@ Together, these pointers increase MG's overall memory footprint by~$2$--$3\times
 
 \textbf{\sketchmg.}
 A shortcoming of traditional MG is its use of fixed-length counters: under skewed workloads, many counters store relatively small values, leaving their higher-order bits unused.
-Moreover, as discussed earlier, traditional MG's error grows linearly with the stream length, causing its estimates to become increasingly inaccurate as the stream grows.
+Moreover, as discussed earlier, MG's error grows linearly with the stream length, causing its estimates to become increasingly inaccurate as the stream grows.
 We now introduce \sketchmg, a generalization of MG that addresses both shortcomings.
 
 We also present an important new insight that substantially simplifies MG's implementation: global decrements occur infrequently.
@@ -3117,7 +3112,7 @@ As with \sketchcs in the previous section, this corresponds to defining the size
 
 Unlike \sketchcms and \sketchcs, \sketchmg is able to expand by factors smaller than~2 because it employs a hash table that stores full keys.
 Rather than doubling the hash table's capacity whenever~$M$ more than doubles, \sketchmg grows its capacity by one whenever~$W(M)$ increases by one.
-This finer-grained expansion leads to a smaller constant-factor in \sketchmg's error bound than the bounds of \sketchcms and \sketchcs.
+This finer-grained expansion leads to a smaller constant-factor in \sketchmg's error bound than the bounds of \sketchcms and \sketchcs, as discussed shortly.
 
 In \Cref{sec:upper_bounds_mg_normal}, we follow a similar argument to the analysis of \sketchcms to bound \sketchmg's estimation error:
 \begin{restatable}{theorem}{thmmgnormal}
@@ -3132,7 +3127,7 @@ In \Cref{sec:upper_bounds_mg_normal}, we follow a similar argument to the analys
     Compared to a fixed-size MG that, given prior knowledge of~$M$, is allocated upfront with~$W(M)$ counters, the error terms above are higher by at most a constant and a logarithmic factor.
     The above expressions are smaller than or equal to the corresponding expressions with the stream length~$N$ in place of~$M$, since~$M \leq N$.
 \end{restatable}
-Compared to \sketchcms and \sketchcs's bounds (Theorems~\ref{thm:cms-w} and \ref{thm:cs-w}), the logarithmic term in the linear case of~$W(M)$ is a natural logarithm, which is smaller by a constant factor.
+Compared to \sketchcms and \sketchcs's bounds (Theorems~\ref{thm:cms-w} and \ref{thm:cs-w}), the terms in \Cref{thm:mg-normal} are smaller by a constant factor.
 Note that setting~$\epsilon \leq 1$ in the linear case trivially yields an error bound of~0, as \sketchmg will always grow enough to admit all keys and track their exact counts.
 Interestingly, setting~$\epsilon$ even slightly larger than~1 creates the logarithmic overhead of \Cref{thm:mg-normal}.
 
@@ -3166,6 +3161,14 @@ While this approach works well for applications that prioritize high throughput,
 
 \textbf{Eviction: Segment Tree.}
 We now show how, in exchange for a slightly larger memory footprint, \sketchmg improves its worst-case insertion cost to~$O(\log w)$ while retaining constant amortized insertions.
+
+\textbf{Applicability to Other MG Variants.}
+MG has several variants with different estimation and update properties.
+Randomized variants can provide unbiased estimates by probabilistically evicting the least frequent key when an untracked key arrives~\cite{UnbiasedSpaceSaving,WavingSketch}.
+Other variants improve practical accuracy at the cost of permitting overestimation~\cite{SpaceSaving,HeavyGuardian,HeavyKeeper}.
+Limited support for deletions is also possible at the cost of a larger memory footprint~\cite{SpaceSavingBoundedDeletes}.
+The techniques described in this section for applying \sketch\ to MG can be readily adapted to these variants.
+
 
 \subsection{Applying \sketch\ to Other FE Sketches}\label{sec:any_sketch}
 Using the same strategies as in the preceding sections, \sketch\ can be adapted to any FE sketch, whether existing or yet to be proposed.
