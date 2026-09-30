@@ -1,9 +1,9 @@
 %
-% Flag to include the appendix
-\newif\ifappendix
-\newif\ifnoappendix
-\appendixtrue
-\noappendixfalse
+% Flag to switch to the TODS template
+\newif\iftods
+\newif\ifnotods
+\todsfalse
+\notodstrue
 
 %%%
 %% This is file `sample-acmsmall.tex',
@@ -51,7 +51,7 @@
 %% for your publication.
 %%
 %%
-\ifappendix
+\ifnotods
 \documentclass[sigconf]{acmart}
 \else 
 \documentclass[acmsmall]{acmart}
@@ -227,7 +227,7 @@
     employs efficient bit manipulation routines to quickly locate and access a
     counter's extensions. To maintain accuracy as the stream grows, \sketch\
     also expands its number of counters at a configurable rate, exposing a new
-    spectrum of accuracy-memory tradeoffs that applications can tune to their
+    spectrum of accuracy-memory trade-offs that applications can tune to their
     needs. We apply \sketch\ to both Count-Min Sketch and Count Sketch. Through
     theoretical analysis and empirical evaluation, we show that \sketch\
     significantly improves accuracy and memory over the state of the art while
@@ -322,25 +322,15 @@ analyzers~\cite{SensorDataAnalytics,RobustAggregationSensorNetworks}, and
 genome analysis pipelines~\cite{CMSkmer,SetMinSketch}.
 
 \textbf{Different Types of Error.}
-Frequency estimation sketches differ in the nature of the errors they
-introduce. The Count-Min Sketch~\cite{CountMin} either matches or overestimates
-a key's true count. This one-sided error makes the Count-Min Sketch suitable
-for security-critical applications such as detecting
-denial-of-service~\cite{CoDDoS} and hardware RowHammer~\cite{CoMeT} attacks,
-where misclassifying malicious behavior is unacceptable. The Count
-Sketch~\cite{CountSketch} can both overestimate and underestimate a key's
-count. Yet, these errors cancel out on average, yielding unbiased estimates.
-This property prevents the error from compounding when combining or multiplying
-estimates, making the Count Sketch useful for tasks such as query
-optimization~\cite{Compass,QueryOptimizationSketches,ConvolutionSketch} and
-covariance estimation~\cite{ASCS}. The Misra-Gries structure~\cite{MisraGries}
-either matches or underestimates a key's true count. This makes Misra-Gries
-effective in identifying the most frequent keys (i.e., the heavy
-hitters)~\cite{NetworkAnomalyDetection1,NetworkAnomalyDetection2}, since the
-keys it tracks are guaranteed to have a relatively high frequency. Many
-variants of these data structures have been proposed, each offering distinct
-tradeoffs between accuracy, space, and
-performance~\cite{CountMeanMin,SALSA,BitSense,PyramidSketch,StingySketch,AdaptiveCounterSplicing,CounterTree,TreeSensing,TailoredSketch,AugmentedSketch,HeavyGuardian,HeavyKeeper,WavingSketch,ElasticSketch,MVSketch,SpaceSaving,BatchUpdateMisraGries,BitMatcher,JigsawSketch,MicroscopeSketch,PSketch,TightSketch}.
+Frequency estimation sketches differ in the nature of the errors they introduce.
+The Count-Min Sketch~\cite{CountMin} either matches or overestimates a key's true count.
+This one-sided error makes the Count-Min Sketch suitable for security-critical applications such as detecting denial-of-service~\cite{CoDDoS} and hardware RowHammer~\cite{CoMeT} attacks, where misclassifying malicious behavior is unacceptable.
+The Count Sketch~\cite{CountSketch} can both overestimate and underestimate a key's count.
+Yet, these errors cancel out on average, yielding unbiased estimates.
+This property prevents the error from compounding when combining or multiplying estimates, making the Count Sketch useful for tasks such as query optimization~\cite{Compass,QueryOptimizationSketches,ConvolutionSketch} and covariance estimation~\cite{ASCS}.
+The Misra-Gries structure~\cite{MisraGries} either matches or underestimates a key's true count.
+This makes Misra-Gries effective in identifying the most frequent keys (i.e., the heavy hitters)~\cite{NetworkAnomalyDetection1,NetworkAnomalyDetection2}, since the keys it tracks are guaranteed to have a relatively high frequency.
+There exists many variants of these data structures, each offering a distinct trade-off between accuracy, space, and performance~\cite{CountMeanMin,SALSA,BitSense,PyramidSketch,StingySketch,AdaptiveCounterSplicing,CounterTree,TreeSensing,TailoredSketch,AugmentedSketch,HeavyGuardian,HeavyKeeper,WavingSketch,ElasticSketch,MVSketch,SpaceSaving,BatchUpdateMisraGries,BitMatcher,JigsawSketch,MicroscopeSketch,PSketch,TightSketch}.
 
 \textbf{Goals.}
 Ideally, a frequency estimation sketch should provide high accuracy using a
@@ -401,7 +391,7 @@ routines to decode them in constant time. To resolve Problem~2 (Unbounded Data
 Growth), \sketch\ expands the overall number of counters as the stream grows.
 In doing so, it achieves sublinear error bounds and memory footprint with
 respect to the stream's length. It further introduces a new Pareto frontier
-between these metrics, allowing applications to pick the tradeoff that best
+between these metrics, allowing applications to pick the trade-off that best
 suits their needs.
 
 \textbf{Additional Contributions.}
@@ -410,12 +400,12 @@ suits their needs.
 
     \item We are the first to identify the problem of designing frequency estimation sketches that maintain both error and memory usage sublinear in the stream length (\Cref{sec:problem_analysis_unbounded_growth}).
 
-    \item We introduce a constant-time \underline{va}riable-\underline{l}ength data \underline{e}ncoding scheme~(\counterencodingabbrv) with applications beyond frequency estimation sketches, and use it to encode variable-length counters (\Cref{sec:accommodating_skew}).
+    \item We introduce a constant-time \underline{va}riable-\underline{l}ength data \underline{e}ncoding scheme~(\counterencodingabbrv) with applications beyond frequency estimation sketches, and use it to encode and maintain variable-length counters (\Cref{sec:accommodating_skew}).
 
-    \item We describe how to expand and contract a frequency estimation sketch based on the stream's length while supporting constant-time queries and enabling fine-grained control over the accuracy-memory tradeoff.
-        We also characterize this new tradeoff space (\Cref{sec:accommodating_unknown_stream_lengths}).
+    \item We describe how to expand and contract a frequency estimation sketch based on the stream's length while supporting constant-time queries and enabling fine-grained control over the accuracy-memory trade-off.
+        We also characterize this new trade-off space (\Cref{sec:accommodating_unknown_stream_lengths}).
 
-    \item To demonstrate \sketch's generality, we apply it to three representative frequency estimation sketches: Count-Min Sketch (Sections~\ref{sec:accommodating_skew} and \ref{sec:accommodating_unknown_stream_lengths}), Count Sketch (\Cref{sec:cs}), and Misra-Gries (\Cref{sec:mg}).
+    \item To demonstrate \sketch's generality, we apply it to three representative frequency estimation sketches: Count-Min Sketch (Sections~\ref{sec:accommodating_skew} and \ref{sec:accommodating_unknown_stream_lengths}), Count Sketch (\Cref{sec:cs}), and \mbox{Misra-Gries (\Cref{sec:mg})}.
       
 
     \item We prove a lower bound on the minimum space required for any expandable frequency estimation sketch to achieve a target error.
@@ -424,7 +414,6 @@ suits their needs.
     \item We evaluate \sketch\ against state-of-the-art frequency estimation sketches and show that it simultaneously 1)~reduces the memory footprint under skew, 2)~tightly bounds error as the stream grows, and 3)~maintains equal or better performance.
         We also apply \sketch\ to estimate the size of a join between two tables and show that it produces more accurate results than other frequency estimation sketches (\Cref{sec:evaluation}).
 \end{enumerate}
-\vspace{-2mm}
 
 \begin{table}
     \centering
@@ -437,12 +426,12 @@ suits their needs.
         \midrule
         $N$ & The sum of the counts of all keys in the stream. \\
         $x, y$ & Example keys from the stream. \\
-        $f(x)$ & The ground-truth count of key~$x$. \\
+        $f(x)$ & The true count of key~$x$. \\
         $\hat{f}(x)$ & The estimated count of key~$x$. \\
         $w$ & Number of counters/slots. \\
         $d$ & Number of independent arrays. \\
         $h_i(x)$ & Hash function mapping key~$x$ to a counter. \\
-        $\sigma_i(x)$ & Hash function defining key~$x$'s update direction ($\pm 1$). \\
+        %$\sigma_i(x)$ & Hash function defining key~$x$'s update direction ($\pm 1$). \\
         %$N^{\text{res}(i)}$ & Total count of all but the~$i$ most frequent keys. \\
         \cmidrule{1-2}
         $c$ & Number of counters in each chunk. \\
@@ -450,14 +439,13 @@ suits their needs.
         $W(\cdot)$ & Size function. \\
         %\cmidrule{1-2}
         %AAE & Average Absolute Error, i.e., $\text{avg}_x|\hat{f}(x) - f(x)|$. \\
-        %ARE & Average Relative Error, i.e., $\text{avg}_x\frac{|\hat{f}(x) - f(x)|}{f(x)}$. \\
         %\makecell[c]{Top-$w$ \\[-2pt] AAE} & Average Absolute Error among the~$w$ most frequent items. \\
         \bottomrule
     \end{tabular}
     \egroup
     \caption{Definitions of terms and symbols.}
-    \ifnoappendix
-      \vspace{-8mm}
+    \iftods
+        \vspace{-7mm}
     \fi
     \label{tab:term_and_symbol_definitions}
 \end{table}
@@ -521,13 +509,13 @@ accurate we expect the FE sketch to be and the lower confidence drops.
     \begin{tikzpicture}
         \def\arraycount{3}
         \def\arrayw{5}
-        \ifappendix
+        \ifnotods
             \def\arrayh{0.25}
         \else
             \def\arrayh{0.3}
         \fi
         \def\arraylen{10}
-        \ifappendix
+        \ifnotods
             \def\arraysep{0.25}
         \else
             \def\arraysep{0.3}
@@ -540,7 +528,7 @@ accurate we expect the FE sketch to be and the lower confidence drops.
                 \draw (\j*\counterw-\counterw,-\i*\arrayh+1.5*\arrayh-\i*\arraysep+\arraysep) -- (\j*\counterw-\counterw,-\i*\arrayh+0.5*\arrayh-\i*\arraysep+\arraysep);
             }
         }
-        \ifappendix
+        \ifnotods
             \def\texty{4.5*\arrayh}
             \def\inserttextx{-2.25*\counterw}
         \else
@@ -553,7 +541,7 @@ accurate we expect the FE sketch to be and the lower confidence drops.
         \def\pa{3.0}
         \def\pb{1.0}
         \def\pc{2.0}
-        \ifappendix
+        \ifnotods
             \draw[-stealth] (\inserttextx,0.5*\arrayh+0.5*\arraysep) -| (\pa*\counterw+0.5*\counterw,0.5*\arrayh) node[pos=0.095,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_1(x)$, $+1$};
             \draw[-stealth] (\inserttextx,-0.5*\arrayh-0.5*\arraysep) -| (\pb*\counterw+0.5*\counterw,-0.5*\arrayh-1.0*\arraysep) node[pos=0.148,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_2(x)$, $+1$};
             \draw[-stealth] (\inserttextx,-1.5*\arrayh-1.5*\arraysep) -| (\pc*\counterw+0.5*\counterw,-1.5*\arrayh-2.0*\arraysep) node[pos=0.116,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_3(x)$, $+1$};
@@ -563,7 +551,7 @@ accurate we expect the FE sketch to be and the lower confidence drops.
             \draw[-stealth] (\inserttextx,-1.5*\arrayh-1.5*\arraysep) -| (\pc*\counterw+0.5*\counterw,-1.5*\arrayh-2.0*\arraysep) node[pos=0.1185,above=2pt,align=center,inner sep=0pt] {\small $h_3(x)$, $+1$};
         \fi
 
-        \ifappendix
+        \ifnotods
             \def\querytextx{\arrayw+2.25*\counterw}
         \else
             \def\querytextx{\arrayw+3*\counterw}
@@ -574,7 +562,7 @@ accurate we expect the FE sketch to be and the lower confidence drops.
         \def\pa{8.0}
         \def\pb{4.0}
         \def\pc{7.0}
-        \ifappendix
+        \ifnotods
             \draw (\querytextx,0.5*\arrayh+0.5*\arraysep) -| (\pa*\counterw+0.5*\counterw,0.5*\arrayh) node[pos=0.095,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_1(q)$};
             \draw (\querytextx,-0.5*\arrayh-0.5*\arraysep) -| (\pb*\counterw+0.5*\counterw,-0.5*\arrayh-1.0*\arraysep) node[pos=0.0445,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_2(q)$};
             \draw (\querytextx,-1.5*\arrayh-1.5*\arraysep) -| (\pc*\counterw+0.5*\counterw,-1.5*\arrayh-2.0*\arraysep) node[pos=0.074,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_3(q)$};
@@ -587,7 +575,7 @@ accurate we expect the FE sketch to be and the lower confidence drops.
         \draw[fill=gray!20] (\pa*\counterw,0.5*\arrayh) rectangle (\pa*\counterw+\counterw,-0.5*\arrayh);
         \draw[fill=gray!20] (\pb*\counterw,-0.5*\arrayh-1.0*\arraysep) rectangle (\pb*\counterw+\counterw,-1.5*\arrayh-1.0*\arraysep);
         \draw[fill=gray!20] (\pc*\counterw,-1.5*\arrayh-2.0*\arraysep) rectangle (\pc*\counterw+\counterw,-2.5*\arrayh-2.0*\arraysep);
-        \ifappendix
+        \ifnotods
             \node[inner sep=0pt] at (\pa*\counterw+0.5*\counterw,-0.0*\arrayh-0.0*\arraysep) {\footnotesize $1$};
             \node[inner sep=0pt] at (\pb*\counterw+0.5*\counterw,-1.0*\arrayh-1.0*\arraysep) {\footnotesize $4$};
             \node[inner sep=0pt] at (\pc*\counterw+0.5*\counterw,-2.0*\arrayh-2.0*\arraysep) {\footnotesize $3$};
@@ -599,14 +587,14 @@ accurate we expect the FE sketch to be and the lower confidence drops.
 
         %\node[inner sep=0pt,anchor=west] at (-3.05*\counterw,3.0*\arrayh) {\textbf{A) CMS}};
     \end{tikzpicture}
-    \ifnoappendix
-      \vspace{-3mm}
+    \iftods
+        \vspace{-2mm}
     \fi
     \caption{CMS maintains~$d$ counter arrays of size~$w$ and hashes keys into
     them to estimate their frequencies. Insertions are illustrated on the left
     and queries on the right.}
-    \ifnoappendix
-      \vspace{-5mm}
+    \iftods
+        \vspace{-4mm}
     \fi
     \label{fig:cms_overview}
 \end{figure}
@@ -673,8 +661,11 @@ Yet, these methods impose heavy decompression overheads on queries.
 
 \begin{figure}
     \centering
+    \iftods
+        \vspace{-1mm}
+    \fi
     \begin{tikzpicture}
-        \ifappendix
+        \ifnotods
             \def\arrayw{3.5}
             \def\arrayh{0.25}
         \else 
@@ -688,7 +679,7 @@ Yet, these methods impose heavy decompression overheads on queries.
 
         % Counter Sharing
         \def\sharingarraywmult{0.8}
-        \ifappendix
+        \ifnotods
             \def\treelevelsep{0.2}
         \else
             \def\treelevelsep{0.15}
@@ -701,7 +692,7 @@ Yet, these methods impose heavy decompression overheads on queries.
         \foreach \i in {2, ..., \countercount} {
             \draw (\i*\currentcounterw-\currentcounterw,0) -- (\i*\currentcounterw-\currentcounterw,\arrayh);
         }
-        \ifappendix
+        \ifnotods
             \node[inner sep=0pt,anchor=east] (shared_label) at (0.5*\currentcounterw,\treelevelsep+1.5*\arrayh) {\footnotesize Shared};
         \else
             \node[inner sep=0pt,anchor=east] (shared_label) at (0.65*\currentcounterw,\treelevelsep+1.5*\arrayh) {\small Shared};
@@ -732,7 +723,7 @@ Yet, these methods impose heavy decompression overheads on queries.
             \def\countermidx{\i*\currentcounterw-\currentcounterw/2}
             \pgfmathparse{\counterarray[\i]}
             \let\countervalue\pgfmathresult
-            \ifappendix
+            \ifnotods
                 \node[inner sep=0pt] at (\countermidx,\arrayh/2) {\scriptsize \countervalue};
             \else
                 \node[inner sep=0pt] at (\countermidx,\arrayh/2) {\small \countervalue};
@@ -746,7 +737,7 @@ Yet, these methods impose heavy decompression overheads on queries.
             \ifnum \i = 2 {
             }
             \else {
-              \ifappendix
+              \ifnotods
                   \node[inner sep=0pt] at (\countermidx,\treelevelsep+1.5*\arrayh) {\scriptsize \countervalue};
               \else
                   \node[inner sep=0pt] at (\countermidx,\treelevelsep+1.5*\arrayh) {\small \countervalue};
@@ -754,7 +745,7 @@ Yet, these methods impose heavy decompression overheads on queries.
             }
             \fi
         }
-        \ifappendix
+        \ifnotods
             \node[inner sep=0pt] at (\currentarrayw/2,2*\treelevelsep+2.5*\arrayh) {\scriptsize 10};
         \else
             \node[inner sep=0pt] at (\currentarrayw/2,2*\treelevelsep+2.5*\arrayh) {\small 10};
@@ -778,7 +769,7 @@ Yet, these methods impose heavy decompression overheads on queries.
             }
             \fi \fi
         }
-        \ifappendix
+        \ifnotods
             \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt}] (\mergingoffx,\arrayh) -- (\mergingoffx+2*\currentcounterw,\arrayh)
                 node[pos=0.5,above=4pt,inner sep=1pt] {\footnotesize Merged};
         \else
@@ -787,7 +778,7 @@ Yet, these methods impose heavy decompression overheads on queries.
         \fi
         \node[inner sep=0pt] at (\mergingoffx-\offdots,\arrayh/2) {\small $\dots$};
         \node[inner sep=0pt] at (\mergingoffx+\currentarrayw+\offdots,\arrayh/2) {\small $\dots$};
-        \ifappendix
+        \ifnotods
             \node[inner sep=0pt] at (\mergingoffx+\currentcounterw,\arrayh/2) {\scriptsize 0000110010000000};
             \node[inner sep=0pt] at (\mergingoffx+2.5*\currentcounterw,\arrayh/2) {\scriptsize 00100000};
             \node[inner sep=0pt] at (\mergingoffx+3.5*\currentcounterw,\arrayh/2) {\scriptsize 11100000};
@@ -814,7 +805,7 @@ Yet, these methods impose heavy decompression overheads on queries.
         \foreach \i in {1, ..., \countercount} {
             \pgfmathparse{\counterarray[\i]}
             \let\countervalue\pgfmathresult
-            \ifappendix
+            \ifnotods
                 \node[inner sep=0pt] at (\cmsoffx+\cmsarraywmult*\i*\counterw-\cmsarraywmult*\counterw/2,\cmsoffy+\arrayh/2) {\scriptsize \countervalue};
             \else
                 \node[inner sep=0pt] at (\cmsoffx+\cmsarraywmult*\i*\counterw-\cmsarraywmult*\counterw/2,\cmsoffy+\arrayh/2) {\small \countervalue};
@@ -823,7 +814,7 @@ Yet, these methods impose heavy decompression overheads on queries.
 
         \def\labely{\cmsoffy-0.25}
         \node[inner sep=0pt] (cms_label) at (\cmsoffx+\cmsarraywmult*\arrayw/2,\labely) {\small CMS};
-        \ifappendix
+        \ifnotods
             \draw[-stealth] (\cmsoffx+\cmsarraywmult*\arrayw/4,\cmsoffy+1.5*\arrayh) -- (\sharingarraywmult*\arrayw/2,-0.5*\arrayh);
             \draw[-stealth] (\cmsoffx+\cmsarraywmult*\arrayw/4*2.72,\cmsoffy+1.5*\arrayh) -- (\mergingoffx+\mergingarraywmult*\arrayw/2,-0.5*\arrayh);
         \else
@@ -831,17 +822,17 @@ Yet, these methods impose heavy decompression overheads on queries.
             \draw[-stealth] (\cmsoffx+\cmsarraywmult*\arrayw/4*2.72,\cmsoffy+1.3*\arrayh) -- (\mergingoffx+\mergingarraywmult*\arrayw/2,-0.3*\arrayh);
         \fi
     \end{tikzpicture}
-    \ifappendix
+    \ifnotods
         \vspace{-1.55mm}
     \fi
-    \ifnoappendix
-      \vspace{-3mm}
+    \iftods
+        \vspace{-2.5mm}
     \fi
     \caption{Counter sharing and counter merging encode CMS's counters in less
     space in exchange for blowing up some counter values. Here, the bits in
     each counter are in increasing order of significance from left to right.}
-    \ifnoappendix
-      \vspace{-8mm}
+    \iftods
+        \vspace{-4.5mm}
     \fi
     \label{fig:counter_sharing_merging}
 \end{figure}
@@ -888,7 +879,7 @@ Deletions deteriorate the accuracy of both counter sharing and counter merging
 methods since these techniques ambiguate how counters should be ``separated''
 as they decrease.
 
-\ifnoappendix
+\iftods
 \begin{wrapfigure}{r}{0.5\textwidth}
     \begin{tikzpicture}
         \def\w{2}
@@ -990,7 +981,6 @@ as they decrease.
         }
         \fi
     \end{tikzpicture}
-    \vspace{-8mm}
     \caption{Under the same memory budget as a CMS instance with~32-bit
     counters, counter sharing and counter merging can lead to lower accuracy
     when processing a growing stream.}
@@ -1019,7 +1009,7 @@ is inserted, the total number of keys~$N$ increases. Yet, the full count
 history of each key is still needed, since every occurrence contributes equally
 to the join size regardless of when it arrived.
 
-\ifappendix
+\ifnotods
 \begin{figure}
     \centering
     \begin{tikzpicture}
@@ -1190,7 +1180,7 @@ and~select~operations.
 \begin{figure}
     \centering
     \begin{tikzpicture}
-        \ifappendix
+        \ifnotods
             \def\arrayw{7.5}
             \def\arrayh{0.3}
         \else
@@ -1252,7 +1242,7 @@ and~select~operations.
             node[pos=0.5,below=4pt,inner sep=1pt] (stub_label) {\small Stubs};
 
         % Example Counters
-        \ifappendix
+        \ifnotods
             \def\counterw{1.9}
         \else
             \def\counterw{2.25}
@@ -1263,7 +1253,7 @@ and~select~operations.
         \def\countery{1.0}
         \def\counterlow{0.38*\counterw}
 
-        \ifappendix
+        \ifnotods
             \draw (\counterx-0.5*\counterw+1.09*\counterlow,\countery) -- (\counterx-0.5*\counterw+1.09*\counterlow,\countery+\counterh);
         \else
             \draw (\counterx-0.5*\counterw+1.115*\counterlow,\countery) -- (\counterx-0.5*\counterw+1.115*\counterlow,\countery+\counterh);
@@ -1275,7 +1265,7 @@ and~select~operations.
 
         \def\counterx{0.5*\arrayw+0.5*\countersep+0.5*\counterw}
 
-        \ifappendix
+        \ifnotods
             \draw (\counterx-0.5*\counterw+1.12*\counterlow,\countery) -- (\counterx-0.5*\counterw+1.12*\counterlow,\countery+\counterh);
         \else
             \draw (\counterx-0.5*\counterw+1.13*\counterlow,\countery) -- (\counterx-0.5*\counterw+1.13*\counterlow,\countery+\counterh);
@@ -1283,7 +1273,7 @@ and~select~operations.
         \node[inner sep=1.5pt] (counter_1_lower_bits) at (\counterx-0.5*\counterw+0.5*\counterlow,\countery+0.5*\counterh) {\small 101010};
         \draw[-stealth] (counter_1_lower_bits.south) -- (stub_1.north);
         \node[inner sep=1.0pt] (counter_1_higher_bits) at (\counterx+0.5*\counterlow,\countery+0.5*\counterh) {\small 1010$\dots$};
-        \ifappendix
+        \ifnotods
             \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt}] ($(counter_1_higher_bits.south west)+(12pt,0)$) -- ($(counter_1_higher_bits.south west)+(1.5pt,0)$)
                 node[pos=0.5,below=2pt,inner sep=0pt] (counter_1_higher_bits_brace) { };
         \else
@@ -1299,13 +1289,11 @@ and~select~operations.
         \def\axisr{0.5*\arrayw+0.8*\counterw}
         \def\axisy{\countery+3*\counterh}
     \end{tikzpicture}
-    \vspace{-2.3mm}
     \caption{\counterencodingabbrv\ encodes a chunk of~$c$ counters in a cache
     line. It encodes the~$s$ lower-order bits of each counter in a stub and
     stores its remaining higher-order bits in extensions comprised of 2-bit
     fragments representing base-3 digits. Here, we use a stub length of~$s=6$.}
     \label{fig:counter_chunk}
-    \vspace{-5mm}
 \end{figure}
 
 \textbf{Chunking.}
@@ -1369,7 +1357,7 @@ are slightly less space-efficient than stubs due to their base{\nobreakdash-}3
 encoding and their delimiters, we adapt the stub length at runtime to optimize
 the memory footprint.
 
-\ifappendix
+\ifnotods
 \begin{figure}
     \centering
     \pgfdeclarelayer{background layer}
@@ -1498,7 +1486,6 @@ the memory footprint.
     \end{tikzpicture}
     \caption{\sketchcms applies rank and select operations to locate an
     overflowing counter's extension.}
-    \vspace{-5mm}
     \label{fig:extension_location_example}
 \end{figure}
 \fi
@@ -1519,9 +1506,8 @@ illustrates how to identify the 3rd counter's extension in a chunk. Since the
 there is one bit set to~1 before the 3rd bit in the overflows bitmap, we skip
 one extension to locate the 3rd counter's extension,~shown~in~gray.
 
-\ifnoappendix
+\iftods
 \begin{figure}
-    \vspace{-0.5mm}
     \centering
     \pgfdeclarelayer{background layer}
     \pgfsetlayers{background layer,main}
@@ -1647,10 +1633,8 @@ one extension to locate the 3rd counter's extension,~shown~in~gray.
         \node[inner sep=1pt,anchor=west] (select_value) at (\overflowbitmapw+\bitw+\partsep+\bitw,-6.25*\arrayh) {\small $\texttt{select}(1,$ Delimiters$)=9$};
         \draw[-stealth] ($(rank_value.south east)+(-3pt,0)$) |- (select_value.west);
     \end{tikzpicture}
-    \vspace{-3mm}
     \caption{\sketchcms applies rank and select operations to locate an
     overflowing counter's extension.}
-    \vspace{-5mm}
     \label{fig:extension_location_example}
 \end{figure}
 \fi
@@ -1727,7 +1711,7 @@ the pointer is unused.
 \begin{figure}
     \centering
     \begin{tikzpicture}
-        \ifappendix
+        \ifnotods
             \def\arrayw{7.5}
             \def\arrayh{0.3}
         \else
@@ -1792,7 +1776,7 @@ the pointer is unused.
         \node[inner sep=2pt,anchor=west] (tails_label) at (\tailsarrayoffsetx+\tailsarrayw,\tailsarrayoffsety-\tailsarrayh/2) {\small Tails};
 
         % Example Counters
-        \ifappendix
+        \ifnotods
             \def\counterw{1.9}
         \else
             \def\counterw{2.25}
@@ -1800,14 +1784,14 @@ the pointer is unused.
         \def\counterh{0.3}
         \def\countersep{0.5}
         \def\counterx{0.5*\arrayw-0.5*\countersep-0.5*\counterw}
-        \ifappendix
+        \ifnotods
             \def\countery{1.4}
         \else
             \def\countery{1.6}
         \fi
         \def\counterlow{0.38*\counterw}
 
-        \ifappendix
+        \ifnotods
             \draw (\counterx-0.5*\counterw+1.09*\counterlow,\countery) -- (\counterx-0.5*\counterw+1.09*\counterlow,\countery+\counterh);
         \else
             \draw (\counterx-0.5*\counterw+1.11*\counterlow,\countery) -- (\counterx-0.5*\counterw+1.11*\counterlow,\countery+\counterh);
@@ -1827,13 +1811,12 @@ the pointer is unused.
         \draw[-stealth] (counter_1_higher_bits.south) -- (\tailsarrayoffsetx+1.5*\tailw,\tailsarrayoffsety);
         \node[inner sep=0pt] (counter_1_label) at (\counterx,\countery+1.75*\counterh) {\small Counter 1};
     \end{tikzpicture}
-    \ifnoappendix
+    \iftods
         \vspace{-2mm}
     \fi
     \caption{When a chunk's extensions outgrow its space, it stores a pointer
     to a dedicated external array of tails to store the counters' higher-order
     bits.}
-    \vspace{-5mm}
     \label{fig:counter_chunk_with_tails}
 \end{figure}
 
@@ -2013,13 +1996,25 @@ running sum by~3 by adding it to a copy of itself shifted to the left by one
 bit (which is equivalent to multiplication~by~2).
 
 
+\subsection{Accommodating Unbounded Growth}\label{sec:accommodating_unknown_stream_lengths}
+We now address the problem of maintaining bounded estimation error for
+frequency estimation sketches over growing streams. Recall from
+\Cref{sec:problem_analysis} that processing
+growing streams with existing FE sketches (e.g., CMS) yields an estimation
+error that increases at least linearly with the total key count~$N$. Since~$N$
+is typically unknown in advance, bounding this error requires overprovisioning
+memory upfront, leading to significant waste. \sketch\ addresses this
+limitation by generalizing an FE sketch to increase its number of counters as
+the stream grows. We also show how to support deletions and contractions
+without deteriorating accuracy.
+
 \begin{figure}
     \centering
     \pgfdeclarelayer{background layer}
     \pgfsetlayers{background layer,main}
     \begin{tikzpicture}
         \def\arraycount{3}
-        \ifappendix
+        \ifnotods
             \def\arrayw{1}
             \def\arrayh{0.25}
             \def\arraysep{0.25}
@@ -2103,7 +2098,7 @@ bit (which is equivalent to multiplication~by~2).
         %\node[inner sep=0pt] (sketch_1_label) at (2*\arrayw+\cmssep,\sketchtitley) {\small Sketch 1};
         %\node[inner sep=0pt] (sketch_2_label) at (5*\arrayw+2*\cmssep,\sketchtitley) {\small Sketch 2};
 
-        \ifappendix
+        \ifnotods
             \node[inner sep=1pt,anchor=north] (third_expansion_threshold) at (7*\arrayw+3.7*\cmssep,-\arraysep/2) {\small $N > 64$};
             \draw[densely dotted] (7*\arrayw+3.7*\cmssep,3*\arrayh+3*\arraysep) -- (third_expansion_threshold.north);
         \else
@@ -2142,7 +2137,7 @@ bit (which is equivalent to multiplication~by~2).
         \def\texty{\arraycount*\arraysep+\arraycount*\arrayh+\cmstitlesep+0.2}
         \def\arrowoffsetx{3*\arrayw+1.85*\cmssep}
         \def\arrowoffsety{\arraysep/2}
-        \ifappendix
+        \ifnotods
             \def\querytextx{3*\arrayw+\lastsketcharrayw+2.4*\cmssep}
         \else
             \def\querytextx{3*\arrayw+\lastsketcharrayw+4.0*\cmssep}
@@ -2161,28 +2156,12 @@ bit (which is equivalent to multiplication~by~2).
             \end{pgfonlayer}
         }
     \end{tikzpicture}
-    \vspace{-1.4mm}
-    \ifnoappendix
-        \vspace{-0.6mm}
-    \fi
+    \vspace{-1.42mm}
     \caption{\sketchcms expands by concatenating each array with a copy of
     itself. It maps a key to a counter in an array by taking the appropriate
     number of bits from its hash.}
-    \vspace{-5mm}
     \label{fig:sketch_chain}
 \end{figure}
-
-\subsection{Accommodating Unbounded Growth}\label{sec:accommodating_unknown_stream_lengths}
-We now address the problem of maintaining bounded estimation error for
-frequency estimation sketches over growing streams. Recall from
-\Cref{sec:problem_analysis} that processing
-growing streams with existing FE sketches (e.g., CMS) yields an estimation
-error that increases at least linearly with the total key count~$N$. Since~$N$
-is typically unknown in advance, bounding this error requires overprovisioning
-memory upfront, leading to significant waste. \sketch\ addresses this
-limitation by generalizing an FE sketch to increase its number of counters as
-the stream grows. We also show how to support deletions and contractions
-without deteriorating accuracy.
 
 In the case of CMS, \sketchcms expands whenever~$N$ exceeds a tunable
 threshold. An expansion concatenates the current CMS with a copy of itself,
@@ -2214,7 +2193,7 @@ By default, \sketchcms initializes each of its~$d$ arrays to a single chunk
 \Cref{sec:accommodating_skew}. Thus, it
 avoids wasting memory from the onset in case the stream grows slowly.
 
-\ifappendix
+\ifnotods
 \begin{figure}
     \centering
     \pgfdeclarelayer{background layer}
@@ -2323,63 +2302,43 @@ avoids wasting memory from the onset in case the stream grows slowly.
     \caption{During contractions, \sketchcms extracts the recent updates by
     subtracting the previous FE sketch. It adds the results to the previous
     sketch to transfer the updates.}
-    \vspace{-5mm}
     \label{fig:contraction}
 \end{figure}
 \fi
 
 \textbf{Expansion Thresholds.} 
-By default, \sketchcms expands whenever~$N$ quadruples. As shown at the bottom
-of
-\Cref{fig:sketch_chain},
-expansions occur when the number of keys~$N$ reaches 4, 16, and 64. These
-thresholds cause the number of counters in each array to grow as~$\sqrt{N}$. As
-a consequence, we achieve a sublinear memory footprint and sublinear errors. To
-see why, recall from \Cref{sec:background} that a CMS
-allocated with arrays of~$w$ counters has an expected error of~$N/w$. By
-making~$w$ grow as~$\sqrt{N}$, \sketchcms instead obtains an expected error
-of~$O(N/\sqrt{N})=O(\sqrt{N})$ even when the stream's length is unknown.
-Although keys inserted when the sketch was smaller contribute disproportionally
-to the error due to their counts duplicating with expansions, they are
-exponentially fewer in number. Hence, such keys only increase the error by a
-small constant factor.
-\Cref{thm:cms-w}, proven in
-\ifappendix
-\Cref{sec:upper_bounds_cms},
-\else
-the Appendix~\cite{SublimeArxiv},
-\fi
-formalizes these intuitions. In sum, compared to a standard CMS with linear
-errors and a fixed memory footprint, \sketchcms achieves significantly lower
-errors at a slightly higher space cost. As such, it is a better fit for
-applications that require maintaining low errors as the stream grows
-indefinitely. We shortly show how to set the expansion thresholds to open a new
-accuracy-memory tradeoff space.
+By default, \sketchcms expands whenever~$N$ quadruples. As shown at the bottom of \Cref{fig:sketch_chain}, expansions occur when the number of keys~$N$ reaches 4, 16, and 64.
+These thresholds cause the number of counters in each array to grow as~$\sqrt{N}$.
+As a consequence, we achieve a sublinear memory footprint and sublinear errors.
+To see why, recall from \Cref{sec:background} that a CMS allocated with arrays of~$w$ counters has an expected error of~$N/w$.
+By making~$w$ grow as~$\sqrt{N}$, \sketchcms instead obtains an expected error of~$O(N/\sqrt{N})=O(\sqrt{N})$ even when the stream's length is unknown. 
+Although keys inserted when the sketch was smaller contribute disproportionally to the error due to their counts duplicating with expansions, they are exponentially fewer in number.
+Hence, such keys only increase the error by a small constant factor.
+\Cref{thm:cms-w}, proven in \Cref{sec:upper_bounds_cms}, formalizes these intuitions.
+In sum, compared to a standard CMS with linear errors and a fixed memory footprint, \sketchcms achieves significantly lower errors at a slightly higher space cost.
+As such, it is a better fit for applications that require maintaining low errors as the stream grows indefinitely.
+We shortly show how to set the expansion thresholds to open a new accuracy-memory trade-off space.
 
 \textbf{Deletions and Contractions.} 
-\sketchcms handles deletions using the same procedure as CMS. It contracts
-after many deletions to save memory. The simplest way to contract is to revert
-an expansion by folding the halves of each array onto each other and adding up
-the counters. Yet, this approach would inflate the error since it adds the
-counters copied during the last expansion to the originals, thereby doubling
-them. Instead, \sketchcms keeps a record of the sketch's state just before each
-expansion. It extracts the recent updates made to the current sketch by
-subtracting the state of the sketch before the last expansion from its left and
-right halves. We illustrate this for a single array in
-\Cref{fig:contraction}.
-The result is an array of deltas indicating how each counter from the earlier
-sketch and its copy have changed. \sketchcms applies these deltas to the
-original counters in the earlier sketch. Finally, it discards the current
-sketch and uses the earlier sketch to handle future~operations.
+\sketchcms handles deletions using the same procedure as CMS.
+It contracts after many deletions to save memory.
+The simplest way to contract is to revert an expansion by folding the halves of each array onto each other and adding up the counters.
+Yet, this approach would inflate the error since it adds the counters copied during the last expansion to the originals, thereby doubling them.
+Instead, \sketchcms keeps a record of the sketch's state just before each expansion.
+It extracts the recent updates made to the current sketch by subtracting the state of the sketch before the last expansion from its left and right halves.
+We illustrate this for a single array in \Cref{fig:contraction}.
+The result is an array of deltas indicating how each counter from the earlier sketch and its copy have changed.
+\sketchcms applies these deltas to the original counters in the earlier sketch.
+Finally, it discards the current sketch and uses the earlier sketch to handle future~operations.
 
-\ifnoappendix
+\iftods
 \begin{figure}
     \centering
     \pgfdeclarelayer{background layer}
     \pgfsetlayers{background layer,main}
     \begin{tikzpicture}
         \def\arraycount{1}
-        \ifappendix
+        \ifnotods
             \def\arrayw{2}
             \def\arrayh{0.25}
             \def\arraysep{0.1}
@@ -2443,7 +2402,7 @@ sketch and uses the earlier sketch to handle future~operations.
             \pgfmathtruncatemacro{\countervalue}{\counterarray[\i]}
             \node[inner sep=0pt] at (\arrayw+\cmssep+\i*\counterw-\counterw/2,\resulty) {\small $\countervalue$};
         }
-        \ifappendix
+        \ifnotods
             \node[inner sep=0pt] (updates_label) at (3*\arrayw+1.415*\cmssep,\resulty) {\small Deltas};
         \else
             \node[inner sep=0pt] (updates_label) at (3*\arrayw+1.3*\cmssep,\resulty) {\small Deltas};
@@ -2512,9 +2471,9 @@ factor of~$2$ compared to allocating and expanding a single sketch. When the
 total key count fluctuates, the memory saved by contracting outweighs this
 cost.
 
-\textbf{Rich Space of Tradeoffs.}
+\textbf{Rich Space of Trade-offs.}
 By varying the expansion thresholds, we expose a rich spectrum of
-accuracy-memory tradeoffs. We encode these policies using a \emph{Size
+accuracy-memory trade-offs. We encode these policies using a \emph{Size
 Function}, denoted as~$W(N)$, which captures the growth rate of the number of
 counters in each array with respect to~$N$. The faster the size function grows
 with respect to~$N$, the sooner \sketchcms expands, thereby tracking more of
@@ -2526,7 +2485,7 @@ having~$1/\epsilon$ chunks in each array at the beginning and expanding
 when~$N$ grows by a factor of~$2^{1/\alpha}$. Note that this factor is greater
 than~two.
 
-\ifappendix
+\ifnotods
 \begin{figure}
     \centering
     \begin{tikzpicture}
@@ -2584,23 +2543,11 @@ than~two.
 \end{figure}
 \fi
 
-When using a sublinear power as the size function, \sketchcms achieves an
-expected error of~$O(N/W(N))=O(\epsilon \cdot N^{1-\alpha})$.\footnote{The
-constant factor hidden by the asymptotics is~$(2^{1/\alpha}-1) \cdot
-\frac{1-2^{(\alpha-1) \cdot \log_2 N}}{2^{1/\alpha-1}-1}$, which is at
-most~$\frac{2^{1/\alpha}-1}{2^{1/\alpha-1}-1}$ and converges to~$\log_2 N$ as
-$\alpha$ tends to 1.} One may hope to achieve a constant expected error by
-growing the number of counters linearly with the data size, i.e., by using a
-linear size function of the form~$W(N)=N/\epsilon$. Yet, \sketchcms obtains an
-error bound of~$\log_2 N \cdot \epsilon$ in this case.
-\Cref{sec:memory_analysis} shows that without
-knowing the ultimate length of the stream, these expected error bounds are the
-best achievable by any FE sketch of (approximately) the same size as
-\sketchcms. The following theorem, proven in \ifappendix
-\Cref{sec:upper_bounds_cms}, \else
-the Appendix~\cite{SublimeArxiv},
-\fi
-formalizes the above error bounds:
+When using a sublinear power as the size function, \sketchcms achieves an expected error of~$O(N/W(N))=O(\epsilon \cdot N^{1-\alpha})$.\footnote{The constant factor hidden by the asymptotics is~$(2^{1/\alpha}-1) \cdot \frac{1-2^{(\alpha-1) \cdot \log_2 N}}{2^{1/\alpha-1}-1}$, which is at most~$\frac{2^{1/\alpha}-1}{2^{1/\alpha-1}-1}$ and converges to~$\log_2 N$ as $\alpha$ tends to 1.}
+One may hope to achieve a constant expected error by growing the number of counters linearly with the data size, i.e., by using a linear size function of the form~$W(N)=N/\epsilon$.
+Yet, \sketchcms obtains an error bound of~$\log_2 N \cdot \epsilon$ in this case.
+\Cref{sec:memory_analysis} shows that without knowing the ultimate length of the stream, these expected error bounds are the best achievable by any FE sketch of (approximately) the same size as \sketchcms. 
+The following theorem, proven in \Cref{sec:upper_bounds_cms}, formalizes the above error bounds:
 
 \begin{restatable}{theorem}{thmcms}
     \label{thm:cms-w}
@@ -2653,7 +2600,7 @@ This follows by modifying the proof of \Cref{thm:cms-w} with an argument similar
 \end{theorem}
 As before, using~$d$ arrays improves the confidence bound of \Cref{thm:cms-w-tail} to~$1-2^{-d}$.
 
-\ifnoappendix
+\iftods
 \begin{figure}
     \centering
     \begin{tikzpicture}
@@ -2716,13 +2663,13 @@ As before, using~$d$ arrays improves the confidence bound of \Cref{thm:cms-w-tai
 \begin{table}
     \centering
     %\def\arraystretch{1.075}
-    \ifappendix
+    \ifnotods
     \setlength{\tabcolsep}{3pt}
     \fi
     \begin{tabular}{cccccccc}
         \toprule
 
-        \ifappendix
+        \ifnotods
         \textbf{\footnotesize FE Sketch}
         & \footnotesize \textbf{Bias}
         & \footnotesize \textbf{Error Bound}
@@ -2742,7 +2689,7 @@ As before, using~$d$ arrays improves the confidence bound of \Cref{thm:cms-w-tai
 
         \midrule
 
-        \ifappendix
+        \ifnotods
         \footnotesize CMS 
         & \footnotesize Over 
         & \footnotesize $\frac{e \cdot N}{w}$ 
@@ -2760,7 +2707,7 @@ As before, using~$d$ arrays improves the confidence bound of \Cref{thm:cms-w-tai
         & \small $O(d)$ \\[2pt]
         \fi
 
-        \ifappendix
+        \ifnotods
         \footnotesize CS 
         & \footnotesize Unbiased 
         & \footnotesize $e \cdot \sqrt{\frac{\sum_y (f(y))^2}{w}}$ 
@@ -2788,9 +2735,9 @@ As before, using~$d$ arrays improves the confidence bound of \Cref{thm:cms-w-tai
 
         \bottomrule
     \end{tabular}
-    \caption{CMS, CS, and MG strike different tradeoffs.}
+    \caption{CMS, CS, and MG strike different trade-offs.}
     \label{tab:conventional_sketch_stats}
-    \ifnoappendix
+    \iftods
       \vspace{-8mm}
     \fi
 \end{table}
@@ -2821,22 +2768,13 @@ the update direction is an estimate of~$x$'s frequency. The zero expected
 interference removes bias, though it introduces two-sided errors (both under
 and overestimations). 
 
-Although the estimates are unbiased and accurate in expectation for any
-workload, they may suffer from large deviations. This is because many keys
-hashing to the same counter may have the same update direction, despite the
-zero expected interference. Skew exacerbates this phenomenon since a heavy
-hitter drastically changes the estimates of the keys hashing to the same
-counter, no matter its update direction. Therefore, to bound the probability of
-severe errors, we compute the estimation variance.\footnote{CS uses 4-wise
-independent hash functions~$\sigma$ to bound the variance and the probability
-of large errors~\cite{CountSketch}.} Denoting the frequency of key~$y$ by
-$f(y)$, this variance can be expressed as~$V=\sum_y (f(y))^2/w$. This lines up
-with the intuition that larger arrays make hash collisions less likely,
-reducing the variance. A straight-forward application of Chebyshev's inequality
-shows that the error does not exceed~$e \cdot \sqrt{V}$ with a confidence of at
-least~$1-e^{-2}$.\footnote{CS's error bound is~$\sqrt{V} = O(\sqrt{N/w})$ when
-the workload is more uniform due to the squared summands being small. This
-bound is smaller than CMS's error, i.e., $N/w$.}
+Although the estimates are unbiased and accurate in expectation for any workload, they may suffer from large deviations.
+This is because many keys hashing to the same counter may have the same update direction, despite the zero expected interference.
+Skew exacerbates this phenomenon since a heavy hitter drastically changes the estimates of the keys hashing to the same counter, no matter its update direction.
+Therefore, to bound the probability of severe errors, we compute the estimation variance.
+Denoting the frequency of key~$y$ by $f(y)$, this variance can be expressed as~$V=\sum_y (f(y))^2/w$.
+This lines up with the intuition that larger arrays make hash collisions less likely, reducing the variance.
+A straight-forward application of Chebyshev's inequality shows that the error does not exceed~$e \cdot \sqrt{V}$ with a confidence of at least~$1-e^{-2}$.\footnote{CS's error bound is~$\sqrt{V} = O(\sqrt{N/w})$ when the workload is more uniform due to the squared summands being small. This bound is smaller than CMS's error, i.e., $N/w$.}
 
 Similarly to CMS, CS boosts confidence by employing~$d$ independent arrays,
 each with its own hash functions~$h_i$ and $\sigma_i$. It answers a query by
@@ -2866,14 +2804,7 @@ doubles. We encode different expansion policies by defining the size function
 based on the numerator~$F$, i.e., as~$W(F)$. The quantity~$F$ is also known as
 the squared~$\ell_2$-norm of the stream.
 
-In
-\ifappendix
-\Cref{sec:upper_bounds_cs},
-\else 
-the Appendix~\cite{SublimeArxiv},
-\fi
-we prove through a similar analysis to that of \sketchcms, the following
-variance bounds for \sketchcs:
+In \Cref{sec:upper_bounds_cs}, we prove through a similar analysis to that of \sketchcms, the following variance bounds for \sketchcs:
 \begin{restatable}{theorem}{thmcs}
     \label{thm:cs-w}
     When using a size function~$W(\cdot)$ and a single array on a stream with a
@@ -3246,7 +3177,7 @@ are similar, i.e., their distribution is uniform. This is because skew gives
     + \log_2(k/(4w))$. Plugging into the memory bound from before yields~$m
     \leq \sum_i 4 + \max(\log_2 (k/(4w)), 1.26 \cdot \log_2 |v_i|)$. We further
     bound each individual max term by 
-    \ifappendix
+    \ifnotods
     \begin{align*}
       \max & \left( 1.26 \cdot \log_2 \frac{k}{4w}, 1.26 \cdot \log_2|v_i| \right) \\
       & \leq 1.26 \cdot \max\left( \log_2 \frac{k}{4w}, \log_2|v_i| \right) \\ 
@@ -3258,7 +3189,7 @@ are similar, i.e., their distribution is uniform. This is because skew gives
     thus implying~$m \leq \sum_i 4 + 1.26 \cdot \log(k/(4w) + |v_i|)$.
     Rearranging the sum and once again using the concavity of the logarithm to
     apply Jensen's inequality yields the desired result:
-    \ifappendix
+    \ifnotods
     \begin{align*}
       m &\leq w \cdot \left[4 + 1.26 \cdot \frac{1}{w} \cdot \sum_i \log_2(k/(4w)+k/w) \right] \\ 
       & \leq w \cdot \left[ 4.41 + 1.26 \cdot \log_2 (k/w) \right]. 
@@ -3295,7 +3226,7 @@ By accounting for this, we show the following result:
     and multiplying by~$d$ proves the result.
 \end{proof}
 
-\ifappendix
+\ifnotods
 \begin{figure*}
     \centering
     \includegraphics[width=0.65\textwidth]{accuracy.pdf} 
@@ -3329,7 +3260,6 @@ By accounting for this, we show the following result:
     performance. We use the optimal tuning of the baselines at each point of
     the curves. The table on the right details the number of counters per
     chunk~$c$ and the stub length~$s$ used by \sketchcms in each point.}
-    \vspace*{-2.0mm}
     \label{fig:accuracy_bench}
 \end{figure*}
 \fi
@@ -3368,13 +3298,7 @@ Redoing the analysis of~\cite{PaghExpandability} with~$\delta=0$ remedies this i
 \Cref{thm:sketch_expandability_special_case} holds for FE sketches that do not underestimate (e.g., CMS).
 The same results also apply to FE sketches that never overestimate and have a deterministic error bound (e.g., MG), since such an FE sketch can be converted into one that never underestimates by adding its error bound to each estimate.
 However, applying \Cref{thm:sketch_expandability_special_case} to FE sketches that can both overestimate and underestimate (e.g., CS) is non-trivial, as two-sided errors can introduce false negatives and violate filtering semantics.
-Nevertheless, by accounting for the estimation variance, we reason about the false negatives and
-\ifappendix
-prove in \Cref{sec:ommitted_proofs_lower}
-\else 
-prove in our Appendix~\cite{SublimeArxiv}
-\fi
-that the same lower bound holds for these sketches:
+Nevertheless, by accounting for the estimation variance, we reason about the false negatives and prove in \Cref{sec:ommitted_proofs_lower} that the same lower bound holds for these sketches:
 \begin{restatable}{theorem}{thmsketchexpandabilitylabel}
     \label{thm:sketch_expandability}
     Consider an FE sketch providing estimates with an expected absolute error
@@ -3418,7 +3342,7 @@ We run the experiments on a Fedora 41 machine with an Intel Xeon w7-2495X
 processor (4.8 GHz) with 24 cores. Our machine features an 80 KB L1 cache and a
 2 MB L2 cache for each core, a 45 MB shared L3 cache, and 64 GB of RAM.
 
-\ifnoappendix
+\iftods
 \begin{figure*}
     \centering
     \includegraphics[width=0.8\textwidth]{accuracy_camera_ready.pdf} 
@@ -3484,7 +3408,7 @@ a confidence bound of~$\approx 95\%$, which is significantly higher than the
 confidence bounds resulting from~$d=1$ ($\approx 63\%$) and $d=2$ ($\approx
 86\%$) while being comparable~to~$d=4$~($\approx 98\%$).
 
-\ifappendix
+\ifnotods
 \begin{figure}
     \centering
     \includegraphics[width=\columnwidth]{skew_vale_tuning.pdf}
@@ -3527,7 +3451,7 @@ relative errors to keep our presentation consistent with the theoretical error
 bounds studied in the literature. We have found the relative errors to behave
 similarly to the absolute errors.
 
-\ifnoappendix
+\iftods
 \begin{figure}
     \centering
     \includegraphics[width=0.99\columnwidth]{skew_vale_tuning_camera_ready.pdf}
@@ -3560,12 +3484,12 @@ length~$s$. We increase the memory budget by factors of 2 on the $x$-axis up to
 4 MBs, though for the \textsc{Kosarak} dataset, we use smaller budgets due to
 the workload trace~being~shorter.
 
-\ifappendix
+\ifnotods
 \begin{figure}
     \centering
     \hspace*{3.25pt}
     \includegraphics[width=0.95\columnwidth]{expansion.pdf}
-    \vspace{1.1mm}
+    \vspace{1.07mm}
     \caption{\sketchcms achieves both a low error rate and a small memory
     footprint when processing growing streams.}
     \label{fig:expansion_bench}
@@ -3580,7 +3504,7 @@ the workload trace~being~shorter.
 \end{figure}
 \fi
 
-\ifappendix
+\ifnotods
 \begin{figure*}
     \centering
     \includegraphics[width=0.7\textwidth]{accuracy_unbiased.pdf}
@@ -3654,7 +3578,7 @@ workloads. This is because it exposes a tuning space that allows
 \counterencodingabbrv\ to save memory by employing longer and shorter stubs for
 more uniform and skewed workloads, respectively. 
 
-\ifnoappendix
+\iftods
 \setlength{\tabcolsep}{4pt}
 \begin{tabular}{cc}
     \hspace*{-6mm}
@@ -3738,7 +3662,7 @@ dataset and subsequently delete keys in a random order while measuring the
 error and the memory footprint. We only compare \sketchcms to CMS since all
 other baselines do not provide a deletion API.
 
-\ifappendix
+\ifnotods
 \begin{figure}
     \centering
     \includegraphics[width=0.91\columnwidth]{l2_size_function.pdf}
@@ -3748,14 +3672,12 @@ other baselines do not provide a deletion API.
 \end{figure}
 \fi
 
-\ifappendix
+\ifnotods
 \begin{figure*}
     \centering
     \includegraphics[width=0.86\textwidth]{join_size.pdf}
-    \vspace{-2mm}
     \caption{\sketch\ provides the most accurate frequency estimates of table
     entries and the size of their join.}
-    \vspace{-2mm}
     \label{fig:join_size_bench}
 \end{figure*}
 \fi
@@ -3770,7 +3692,7 @@ the reduced number of counters slightly increasing the error. Moreover, since
 contractions sequentially scan the FE sketch, similarly to expansions, they
 take up at most~0.5\% of the total execution time.
 
-\ifnoappendix
+\iftods
 \begin{figure*}
     \centering
     \includegraphics[width=0.79\textwidth]{accuracy_unbiased_camera_ready.pdf}
@@ -3815,7 +3737,7 @@ SALSA~\cite{SALSA} as its library does not provide a variant with unbiased
 estimates. We employ the \textsc{CAIDA} dataset and optimally tune Coding
 sketch and \sketchcs.
 
-\ifnoappendix
+\iftods
 \begin{figure}
     \centering
     \includegraphics[width=0.50\columnwidth]{l2_size_function_camera_ready.pdf}
@@ -3893,7 +3815,7 @@ accurate join estimates than the corresponding version of \sketchcms. This is
 due to \sketchcs returning unbiased estimates, which allows for multiplying
 them without compounding errors.
 
-\ifnoappendix
+\iftods
 \begin{figure*}
     \centering
     \includegraphics[width=\textwidth]{join_size_camera_ready.pdf}
@@ -3906,21 +3828,12 @@ them without compounding errors.
 \fi
 
 \section{Conclusion}
-We introduced \sketch, the first framework for generalizing a frequency
-estimation sketch to adapt to the skew and length of the stream. We showed that
-\sketch\ improves the accuracy and memory of FE sketches beyond the state of
-the art while maintaining high performance. Although \sketch\ is currently
-single-threaded, we expect significant performance gains from parallelization
-(e.g., through employing thread-local FE sketches to ingest subsets of the
-stream and periodically merging them into a unified FE sketch for answering
-queries~\cite{FastConcurrentDataSketches,FPGASketching}). \ifappendix Studying
-the interplay of concurrent updates with expansions, contractions, and adaptive
-tuning would be an interesting direction of future work. \fi More broadly,
-\sketch\ opens a new research avenue on expandable data sketches applicable to
-other core statistics, such as quantiles and cardinalities, which exhibit
-similar error growth under workloads with growing datasets. This marks a
-fundamental shift from fixed-size sketches with degrading accuracy to adaptive
-structures that maintain stable accuracy for always-on analytics.
+We introduced \sketch, the first framework for generalizing a frequency estimation sketch to adapt to the skew and length of the stream.
+We showed that \sketch\ improves the accuracy and memory of FE sketches beyond the state of the art while maintaining high performance.
+Although \sketch\ is currently single-threaded, we expect significant performance gains from parallelization (e.g., through employing thread-local FE sketches to ingest subsets of the stream and periodically merging them into a unified FE sketch for answering queries~\cite{FastConcurrentDataSketches,FPGASketching}).
+Studying the interplay of concurrent updates with expansions, contractions, and adaptive tuning would be an interesting direction of future work.
+More broadly, \sketch\ opens a new research avenue on expandable data sketches applicable to other core statistics, such as quantiles and cardinalities, which exhibit similar error growth under workloads with growing datasets.
+This marks a fundamental shift from fixed-size sketches with degrading accuracy to adaptive structures that maintain stable accuracy for always-on analytics.
 
 \begin{acks}
     We thank Yakub T\v{e}tek for early and insightful discussions and the reviewers
@@ -3933,7 +3846,6 @@ structures that maintain stable accuracy for always-on analytics.
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{sublime}
 
-\ifappendix
 \clearpage
 \newpage
 
@@ -4825,7 +4737,6 @@ same proof structure as that of \Cref{thm:mg-normal}:
     \end{align*}
     which proves the desired result.
 \end{proof}
-\fi
 
 \end{document}
 \endinput
