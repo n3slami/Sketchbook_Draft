@@ -2,8 +2,8 @@
 % Flag to switch to the TODS template
 \newif\iftods
 \newif\ifnotods
-\todsfalse
-\notodstrue
+\todstrue
+\notodsfalse
 
 %%%
 %% This is file `sample-acmsmall.tex',
@@ -1811,9 +1811,6 @@ the pointer is unused.
         \draw[-stealth] (counter_1_higher_bits.south) -- (\tailsarrayoffsetx+1.5*\tailw,\tailsarrayoffsety);
         \node[inner sep=0pt] (counter_1_label) at (\counterx,\countery+1.75*\counterh) {\small Counter 1};
     \end{tikzpicture}
-    \iftods
-        \vspace{-2mm}
-    \fi
     \caption{When a chunk's extensions outgrow its space, it stores a pointer
     to a dedicated external array of tails to store the counters' higher-order
     bits.}
@@ -2156,7 +2153,9 @@ without deteriorating accuracy.
             \end{pgfonlayer}
         }
     \end{tikzpicture}
-    \vspace{-1.42mm}
+    \ifnotods
+        \vspace{-1.42mm}
+    \fi
     \caption{\sketchcms expands by concatenating each array with a copy of
     itself. It maps a key to a counter in an array by taking the appropriate
     number of bits from its hash.}
@@ -2314,7 +2313,7 @@ To see why, recall from \Cref{sec:background} that a CMS allocated with arrays o
 By making~$w$ grow as~$\sqrt{N}$, \sketchcms instead obtains an expected error of~$O(N/\sqrt{N})=O(\sqrt{N})$ even when the stream's length is unknown. 
 Although keys inserted when the sketch was smaller contribute disproportionally to the error due to their counts duplicating with expansions, they are exponentially fewer in number.
 Hence, such keys only increase the error by a small constant factor.
-\Cref{thm:cms-w}, proven in \Cref{sec:upper_bounds_cms}, formalizes these intuitions.
+\Cref{thm:cms-w}, proven in Appendix~\ref{apx:upper_bounds_cms}, formalizes these intuitions.
 In sum, compared to a standard CMS with linear errors and a fixed memory footprint, \sketchcms achieves significantly lower errors at a slightly higher space cost.
 As such, it is a better fit for applications that require maintaining low errors as the stream grows indefinitely.
 We shortly show how to set the expansion thresholds to open a new accuracy-memory trade-off space.
@@ -2449,12 +2448,10 @@ Finally, it discards the current sketch and uses the earlier sketch to handle fu
         }
         \node[inner sep=0pt,align=center] (cms_last_new) at (\arrayw/2-0.2,\newlastsketchy-1.5*\arrayh) {\small 3) Current FE Sketch \\[-4pt] \small \hspace{5pt} After Contraction};
     \end{tikzpicture}
-    \vspace{-1mm}
     \caption{During contractions, \sketchcms extracts the recent updates by
     subtracting the previous FE sketch. It adds the results to the previous
     sketch to transfer the updates.}
     \label{fig:contraction}
-    \vspace{-4mm}
 \end{figure}
 \fi
 
@@ -2547,7 +2544,7 @@ When using a sublinear power as the size function, \sketchcms achieves an expect
 One may hope to achieve a constant expected error by growing the number of counters linearly with the data size, i.e., by using a linear size function of the form~$W(N)=N/\epsilon$.
 Yet, \sketchcms obtains an error bound of~$\log_2 N \cdot \epsilon$ in this case.
 \Cref{sec:memory_analysis} shows that without knowing the ultimate length of the stream, these expected error bounds are the best achievable by any FE sketch of (approximately) the same size as \sketchcms. 
-The following theorem, proven in \Cref{sec:upper_bounds_cms}, formalizes the above error bounds:
+The following theorem, proven in Appendix~\ref{apx:upper_bounds_cms}, formalizes the above error bounds:
 
 \begin{restatable}{theorem}{thmcms}
     \label{thm:cms-w}
@@ -2651,11 +2648,9 @@ As before, using~$d$ arrays improves the confidence bound of \Cref{thm:cms-w-tai
 
         %\node[inner sep=0pt,anchor=west] at (-3.1*\counterw,3.0*\arrayh) {\textbf{B) CS}};
     \end{tikzpicture}
-    \vspace{-2mm}
     \caption{CS assigns a random update direction to each key and uses it to
     insert them into~$d$ counter arrays of size~$w$. The random update
     directions enable unbiased estimation.}
-    \vspace{-3mm}
     \label{fig:cs_overview}
 \end{figure}
 \fi
@@ -2737,9 +2732,6 @@ As before, using~$d$ arrays improves the confidence bound of \Cref{thm:cms-w-tai
     \end{tabular}
     \caption{CMS, CS, and MG strike different trade-offs.}
     \label{tab:conventional_sketch_stats}
-    \iftods
-      \vspace{-8mm}
-    \fi
 \end{table}
 
 \subsection{Applying \sketch\ to Count Sketch}\label{sec:cs}
@@ -2804,7 +2796,7 @@ doubles. We encode different expansion policies by defining the size function
 based on the numerator~$F$, i.e., as~$W(F)$. The quantity~$F$ is also known as
 the squared~$\ell_2$-norm of the stream.
 
-In \Cref{sec:upper_bounds_cs}, we prove through a similar analysis to that of \sketchcms, the following variance bounds for \sketchcs:
+In Appendix~\ref{apx:upper_bounds_cs}, we prove through a similar analysis to that of \sketchcms, the following variance bounds for \sketchcs:
 \begin{restatable}{theorem}{thmcs}
     \label{thm:cs-w}
     When using a size function~$W(\cdot)$ and a single array on a stream with a
@@ -2864,7 +2856,10 @@ That is, for any key~$x$, $\Pr\left(|\hat{f}(x)-f(x)| \leq 2\sqrt{F^{\mathrm{res
 This bound follows from an argument similar to that for CMS: a given key avoids collisions with the top~$w/4$ keys with sufficiently high probability, and Chebyshev's inequality bounds the error induced by the remaining keys.
 
 \sketchcs provides the same improvement to CS's tail bound as \Cref{thm:cs-w} provides for the standard bound.
-This result follows from an argument analogous to that for \sketchcms's tail bound:
+This result follows from an argument analogous to that for \sketchcms's \mbox{tail bound}:
+\iftods
+\vspace{-4mm}
+\fi
 \begin{theorem}
     \label{thm:cs-w-tail}
     When using a size function~$W(\cdot)$ and a single array, \sketchcs provides unbiased estimates with a variance~$V(F)$ satisfying
@@ -2888,7 +2883,8 @@ The Misra-Gries sketch~\cite{MisraGries} avoids such issues by ensuring that its
 In addition, Misra-Gries can report the heavy-hitter keys themselves, whereas CMS and CS do not directly support this task because they hash keys to counters without storing the keys.
 This capability is useful in applications such as identifying the network flows consuming the most bandwidth~\cite{HeavyGuardian,HeavyKeeper,WavingSketch} or unusually frequent events for anomaly detection~\cite{NetworkAnomalyDetection1,NetworkAnomalyDetection2}.
 \Cref{tab:conventional_sketch_stats} compares Misra-Gries with CMS and CS.
-In this section, we apply \sketch\ to Misra-Gries.
+Throughout this section, we apply \sketch\ to Misra-Gries.
+Near the end of the section, we also discuss several variants of Misra-Gries and how \sketch\ can be applied to them.
 
 \begin{figure}
     \centering
@@ -2914,7 +2910,11 @@ In this section, we apply \sketch\ to Misra-Gries.
         }
         \draw[black] (0,0.5*\arrayh) rectangle (\arrayw,-0.5*\arrayh);
 
-        \node[inner sep=4pt] (key) at (-2.6*\cellw,2.5*\arrayh) {\small Insert $x$};
+        \iftods
+            \node[inner sep=4pt] (key) at (-3.0*\cellw,2.5*\arrayh) {\small Insert $x$};
+        \else
+            \node[inner sep=4pt] (key) at (-2.6*\cellw,2.5*\arrayh) {\small Insert $x$};
+        \fi
         \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt,mirror}] ($(key.east)+(1pt,0.5*\casebracewidth)$) -- ($(key.east)+(1pt,-0.5*\casebracewidth)$);
         \node[inner sep=0pt,anchor=west,align=center] (case_1) at ($(key.east)+(2pt,0.35*\casebracewidth)$) {\footnotesize Exists \hspace*{1pt}};
         \node[inner sep=0pt,anchor=west,align=center] (case_2) at ($(key.east)+(2pt,0.03*\casebracewidth)$) {\footnotesize Does not exist, \\[-4pt] \footnotesize Empty slot};
@@ -2923,8 +2923,11 @@ In this section, we apply \sketch\ to Misra-Gries.
         \draw[-stealth] (case_1.east) -| (1.0*\cellw+\elemw+0.5*\counterw,0.5*\arrayh) node[pos=0.25,above=2pt,align=center,inner sep=0pt] {\footnotesize $+1$};
         \draw[-stealth] (case_2.east) -| (1.5*\cellw,1.2*\arrayh) node[pos=0.2855,above=1pt,align=center,inner sep=0pt] {\footnotesize Store $x,1$};
         \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt}] (1*\cellw,0.65*\arrayh) -- (2*\cellw,0.65*\arrayh);
-        \draw (case_3.east) -| (-0.15*\cellw,-\bottomymul*\arrayh);
-        \draw (-0.15*\cellw,-\bottomymul*\arrayh) -- (\arraylen*\cellw-0.4765*\counterw,-\bottomymul*\arrayh) node[pos=0.119,below=2pt,align=center,inner sep=0pt] {\footnotesize $-1$};
+        \iftods
+            \draw (case_3.east) -| (-0.22*\cellw,-\bottomymul*\arrayh) -- (\arraylen*\cellw-0.4852*\counterw,-\bottomymul*\arrayh) node[pos=0.119,below=2pt,align=center,inner sep=0pt] {\footnotesize $-1$};
+        \else
+            \draw (case_3.east) -| (-0.15*\cellw,-\bottomymul*\arrayh) -- (\arraylen*\cellw-0.4765*\counterw,-\bottomymul*\arrayh) node[pos=0.119,below=2pt,align=center,inner sep=0pt] {\footnotesize $-1$};
+        \fi
         \foreach \j in {1, ..., \arraylen} {
             \ifnum \j = 2 {
             }
@@ -2935,7 +2938,11 @@ In this section, we apply \sketch\ to Misra-Gries.
         }
         \draw[-stealth] (1.5*\cellw,-\bottomymul*\arrayh) -- (1.5*\cellw,-1.15*\arrayh);
 
-        \node[inner sep=4pt] (query) at (\arrayw+0.05*\cellw,4.25*\arrayh) {\small Query $q$};
+        \iftods
+            \node[inner sep=4pt] (query) at (\arrayw+2.5*\cellw,4.25*\arrayh) {\small Query $q$};
+        \else
+            \node[inner sep=4pt] (query) at (\arrayw+0.05*\cellw,4.25*\arrayh) {\small Query $q$};
+        \fi
         \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt}] ($(query.west)+(-1pt,0.5*\casebracewidthquery)$) -- ($(query.west)+(-1pt,-0.5*\casebracewidthquery)$);
         \node[inner sep=0pt,anchor=east,align=center] (case_1) at ($(query.west)+(-2pt,0.3*\casebracewidthquery)$) {\hspace*{1pt} \footnotesize Tracked, 4};
         \node[inner sep=0pt,anchor=east,align=center] (case_2) at ($(query.west)+(-2pt,-0.3*\casebracewidthquery)$) {\footnotesize Otherwise, 0};
@@ -2976,18 +2983,17 @@ MG's design gives rise to three useful properties.
 First, because a key's counter is incremented only when that key itself is inserted, MG never overestimates its frequency, though it may underestimate it due to the global decrement operations.
 Second, MG tends to retain the stream's heavy hitters because these keys accumulate enough increments to survive repeated global decrements, while less frequent keys are more likely to be evicted.
 Moreover, under skew, these heavy hitters accrue many more increments than the number of global decrements, making their dedicated counters relatively accurate frequency estimates.
-Third, because MG stores the full keys, it can directly report the heavy hitters it stores in the array.
+Third, because MG stores the full keys, it can directly report the heavy hitters it stores \mbox{in the array}.
 
 In contrast to CMS and CS, MG cannot support deletions without weakening its error bound~\cite{BatchUpdateMisraGries,SpaceSavingBoundedDeletes}.
 This is because MG retains dedicated counters for only a bounded set of candidate heavy hitters.
-If the tracked heavy hitters are deleted, previously untracked keys may become heavy hitters, but MG has discarded their historical frequencies and can identify them only from future updates.
+If the tracked heavy hitters are deleted, previously untracked keys may become heavy hitters, but MG has discarded their historical frequencies and can identify them only \mbox{from future updates}.
 
 Increasing the number of slots~$w$ allows MG to retain more keys, making global decrements less frequent and thereby improving the accuracy of its frequency estimates.
 With~$w$ slots, MG guarantees an additive error of at most~$N/w$, i.e., $0 \leq f(x)-\hat{f}(x) \leq N/w$ for any key~$x$.
 This bound holds because each global decrement subtracts one from~$w$ stored counters and can therefore be ``charged'' against~$w$ stream insertions.
 Since there are~$N$ insertions in total, at most~$N/w$ global decrements can occur, so the estimate of any key can fall below its true frequency by at most~$N/w$.
-% Some note about determinism
-This deterministic upper bound on the number of decrements results in MG's estimation guarantees always holding (i.e., with a confidence of~1), which is in contrast to the guarantees of CMS and CS.
+As this counting argument is deterministic, MG's error bound always holds with confidence~1, unlike the probabilistic error bounds of CMS and CS.
 
 \textbf{Classic Implementations.}
 MG is typically implemented using a hash table that maps each tracked key to its counter, enabling constant-time queries and constant-time updates for keys already being tracked.
@@ -2999,7 +3005,7 @@ While many MG implementations use a min-heap for this purpose~\cite{MGH1,MGH2,Ba
 Each node corresponds to a distinct counter value and points to all keys having that value.
 Incrementing a counter moves its key by at most one position in the linked list, enabling constant-time updates, while keys with zero-valued counters appear at the head and can be evicted in constant time.
 The drawback of this approach is the space overhead of the associated pointers: each linked-list node stores three pointers, two linking it to its neighbors and one to the corresponding hash-table entry, while each hash-table entry stores an additional pointer back to its linked-list node.
-Together, these pointers increase MG's overall memory footprint by~$2$--$3\times$.
+Together, these pointers increase MG's overall memory \mbox{footprint by~$2$--$3\times$}.
 
 \textbf{\sketchmg.}
 A shortcoming of traditional MG is its use of fixed-length counters: under skewed workloads, many counters store relatively small values, leaving their higher-order bits unused.
@@ -3012,7 +3018,7 @@ This observation allows us to eliminate the linked list traditionally used for e
 We further show that these scans can be de-amortized using a compact segment tree with an overhead of only~2~bits~per~key.
 
 \textbf{Accommodating Skew.}
-Recall from \Cref{sec:accommodating_skew} that \counterencodingabbrv\ compresses contiguous counters by packing them into the same cache line together with their extensions.
+Recall from \Cref{sec:accommodating_skew} that \counterencodingabbrv\ compresses contiguous counters by packing them into the same cache line along with their extensions.
 \counterencodingabbrv\ therefore applies directly to CMS and CS, which consist purely of arrays of counters.
 MG, however, stores keys and counters together within a hash table, making \counterencodingabbrv\ less straightforward to apply.
 
@@ -3045,7 +3051,7 @@ Unlike \sketchcms and \sketchcs, \sketchmg is able to expand by factors smaller 
 Rather than doubling the hash table's capacity whenever~$M$ more than doubles, \sketchmg grows its capacity by one whenever~$W(M)$ increases by one.
 This finer-grained expansion leads to a smaller constant-factor in \sketchmg's error bound than the bounds of \sketchcms and \sketchcs, as discussed shortly.
 
-In \Cref{sec:upper_bounds_mg_normal}, we follow a similar argument to the analysis of \sketchcms to bound \sketchmg's estimation error:
+In Appendix~\ref{apx:upper_bounds_mg_normal}, we follow a similar argument to the analysis of \sketchcms to bound \sketchmg's estimation error:
 \begin{restatable}{theorem}{thmmgnormal}
     \label{thm:mg-normal} When using a size function~$W(\cdot)$ on a stream where a total of~$M$ insertions of untracked keys occur, \sketchmg provides an estimation error~$E(M)$ satisfying
     $$
@@ -3064,7 +3070,7 @@ Interestingly, setting~$\epsilon$ even slightly larger than~1 creates the logari
 
 \textbf{Tail Guarantees.}
 As with CMS and CS, MG also provides a tail guarantee: any key's estimation error is at most~$\min_{1 \leq i \leq w} \frac{M^{\mathrm{res}(i)}}{w-i+1}$, where~$M^{\mathrm{res}(i)}$ is the total number of insertions for untracked keys that are not among the~$i$ most frequent.
-The following theorem, proven in \Cref{sec:upper_bounds_mg_res}, shows that \sketchmg improves upon this tail bound with the same sublinear scaling as in \Cref{thm:mg-normal}:
+The following theorem, proven in Appendix~\ref{apx:upper_bounds_mg_res}, shows that \sketchmg improves upon this tail bound with the same sublinear scaling as in \Cref{thm:mg-normal}:
 \begin{restatable}{theorem}{thmmgres}
     \label{thm:mg-res}
     When using a size function~$W(\cdot)$ on a stream where a total of~$M$ insertions of untracked keys occur, \sketchmg provides an estimation error~$E(M)$ satisfying
@@ -3298,7 +3304,7 @@ Redoing the analysis of~\cite{PaghExpandability} with~$\delta=0$ remedies this i
 \Cref{thm:sketch_expandability_special_case} holds for FE sketches that do not underestimate (e.g., CMS).
 The same results also apply to FE sketches that never overestimate and have a deterministic error bound (e.g., MG), since such an FE sketch can be converted into one that never underestimates by adding its error bound to each estimate.
 However, applying \Cref{thm:sketch_expandability_special_case} to FE sketches that can both overestimate and underestimate (e.g., CS) is non-trivial, as two-sided errors can introduce false negatives and violate filtering semantics.
-Nevertheless, by accounting for the estimation variance, we reason about the false negatives and prove in \Cref{sec:ommitted_proofs_lower} that the same lower bound holds for these sketches:
+Nevertheless, by accounting for the estimation variance, we reason about the false negatives and prove in Appendix~\ref{apx:ommitted_proofs_lower} that the same lower bound holds for these sketches:
 \begin{restatable}{theorem}{thmsketchexpandabilitylabel}
     \label{thm:sketch_expandability}
     Consider an FE sketch providing estimates with an expected absolute error
@@ -3376,7 +3382,6 @@ processor (4.8 GHz) with 24 cores. Our machine features an 80 KB L1 cache and a
     performance. We use the optimal tuning of the baselines at each point of
     the curves. The table above details the number of counters per chunk~$c$
     and the stub length~$s$ used by \sketchcms.}
-    \vspace*{-8.0mm}
     \label{fig:accuracy_bench}
 \end{figure*}
 \fi
@@ -3407,23 +3412,6 @@ with~$d=3$ arrays. This parameter setting is common in practice since it yields
 a confidence bound of~$\approx 95\%$, which is significantly higher than the
 confidence bounds resulting from~$d=1$ ($\approx 63\%$) and $d=2$ ($\approx
 86\%$) while being comparable~to~$d=4$~($\approx 98\%$).
-
-\ifnotods
-\begin{figure}
-    \centering
-    \includegraphics[width=\columnwidth]{skew_vale_tuning.pdf}
-    \begin{tikzpicture}
-        \node[inner sep=1pt,anchor=north,align=left] (A) at (0,0) {\textbf{A)}};
-        \node[inner sep=1pt,right=3.5 of A,align=center] (B) {\textbf{B)}};
-        \node[inner sep=1pt,left=1.0 of A,align=center] (dummy) {};
-    \end{tikzpicture}
-    \vspace{-3mm}
-    \caption{By adapting \counterencodingabbrv\ to skew, \sketchcms
-    achieves the highest accuracy among all baselines (Part A) and a smaller
-    memory footprint compared to using a fixed tuning (Part B).}
-    \label{fig:skew_vale_tuning_bench}
-\end{figure}
-\fi
 
 \textbf{Datasets and Workloads.}
 Following prior
@@ -3462,11 +3450,9 @@ similarly to the absolute errors.
         \node[inner sep=1pt,left=1.05 of A,align=center] (dummy) {};
     \end{tikzpicture}
     \hspace*{7.15cm}
-    \vspace{-3mm}
     \caption{By adapting \counterencodingabbrv\ to skew, \sketchcms
     achieves the highest accuracy among all baselines (Part A) and a smaller
     memory footprint compared to using a fixed tuning (Part B).}
-    \vspace{-5mm}
     \label{fig:skew_vale_tuning_bench}
 \end{figure}
 \fi
@@ -3483,6 +3469,45 @@ error and showcase their highest accuracy. The table to the right of
 length~$s$. We increase the memory budget by factors of 2 on the $x$-axis up to
 4 MBs, though for the \textsc{Kosarak} dataset, we use smaller budgets due to
 the workload trace~being~shorter.
+
+\Cref{fig:accuracy_bench}
+shows that \sketchcms has a lower estimation error than most other baselines by
+as much as an order of magnitude while providing similar or superior insertion
+and query performance. This is because it extends overflowing counters without
+affecting other counter values. Compared to the baseline with the closest
+errors, i.e., SALSA, \sketchcms has lower errors by 40\% across the board while
+providing faster insertions and queries by as much as~$3\times$ and
+$2.4\times$. This performance improvement is due to \sketchcms's use of rank
+and select primitives, as well as
+Optimizations~\hyperlink{optimization:rank_and_select}{1} to
+\hyperlink{optimization:horner_hack}{6} described in
+\Cref{sec:accommodating_skew}. Coding
+sketch exhibits slower insertion and query performance by~2 and 7 orders of
+magnitude compared to the other baselines due to its decompression overheads.
+As such, we henceforth exclude it from the experiments that evaluate
+\sketchcms. When the memory budget is low under the \textsc{CAIDA} dataset,
+Tailored sketch is more accurate than \sketchcms due to its probabilistic
+incrementation strategy enabling it to store shorter counters in exchange for
+introducing underestimations. Applying the same technique to \sketchcms yields
+lower errors than Tailored sketch by~$2.38\times$, as shown by the dotted
+curve.
+
+\ifnotods
+\begin{figure}
+    \centering
+    \includegraphics[width=\columnwidth]{skew_vale_tuning.pdf}
+    \begin{tikzpicture}
+        \node[inner sep=1pt,anchor=north,align=left] (A) at (0,0) {\textbf{A)}};
+        \node[inner sep=1pt,right=3.5 of A,align=center] (B) {\textbf{B)}};
+        \node[inner sep=1pt,left=1.0 of A,align=center] (dummy) {};
+    \end{tikzpicture}
+    \vspace{-3mm}
+    \caption{By adapting \counterencodingabbrv\ to skew, \sketchcms
+    achieves the highest accuracy among all baselines (Part A) and a smaller
+    memory footprint compared to using a fixed tuning (Part B).}
+    \label{fig:skew_vale_tuning_bench}
+\end{figure}
+\fi
 
 \ifnotods
 \begin{figure}
@@ -3538,28 +3563,6 @@ the workload trace~being~shorter.
 \end{figure*}
 \fi
 
-\Cref{fig:accuracy_bench}
-shows that \sketchcms has a lower estimation error than most other baselines by
-as much as an order of magnitude while providing similar or superior insertion
-and query performance. This is because it extends overflowing counters without
-affecting other counter values. Compared to the baseline with the closest
-errors, i.e., SALSA, \sketchcms has lower errors by 40\% across the board while
-providing faster insertions and queries by as much as~$3\times$ and
-$2.4\times$. This performance improvement is due to \sketchcms's use of rank
-and select primitives, as well as
-Optimizations~\hyperlink{optimization:rank_and_select}{1} to
-\hyperlink{optimization:horner_hack}{6} described in
-\Cref{sec:accommodating_skew}. Coding
-sketch exhibits slower insertion and query performance by~2 and 7 orders of
-magnitude compared to the other baselines due to its decompression overheads.
-As such, we henceforth exclude it from the experiments that evaluate
-\sketchcms. When the memory budget is low under the \textsc{CAIDA} dataset,
-Tailored sketch is more accurate than \sketchcms due to its probabilistic
-incrementation strategy enabling it to store shorter counters in exchange for
-introducing underestimations. Applying the same technique to \sketchcms yields
-lower errors than Tailored sketch by~$2.38\times$, as shown by the dotted
-curve.
-
 \hypertarget{experiment:skew}{\textbf{Experiment 2: Accuracy under Varying Levels of Skew.}}
 \Cref{fig:skew_vale_tuning_bench}-A) compares the estimation errors of the
 baselines under the same memory budget as the amount of skew in the data
@@ -3600,7 +3603,7 @@ more uniform and skewed workloads, respectively.
         \label{fig:contraction_bench}
     \end{minipage}
 \end{tabular}
-\vspace{2mm}
+\vspace{3mm}
 \fi
 
 
@@ -3741,10 +3744,8 @@ sketch and \sketchcs.
 \begin{figure}
     \centering
     \includegraphics[width=0.50\columnwidth]{l2_size_function_camera_ready.pdf}
-    \vspace*{-2mm}
     \caption{By expanding based on the estimation variance, \sketchcs maintains
     a stable confidence bound.}
-    \vspace*{-5mm}
     \label{fig:l2_size_function_bench}
 \end{figure}
 \fi
@@ -3756,7 +3757,7 @@ more counters, \sketchcs achieves lower errors than the next best baseline by
 as much as an order of magnitude. It also has the fastest insertions while
 closely matching the query speed of the most performant sketch due to its use
 of Optimizations~\hyperlink{optimization:rank_and_select}{1} to
-\hyperlink{optimization:horner_hack}{6} from \Cref{sec:accommodating_skew}.
+\hyperlink{optimization:horner_hack}{6} \mbox{from \Cref{sec:accommodating_skew}}.
 
 \hypertarget{experiment:l2_size_function}{\textbf{Experiment 7: Expansion Based on Variance.}}
 \Cref{fig:l2_size_function_bench}
@@ -3819,11 +3820,9 @@ them without compounding errors.
 \begin{figure*}
     \centering
     \includegraphics[width=\textwidth]{join_size_camera_ready.pdf}
-    \vspace{-7mm}
     \caption{\sketch\ provides the most accurate frequency estimates of table
     entries and the size of their join.}
     \label{fig:join_size_bench}
-    \vspace*{-5mm}
 \end{figure*}
 \fi
 
@@ -3851,7 +3850,7 @@ This marks a fundamental shift from fixed-size sketches with degrading accuracy 
 
 \appendix
 
-\section{Upper Bounds: \sketchcms, \sketchcs, and \sketchmg}\label{sec:ommitted_proofs_upper}
+\section{Upper Bounds: \sketchcms, \sketchcs, and \sketchmg}\label{apx:ommitted_proofs_upper}
 For simplicity, we will first discuss the analysis for the case in which we
 have an insertion-only stream, and later discuss why our arguments carry over
 when we also have deletions. In the following, we will also assume that, for
@@ -3949,7 +3948,7 @@ insertions of~$x$ from epochs $j<i$ that would not have hashed to it during
 epoch~$i$ (i.e., the event~$\mathcal{C}_{j,\mathcal{I}}(x)$ still holds and we
 cannot undo it since we do not know when the last insertion of~$x$ occured).
 
-\subsection{Upper Bounds for \sketchcms}\label{sec:upper_bounds_cms}
+\subsection{Upper Bounds for \sketchcms}\label{apx:upper_bounds_cms}
 In the case of \sketchcms, each counter gathers the sum of frequencies of keys
 that hash into it or counters that copied into it. Recall that the total key
 count~$N$ in a stream is the total sum of frequencies of that stream. We show
@@ -4038,7 +4037,7 @@ various special cases and discuss their respective behavior:
     \Cref{lemma:cms-w}.
 \end{proof}
 
-\subsection{Upper Bounds for \sketchcs}\label{sec:upper_bounds_cs}
+\subsection{Upper Bounds for \sketchcs}\label{apx:upper_bounds_cs}
 For \sketchcs, we obtain a similar bound to that of~\Cref{lemma:cms-w}, except
 as a function of the squared~$\ell_2${\nobreakdash-}norm of the stream:
 \begin{lemma}
@@ -4056,7 +4055,7 @@ as a function of the squared~$\ell_2${\nobreakdash-}norm of the stream:
     variable~$\hat{f}(z) = \mathcal{I} \cdot \sigma(z)$ for any query~$z$,
     where~$\sigma(z)$ is $z$'s update direction and~$\mathcal{I}$ is the
     counter that~$z$ hashes into. Using the notation we introduced in
-    \Cref{sec:upper_bounds_cms}, this counter~$\mathcal{I}$ can be expressed
+    \Cref{apx:upper_bounds_cms}, this counter~$\mathcal{I}$ can be expressed
     as:
     $$ \mathcal{I} = \sum_{j=0}^i \sum_x \mathcal{C}_{j,\mathcal{I}}(x) \cdot f_j(x) \cdot \sigma(x) = \sum_x \mathcal{C}(x), $$
     where~$\mathcal{C}(x) = \sum_{j=0}^i \mathcal{C}_{j,\mathcal{I}}(x) \cdot
@@ -4192,7 +4191,7 @@ than the total key count~$N$. We include these derivations for~completeness:
     \end{align*}	
 \end{proof}
 
-\subsection{Upper Bounds for \sketchmg}\label{sec:upper_bounds_mg_normal}
+\subsection{Upper Bounds for \sketchmg}\label{apx:upper_bounds_mg_normal}
 We simplify our exposition of \sketchmg by assuming, w.l.o.g., that every insertion is of an untracked key.
 That is, we assume that the number of untracked-key insertions~$M$ equals the total number of insertions~$N$, which corresponds to the sketch's worst-case error.
 Thus, the expressions we derive also hold with~$N$ replaced by~$M$.
@@ -4313,8 +4312,8 @@ We are now ready to prove \Cref{thm:mg-normal}:
     proving the desired result.
 \end{proof}
 
-\subsection{Tail Bounds for \sketchmg}\label{sec:upper_bounds_mg_res}
-We prove the tail error guarantees for \sketchmg by following the same general argument of \Cref{sec:upper_bounds_mg_normal}.
+\subsection{Tail Bounds for \sketchmg}\label{apx:upper_bounds_mg_res}
+We prove the tail error guarantees for \sketchmg by following the same general argument of \Cref{apx:upper_bounds_mg_normal}.
 As before, we consider the worst-case scenario in which every insertion into \sketchmg is of an untracked key, making~$N^{\text{res(k)}}$ and~$M^{\text{res(k)}}$ interchangeable.
 
 \begin{lemma}\label{lemma:mg-res-w}
@@ -4490,7 +4489,7 @@ same proof structure as that of \Cref{thm:mg-normal}:
 \end{proof}
 
 
-\section{Lower Bound: Proof of Theorem~\ref{thm:sketch_expandability}}\label{sec:ommitted_proofs_lower}
+\section{Lower Bound: Proof of Theorem~\ref{thm:sketch_expandability}}\label{apx:ommitted_proofs_lower}
 \thmsketchexpandabilitylabel*
 \begin{proof}
     Our proof follows a contradiction argument similar to the proof of
