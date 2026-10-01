@@ -1348,7 +1348,7 @@ bits. Since~5 has two digits in base 3, it is encoded as the extension~$\langle
 \text{\textit{10}}, 11 \rangle$. Decoding this extension yields~$3^0 \cdot 2 +
 3^1 \cdot 1 = 5$, \mbox{as expected}.
 
-Forming a chunk's extensions from 2-bit fragments allows them to fit in 1-2
+Forming a chunk's extensions from 2-bit fragments allows them to fit in~1--2
 machine words in most cases. We prove in \Cref{sec:memory_analysis}
 that using these extensions in conjunction with
 short stubs enables \counterencodingabbrv\ to encode each counter's value in
@@ -1676,7 +1676,7 @@ evaluate~$\texttt{select}(m,$~delimiters$)$, which skips over the first~$m$
 delimiters and returns the position of the~$m${\nobreakdash-}th delimiter. We
 sequentially apply the bitwise operations above to each machine word comprising
 the chunk's extensions. Locating extensions in this way is efficient, as a
-chunk's extensions typically fit in 1-2 words. 
+chunk's extensions typically fit in~1--2 words. 
 %We will shortly show that updates rarely modify extensions, enabling high insertion throughput.
 
 \Cref{fig:extension_location_example} shows an example of locating the 3rd
@@ -1893,24 +1893,11 @@ counter. Thus, it can be used in other applications operating on such data to
 improve memory~efficiency.
 
 \hypertarget{optimization:rank_and_select}{\textbf{Optimization~1: Hardware Accelerated Rank and Select.}}
-\sketchcms utilizes specialized CPU instructions to implement rank and select
-operations. It implements~$\texttt{rank}(i,B)$ by applying the \texttt{POPCNT}
-instruction to the first~$\left\lceil i/64 \right\rceil$ words of the
-bitmap~$B$ to count the~1s before the~$i${\nobreakdash-}th
-bit.\footnote{Formally, denoting the~$j${\nobreakdash-}th word in~$B$ as~$B_j$,
-this process corresponds to computing \texttt{POPCNT}$ \left(B_{\lfloor i/64
-\rfloor}\text{~\&~}((1 \text{ <‌< } (i \mod 64))-1) \right) +
-\sum_{j=0}^{\lfloor i/64 \rfloor -1}$ \texttt{POPCNT}$(B_j)$.} It also
-implements~$\texttt{select}(i,B)$ by counting the 1s in~$B$'s words to locate
-the word containing the $i${\nobreakdash-}th~1. Once found, it applies the x86
-BMI instructions \texttt{PDEP} and \texttt{TZCNT} to evaluate the target bit's
-position within that word, as described in \cite{GQF}.\footnote{If
-the~$j${\nobreakdash-}th word $B_j$ contains the~$i${\nobreakdash-}th 1 and
-there are~$r$ 1s in the preceding words, the result is computed as~$64 \cdot j
-+ $\texttt{TZCNT}$($\texttt{PDEP}$((1 \text{ <‌< } (i-r)) - 1, B_j))$, where the
-first operand of \texttt{PDEP} is the payload and the second operand is
-the~mask~\cite{PDEP}.} Each of these commands is applied to an average of 1-2
-machine words, as the bitmaps \sketchcms operates over are 1-2 words long.
+\sketchcms utilizes specialized CPU instructions to implement rank and select operations.
+It implements~$\texttt{rank}(i,B)$ by applying the \texttt{POPCNT} instruction to the first~$\left\lceil i/64 \right\rceil$ words of the bitmap~$B$ to count the~1s before the~$i${\nobreakdash-}th bit.\footnote{Formally, denoting the~$j${\nobreakdash-}th word in~$B$ as~$B_j$, this process corresponds to computing \texttt{POPCNT}$ \left(B_{\lfloor i/64 \rfloor}\text{~\&~}((1 \text{ <‌< } (i \mod 64))-1) \right) + \sum_{j=0}^{\lfloor i/64 \rfloor -1}$ \texttt{POPCNT}$(B_j)$.}
+It also implements~$\texttt{select}(i,B)$ by counting the 1s in~$B$'s words to locate the word containing the $i${\nobreakdash-}th~1.
+Once found, it applies the x86 BMI instructions \texttt{PDEP} and \texttt{TZCNT} to evaluate the target bit's position within that word, as described in \cite{GQF}.\footnote{If the~$j${\nobreakdash-}th word $B_j$ contains the~$i${\nobreakdash-}th 1 and there are~$r$ 1s in the preceding words, the result is computed as~$64 \cdot j + $\texttt{TZCNT}$($\texttt{PDEP}$((1 \text{ <‌< } (i-r)) - 1, B_j))$, where the first operand of \texttt{PDEP} is the payload and the second operand is the~mask~\cite{PDEP}.}
+Each of these commands is applied to an average of~1--2 machine words, as the bitmaps \sketchcms operates over are~1--2 words long.
 
 \sketchcms includes efficient fallback implementations of rank and select for
 processors that lack the above instructions (e.g., ARM). We employ two lookup
@@ -3019,37 +3006,37 @@ We further show that these scans can be de-amortized using a compact segment tre
 
 \textbf{Accommodating Skew.}
 Recall from \Cref{sec:accommodating_skew} that \counterencodingabbrv\ compresses contiguous counters by packing them into the same cache line along with their extensions.
-\counterencodingabbrv\ therefore applies directly to CMS and CS, which consist purely of arrays of counters.
+\counterencodingabbrv\ therefore applies directly to CMS and CS, which consist purely of contiguous arrays of counters.
 MG, however, stores keys and counters together within a hash table, making \counterencodingabbrv\ less straightforward to apply.
 
-To address this, \sketchmg separates the counters from the keys while preserving a one-to-one correspondence between them.
-It first implements the hash table using open addressing so that the keys are stored in a contiguous array of slots.
-It then stores the counters in a separate array mirroring the hash table's layout, with the~$i${\nobreakdash-}th counter corresponding to the key in the~$i${\nobreakdash-}th slot.
-This organization allows the counter array to be encoded directly using \counterencodingabbrv.
-Our implementation uses a Cuckoo hash table~\cite{CuckooHashing,CuckooHashingConference}, though other open-addressing schemes such as \mbox{linear probing are also viable}.
+To address this, \sketchmg separates the counters from the keys.
+It stores the keys in an open-addressed hash table, where they are arranged in a contiguous array of slots.
+Our implementation uses Cuckoo hashing~\cite{CuckooHashing,CuckooHashingConference}, though other open-addressing schemes (e.g., linear or quadratic probing) are also applicable.
+\sketchmg then allocates a separate counter array that mirrors the hash table's layout, with one counter per hash-table slot.
+It stores the counter corresponding to the key in the~$i${\nobreakdash-}th slot of the hash table at offset~$i$ in the counter array.
+Separating the counters in this way allows them to be encoded directly using \counterencodingabbrv, while the mirrored layout makes locating a key's counter efficient.
 
-However, separating the counters from the keys introduces two sources of overhead:
-(1)~The one-to-one correspondence between each key and its counter must be maintained.
-\sketchmg does this by mirroring the hash table's collision resolution policy in the counter array.
-In particular, it swaps two counter values whenever their corresponding keys are swapped.
-This process introduces a small constant overhead in expectation, since the additional work matches that of the hash table's collision resolution.
-(2)~Accessing a key's counter during an insertion or query may incur additional cache misses to the counter array.
+Maintaining this mirrored layout requires moving a key's counter whenever the key moves to a different slot in the hash table.
+This involves copying the counter's stub and, if present, relocating its extension.
+Relocating an extension entails a small number of bitwise operations on the source and destination extension pools, since each extension pool is typically~1--2 machine words long (as discussed in \Cref{sec:accommodating_skew}).
+Moving counters therefore adds only a small constant overhead to insertions in expectation, since the counter movements correspond directly to key movements performed during collision resolution, whose total expected cost per insertion is constant.
+
+A remaining challenge of separating the keys and counters is that accessing a key's counter may incur an additional cache miss.
 \sketchmg mitigates this overhead by speculatively prefetching the regions of the counter array likely to contain the key's counter.
-For example, in a Cuckoo hash table, a key can reside in one of two locations, so \sketchmg prefetches the counters corresponding to both locations.
-Similarly, with linear probing, a key is likely to remain near its initial probe position, allowing the corresponding region of the counter \mbox{array to be prefetched}.
+In the case of a Cuckoo hash table, a key can reside in one of two locations, so \sketchmg prefetches the counters corresponding to both locations.
 
 \textbf{Accommodating Unbounded Data Growth.}
-Earlier in this section, we expressed MG's estimation error as~$N/w$, where~$N$ is the stream length and~$w$ is the number of counters in the sketch.
-Since this bound resembles that of CMS, a natural approach to accommodating stream growth is to expand \sketchmg whenever~$N$ more than doubles, similarly to \sketchcms (\Cref{sec:accommodating_unknown_stream_lengths}).
-However, Experiment~? in \Cref{sec:evaluation} shows that this expansion policy consumes excessive memory to achieve the desired accuracy.
-The reason is that CMS's error can increase with every insertion due to hash collisions, whereas MG's error increases only through global decrements.
-Since a global decrement occurs only when an untracked key is inserted, MG's estimation error is governed by the number of untracked-key insertions~$M$ rather than the total stream length~$N$.
-Accordingly, \sketchmg controls its worst-case estimation error by expanding whenever~$M$ more than doubles.
+As discussed earlier in this section, MG's estimation error does not grow when inserting a key that is already tracked.
+Rather, its estimation error grows only through global decrements, which result from inserting an untracked key. 
+Thus, \sketchmg controls its worst-case estimation error by expanding whenever the number of insertions for untracked keys, denoted by~$M$, more than doubles.
 As with \sketchcs in the previous section, this corresponds to defining the size function in terms of~$M$, i.e., as~$W(M)$.
 
-Unlike \sketchcms and \sketchcs, \sketchmg is able to expand by factors smaller than~2 because it employs a hash table that stores full keys.
-Rather than doubling the hash table's capacity whenever~$M$ more than doubles, \sketchmg grows its capacity by one whenever~$W(M)$ increases by one.
-This finer-grained expansion leads to a smaller constant-factor in \sketchmg's error bound than the bounds of \sketchcms and \sketchcs, as discussed shortly.
+Unlike \sketchcms and \sketchcs, \sketchmg is able to expand by factors smaller than~2 because it employs a hash table instead of simple counter arrays.
+To achieve this when using Cuckoo hashing, \sketchmg rebuilds the Cuckoo hash table with one more slot per bucket.
+Whenever the bucket size becomes twice as large as its original size, \sketchmg restructures the hash table to double the number of buckets and return the bucket size to the original.
+Other hash table implementations can also expand by smaller factors than~2 using techniques such as linear hashing~\cite{LinearHashing,VirtualHashing} or stretching~\cite{Zeno}.
+These finer-grained expansions introduce additional reconstruction overheads, yet they allow for introducing more counters earlier compared to \sketchcms and \sketchcs.
+As discussed shortly, this proactive introduction of counters leads to a smaller constant-factor in \sketchmg's error bound than the bounds of \sketchcms and \sketchcs.
 
 In Appendix~\ref{apx:upper_bounds_mg_normal}, we follow a similar argument to the analysis of \sketchcms to bound \sketchmg's estimation error:
 \begin{restatable}{theorem}{thmmgnormal}
