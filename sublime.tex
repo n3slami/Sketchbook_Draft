@@ -3026,19 +3026,18 @@ A remaining challenge of separating the keys and counters is that accessing a ke
 In the case of a Cuckoo hash table, a key can reside in one of two locations, so \sketchmg prefetches the counters corresponding to both locations.
 
 \textbf{Accommodating Unbounded Data Growth.}
-As discussed earlier in this section, MG's estimation error does not grow when inserting a key that is already tracked.
-Rather, its estimation error grows only through global decrements, which result from inserting an untracked key. 
-Thus, \sketchmg controls its worst-case estimation error by expanding whenever the number of insertions for untracked keys, denoted by~$M$, more than doubles.
+As discussed earlier in this section, inserting a key already tracked by MG simply increments its counter in the hash table and does not increase the estimation error.
+MG's error grows only through global decrements triggered by insertions of untracked keys, and each such decrement increases the worst-case error by one.
+Thus, \sketchmg controls its worst-case estimation error by doubling its size whenever the number of untracked-key insertions, denoted by~$M$, more than doubles.
 As with \sketchcs in the previous section, this corresponds to defining the size function in terms of~$M$, i.e., as~$W(M)$.
 
-Unlike \sketchcms and \sketchcs, \sketchmg is able to expand by factors smaller than~2 because it employs a hash table instead of simple counter arrays.
-To achieve this when using Cuckoo hashing, \sketchmg rebuilds the Cuckoo hash table with one more slot per bucket.
-Whenever the bucket size becomes twice as large as its original size, \sketchmg restructures the hash table to double the number of buckets and return the bucket size to the original.
-Other hash table implementations can also expand by smaller factors than~2 using techniques such as linear hashing~\cite{LinearHashing,VirtualHashing} or stretching~\cite{Zeno}.
-These finer-grained expansions introduce additional reconstruction overheads, yet they allow for introducing more counters earlier compared to \sketchcms and \sketchcs.
-As discussed shortly, this proactive introduction of counters leads to a smaller constant-factor in \sketchmg's error bound than the bounds of \sketchcms and \sketchcs.
-
-In Appendix~\ref{apx:upper_bounds_mg_normal}, we follow a similar argument to the analysis of \sketchcms to bound \sketchmg's estimation error:
+Unlike \sketchcms and \sketchcs, \sketchmg can expand by factors smaller than~2 because it uses a hash table rather than flat counter arrays.
+\sketchmg achieves this with Cuckoo hashing by rebuilding the hash table with one additional slot per bucket.
+Once the bucket size reaches twice its original size, \sketchmg restructures the hash table by doubling the number of buckets and restoring the original bucket size.
+Other hash table implementations can also expand by factors smaller than~2 using techniques such as linear hashing~\cite{LinearHashing,VirtualHashing} or stretching~\cite{Zeno}.
+These finer-grained expansions incur additional reconstruction overheads, but allow \sketchmg to add counters sooner than \sketchcms and \sketchcs.
+As a result, \sketchmg achieves the same asymptotic error scaling as \sketchcms and \sketchcs while attaining a smaller constant factor.
+The following theorem, proven in Appendix~\ref{apx:upper_bounds_mg_normal}, formalizes this result:
 \begin{restatable}{theorem}{thmmgnormal}
     \label{thm:mg-normal} When using a size function~$W(\cdot)$ on a stream where a total of~$M$ insertions of untracked keys occur, \sketchmg provides an estimation error~$E(M)$ satisfying
     $$
@@ -3051,7 +3050,6 @@ In Appendix~\ref{apx:upper_bounds_mg_normal}, we follow a similar argument to th
     Compared to a fixed-size MG that, given prior knowledge of~$M$, is allocated upfront with~$W(M)$ counters, the error terms above are higher by at most a constant and a logarithmic factor.
     The above expressions are smaller than or equal to the corresponding expressions with the stream length~$N$ in place of~$M$, since~$M \leq N$.
 \end{restatable}
-Compared to \sketchcms and \sketchcs's bounds (Theorems~\ref{thm:cms-w} and \ref{thm:cs-w}), the terms in \Cref{thm:mg-normal} are smaller by a constant factor.
 Note that setting~$\epsilon \leq 1$ in the linear case trivially yields an error bound of~0, as \sketchmg will always grow enough to admit all keys and track their exact counts.
 Interestingly, setting~$\epsilon$ even slightly larger than~1 creates the logarithmic overhead of \Cref{thm:mg-normal}.
 
@@ -3068,7 +3066,7 @@ The following theorem, proven in Appendix~\ref{apx:upper_bounds_mg_res}, shows t
         \ln M^{\textup{res}(k)} \cdot \epsilon + \log_2 k  & \text{if $W(M)=M/\epsilon$,}
     \end{cases}
     $$
-    where~$M^{res(k)}$ is the total number of untracked-key insertions of all keys not among the top~$k$.
+    where~$M^{\textup{res}(k)}$ is the total number of untracked-key insertions of all keys not among the top~$k$.
 \end{restatable}
 The additive terms on the right side of the above error bounds arise because \sketchmg may initially have fewer than~$k$ counters.
 This forces \sketchmg to ``wait out'' the stream until the hash table's capacity reaches~$k$, introducing the additive error.
