@@ -3015,7 +3015,7 @@ In the case of a Cuckoo hash table, a key can reside in one of two locations, so
 \textbf{Accommodating Unbounded Data Growth.}
 As discussed earlier in this section, inserting a key already tracked by MG simply increments its counter in the hash table and does not increase the estimation error.
 MG's error grows only through global decrements triggered by insertions of untracked keys, and each such decrement increases the worst-case error by one.
-Thus, \sketchmg controls its worst-case estimation error by doubling its size whenever the number of untracked-key insertions, denoted by~$M$, more than doubles.
+Thus, \sketchmg controls its worst-case estimation error by doubling its size whenever the number of untracked-key insertions, denoted by~$M$, more than doubles.\footnote{In~$M$, we also count untracked-key insertions that are admitted into empty slots without triggering a global decrement. This definition allows our analysis to use the charging argument described earlier in this section; excluding these insertions from~$M$ would prevent the resulting error bounds from holding.}
 As with \sketchcs in the previous section, this corresponds to defining the size function in terms of~$M$, i.e., as~$W(M)$.
 
 Unlike \sketchcms and \sketchcs, \sketchmg can expand by factors smaller than~2 because it uses a hash table rather than flat counter arrays.
@@ -3073,13 +3073,20 @@ Because each scan costs~$\Theta(w)$, their total cost over the stream is~$O(N)$,
 While this approach works well for applications that prioritize high throughput, its~$\Theta(w)$ worst-case eviction cost may be unsuitable for applications requiring strict latency guarantees (e.g., aggregating traffic statistics within network routers without delaying packet forwarding~\cite{UnivMon,StingySketch}).
 
 \textbf{Eviction: Segment Tree.}
-\sketchmg improves its worst-case insertion cost to~$O(\log w)$ while keeping the amortized cost constant by creating a segment tree~\cite{SegmentTree1,SegmentTree2,CG} over its counter array, as shown in \Cref{fig:mg_segment_tree}.
-This segment tree is a full binary tree built over the counters within \sketchmg's counter array.
-Traditionally, each internal node of this tree stores a copy of the minimum counter within its subtree, as shown by the gray numbers in \Cref{fig:mg_segment_tree}.
-This causes the segment tree's root to always store the minimum count within the array.
-It also allows for identifying the minimum counter by traversing the segment tree from the root downward and following the path with subtree minimums matching the global minimum.
-Evicting 
-Both operations take~$O(\log w)$ time, since the segment tree is a full binary tree and thus has a logarithmic height.
+\sketchmg improves its worst-case insertion cost to~$O(\log w)$ while retaining constant amortized cost by maintaining a compressed segment tree~\cite{SegmentTree1,SegmentTree2,CG} over its counter array, as shown in \Cref{fig:mg_segment_tree}.
+This segment tree is a full binary tree whose leaves are the counters in \sketchmg's counter array.
+Each internal node identifies the smallest non-zero counter in its subtree by storing its offset from the subtree's leftmost leaf.
+We exclude zero counters because they correspond to overprovisioned empty slots in the hash table that help speed up insertions.
+The segment tree's root therefore stores the offset of the smallest non-zero counter in the entire counter array, allowing \sketchmg to efficiently identify an eviction victim.
+
+\Cref{fig:mg_segment_tree} shows these offsets in black and the corresponding counter values in gray.
+The lowest internal nodes store offsets~0, 1, 1, and 0, indicating which of their two children contains the smaller non-zero counter.
+The two internal nodes in the level above store offsets~3 and 1, identifying counters with values~4 and 1 as the minima of their respective subtrees.
+
+Since an internal node at height~$h$ has at most~$2^h$ leaves in its subtree, its subtree-local offset lies in the range~$[0,2^h)$.
+Therefore, \sketchmg encodes this offset using~$h$ bits.
+Because there are at most~$w/2^h$ internal nodes at height~$h$, the total memory required for all subtree-local offsets is at most~$\sum_h h \cdot w/2^h \leq 2 \cdot w$ bits.
+Thus, the segment tree incurs a memory overhead of at \mbox{most~2 bits per counter}.
 
 \begin{figure}
     \centering
@@ -3100,7 +3107,11 @@ Both operations take~$O(\log w)$ time, since the segment tree is a full binary t
 
         \def\counterarray{{7,9,8,4,0,1,2,3}}
         \foreach \i in {1, ..., \arraylen} {
-            \draw[white,fill=gray!20] (\i*\cellw-\counterw,0.5*\arrayh) rectangle (\i*\cellw-\cellw,-0.5*\arrayh);
+            \ifnum\i=5
+                \fill[pattern=north east lines,pattern color=gray!60] (\i*\cellw-\counterw,0.5*\arrayh) rectangle (\i*\cellw-\cellw,-0.5*\arrayh);
+            \else
+                \draw[white,fill=gray!20] (\i*\cellw-\counterw,0.5*\arrayh) rectangle (\i*\cellw-\cellw,-0.5*\arrayh);
+            \fi
             \draw[black,dotted,dash phase=4pt] (\i*\cellw-\counterw,0.5*\arrayh) -- (\i*\cellw-\counterw,-0.5*\arrayh);
             \draw (\i*\cellw-\cellw,0.5*\arrayh) -- (\i*\cellw-\cellw,-0.5*\arrayh);
 
@@ -3128,10 +3139,16 @@ Both operations take~$O(\log w)$ time, since the segment tree is a full binary t
                 \pgfmathtruncatemacro{\subtreeend}{\k*\subtreesize-1}
                 \xdef\minoffset{\subtreestart}
                 \foreach \i in {\subtreestart, ..., \subtreeend} {
-                    \pgfmathtruncatemacro{\newminoffset}{\counterarray[\i] < \counterarray[\minoffset] ? \i : \minoffset}
+                    % A value of 0 denotes an empty slot and is treated as infinity
+                    \pgfmathtruncatemacro{\candvalue}{\counterarray[\i]}
+                    \pgfmathtruncatemacro{\curminvalue}{\counterarray[\minoffset]}
+                    \pgfmathtruncatemacro{\newminoffset}{(\candvalue != 0) && ((\curminvalue == 0) || (\candvalue < \curminvalue)) ? \i : \minoffset}
                     \xdef\minoffset{\newminoffset}
                 }
                 \pgfmathtruncatemacro{\minvalue}{\counterarray[\minoffset]}
+                \ifnum\minvalue=0
+                    \def\minvalue{$\infty$}
+                \fi
                 \pgfmathtruncatemacro{\localoffset}{\minoffset-\subtreestart}
                 \xdef\localoffsetbits{}
                 \foreach \b in {1, ..., \l} {
@@ -3149,30 +3166,49 @@ Both operations take~$O(\log w)$ time, since the segment tree is a full binary t
                 %\pgfmathtruncatemacro{\rightchild}{2*\k}
                 %\pgfmathsetmacro{\nodex}{(\subtreestart+0.5*\subtreesize)*\cellw}
 
-                \node[inner sep=2pt,align=center,anchor=south,yshift=\treediffy cm] (tree-\l-\k) at (\nodex,0 |- tree-\childl-1.north) {\footnotesize \textcolor{gray!80}{\minoffset, \minvalue} \\[-4pt] \footnotesize $\localoffset=(\localoffsetbits)_2$};
+                %\node[inner sep=2pt,align=center,anchor=south,yshift=\treediffy cm] (tree-\l-\k) at (\nodex,0 |- tree-\childl-1.north) {\footnotesize \textcolor{gray!80}{\minoffset, \minvalue} \\[-4pt] \footnotesize $\localoffset=(\localoffsetbits)_2$};
+                \node[inner sep=2pt,align=center,anchor=south,yshift=\treediffy cm] (tree-\l-\k) at (\nodex,0 |- tree-\childl-1.north) {\footnotesize \textcolor{gray!80}{\minvalue} \\[-4pt] \footnotesize $\localoffset=(\localoffsetbits)_2$};
                 \draw (tree-\l-\k) -- (tree-\childl-\leftchild);
                 \draw (tree-\l-\k) -- (tree-\childl-\rightchild);
             }
         }
 
-        \node[inner sep=1pt,left=32pt of tree-3-1,align=left] (global_offset_label) {\footnotesize \textcolor{gray!80}{Global Offset of Min, Min Value:} \\[-4pt] \footnotesize Subtree-Local Offset of Min:};
+        \node[inner sep=1pt,left=32pt of tree-3-1,yshift=1.075pt,align=left] (global_offset_label) {\footnotesize \textcolor{gray!80}{Min Value:} \\[-4pt] \footnotesize Subtree-Local Offset of Min:};
     \end{tikzpicture}
     \caption{By storing a compressed segment tree, \sketchmg improves the worst-case insertion cost to logarithmic while retaining a constant amortized cost.}
     \label{fig:mg_segment_tree}
 \end{figure}
 
-For example, the lowest internal nodes shown in \Cref{fig:mg_segment_tree} would store global offsets 0, 3, 5, and 6, which correspond to the counters with values 7, 4, 1, and 2.
-Applying this approach to an MG with~$w$ counters leads to a memory overhead of~$\log_2 w$ bits per counter.
+\sketchmg evicts a key by emptying the slot indicated by the segment tree's root and setting its counter to zero.
+It then updates the path from the corresponding leaf to the root to reflect the eviction.
+Similarly, when incrementing a counter, \sketchmg traverses the tree upward from the corresponding leaf and updates the affected internal nodes.
+This traversal terminates once it reaches an internal node whose subtree minimum remains unchanged.
+Both operations take~$O(\log w)$ time in the worst case.
 
-\sketchmg reduces this overhead by instead storing subtree-local offsets: for each internal node, it stores the offset of the minimum counter within the node's subtree rather than the entire counter array.
-For the lowest internal nodes of \Cref{fig:mg_segment_tree}, these offsets would be 0, 1, 1, and 0.
-Similarly, the internal nodes in the middle level have offsets 3 and 1.
-We observe that subtree-local offsets can be encoded in~2 bits per counter for two reasons:
-(1)~The offsets of internal nodes at height~$i$ are in the range~$[0,2^i)$, which allows encoding each offset using~$i$ bits, as illustrated by the black bits in \Cref{fig:mg_segment_tree}.
-(2)~The number of nodes at height~$i$ is at most~$w/2^i$.
-Combining these reasons allows for bounding the total memory overhead of the subtree-local offsets as the geometric sum~$\sum_i i \cdot w/2^i \leq 2 \cdot w$ bits.
+These operations also preserve constant amortized insertion time for two reasons:
+(1)~The segment tree makes evictions asymptotically faster than the scan-based approach, which was already shown to provide constant amortized insertion time.
+(2)~Updates to internal nodes caused by counter increments are infrequent.
+In particular, the value of the minimum counter indicated by an internal node (shown in gray in \Cref{fig:mg_segment_tree}) can increase only after every leaf in its subtree has been incremented.
+For a node at height~$h$, each such increase can therefore be charged to at least~$2^h$ leaf increments within its subtree.
+Equivalently, each leaf increment incurs an amortized cost of at most~$2^{-h}$ for updating its ancestor at height~$h$.
+Summing over all ancestors gives a total amortized cost of at most~$\sum_{h=1}^{\infty}2^{-h}=1$ per leaf increment.
+
+Using this segment tree, \sketchmg also supports weighted updates, where a key's frequency can increase by an arbitrary amount in a single insertion, in time logarithmic in the sketch's size.
+This complexity is optimal among MG implementations that use comparison-based data structures such as segment trees~\cite{MisraGries}.
 
 \textbf{Localized Lazy Decrements.}
+Using the segment tree, \sketchmg avoids scanning the hash table during eviction.
+However, eliminating these scans also removes the opportunity to apply the global lazy offset~$L$ to all counters in a single pass.
+As a result, counter values can grow larger and reduce the space savings provided by \counterencodingabbrv.
+
+
+\sketchmg addresses this issue by applying lazy decrements locally.
+Specifically, it partitions the counter array into blocks of~32 counters and stores a~32{\nobreakdash-}bit local decrement for each block.
+This value records the global lazy offset that was last applied to the block.
+During an insertion, \sketchmg compares the global lazy offset with the local decrement of the block containing the counter being updated.
+If their difference exceeds a tunable threshold ($2^{s-1}$ by default, where~$s$ is the stub size used by \counterencodingabbrv), \sketchmg applies the outstanding lazy decrements to the block's counters and sets its local decrement to the current global lazy offset.
+This process deamortizes the work of a full scan and therefore preserves constant amortized insertion time.\footnote{In practice, processing a block of~32 counters has a cost comparable to~$O(\log w)$, preserving the logarithmic worst-case insertion cost. When~$\log_2 w \ll 32$, the same guarantee can be maintained by shrinking the blocks to contain~$O(\log_2 w)$ counters and storing~$O(\log_2 w)$-bit local offsets.}
+Moreover, the local offsets incur a memory overhead of only one bit per counter.
 
 \textbf{Applicability to Other MG Variants.}
 MG has several variants with different estimation and update properties.
