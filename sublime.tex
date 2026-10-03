@@ -3149,14 +3149,13 @@ Both operations take~$O(\log w)$ time, since the segment tree is a full binary t
                 %\pgfmathtruncatemacro{\rightchild}{2*\k}
                 %\pgfmathsetmacro{\nodex}{(\subtreestart+0.5*\subtreesize)*\cellw}
 
-                %\node[inner sep=2pt,align=center,anchor=south,yshift=\treediffy cm] (tree-\l-\k) at (\nodex,0 |- tree-\childl-1.north) {\footnotesize \textcolor{gray!80}{\minoffset, \minvalue} \\[-4pt] \footnotesize $\localoffset=(\localoffsetbits)_2$};
-                \node[inner sep=2pt,align=center,anchor=south,yshift=\treediffy cm] (tree-\l-\k) at (\nodex,0 |- tree-\childl-1.north) {\footnotesize \textcolor{gray!80}{\minvalue} \\[-4pt] \footnotesize $\localoffset=(\localoffsetbits)_2$};
+                \node[inner sep=2pt,align=center,anchor=south,yshift=\treediffy cm] (tree-\l-\k) at (\nodex,0 |- tree-\childl-1.north) {\footnotesize \textcolor{gray!80}{\minoffset, \minvalue} \\[-4pt] \footnotesize $\localoffset=(\localoffsetbits)_2$};
                 \draw (tree-\l-\k) -- (tree-\childl-\leftchild);
                 \draw (tree-\l-\k) -- (tree-\childl-\rightchild);
             }
         }
 
-        \node[inner sep=1pt,left=32pt of tree-3-1,align=left] (global_offset_label) {\footnotesize \textcolor{gray!80}{Min Value:} \\[-4pt] \footnotesize Subtree-Local Offset of Min:};
+        \node[inner sep=1pt,left=32pt of tree-3-1,align=left] (global_offset_label) {\footnotesize \textcolor{gray!80}{Global Offset of Min, Min Value:} \\[-4pt] \footnotesize Subtree-Local Offset of Min:};
     \end{tikzpicture}
     \caption{By storing a compressed segment tree, \sketchmg improves the worst-case insertion cost to logarithmic while retaining a constant amortized cost.}
     \label{fig:mg_segment_tree}
