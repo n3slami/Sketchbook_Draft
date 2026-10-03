@@ -2911,28 +2911,29 @@ Near the end of the section, we also discuss several variants of Misra-Gries and
             \draw[-stealth] (\j*\cellw-0.5*\counterw,-\bottomymul*\arrayh) -- (\j*\cellw-0.5*\counterw,-0.5*\arrayh);
         }
         \draw[decorate,decoration={brace,mirror,raise=1pt,amplitude=2pt}] (4*\cellw,-0.65*\arrayh) -- (5*\cellw,-0.65*\arrayh);
-        \draw[-stealth] (4.5*\cellw,-\bottomymul*\arrayh) -- (4.5*\cellw,-1.15*\arrayh) node[pos=0.5,right=2pt,align=left,inner sep=0pt] {\footnotesize Free \\[-4pt] \footnotesize Store $x,1$};
+        \draw[-stealth] (4.5*\cellw,-\bottomymul*\arrayh) -- (4.5*\cellw,-1.15*\arrayh) node[pos=0.425,right=3pt,align=left,inner sep=0pt] {\footnotesize Evict~$e$ \\[-4pt] \footnotesize Store $x,1$};
 
 
         \iftods
-            \node[inner sep=2pt,align=center] (query_1) at (\arrayw+1.5*\cellw,4.75*\arrayh) {\small Query $q$ \\[-2pt] \small Result$=4$};
-            \node[inner sep=2pt,align=center] (query_2) at (\arrayw+1.5*\cellw,1.75*\arrayh) {\small Query $q'$ \\[-2pt] \small Result$=0$};
+            \node[inner sep=2pt,align=center] (query_1) at (\arrayw+1.5*\cellw,4.75*\arrayh) {\small Query $c$ \\[-2pt] \small Result$=4$};
+            \node[inner sep=2pt,align=center] (query_2) at (\arrayw+1.5*\cellw,1.75*\arrayh) {\small Query $q$ \\[-2pt] \small Result$=0$};
         \else
-            \node[inner sep=2pt] (query_1) at (\arrayw+0.05*\cellw,4.75*\arrayh) {\small Query $q$ \\[-2pt] \small Result$=4$};
-            \node[inner sep=2pt] (query_2) at (\arrayw+0.05*\cellw,1.75*\arrayh) {\small Query $q'$ \\[-2pt] \small Result$=0$};
+            \node[inner sep=2pt] (query_1) at (\arrayw+0.05*\cellw,4.75*\arrayh) {\small Query $c$ \\[-2pt] \small Result$=4$};
+            \node[inner sep=2pt] (query_2) at (\arrayw+0.05*\cellw,1.75*\arrayh) {\small Query $q$ \\[-2pt] \small Result$=0$};
         \fi
         \draw[stealth-] (query_1.194) -| (2.0*\cellw+\elemw+0.5*\counterw,0.5*\arrayh);
 
-        \node[inner sep=0pt] at (0.0*\cellw+0.5*\elemw,0.0*\arrayh) {\footnotesize $a$};
-        \node[inner sep=0pt] at (0.0*\cellw+\elemw+0.5*\counterw,0.0*\arrayh) {\footnotesize $5$};
-        \node[inner sep=0pt] at (1.0*\cellw+0.5*\elemw,0.0*\arrayh) {\footnotesize $b$};
-        \node[inner sep=0pt] at (1.0*\cellw+\elemw+0.5*\counterw,0.0*\arrayh) {\footnotesize $7$};
-        \node[inner sep=0pt] at (2.0*\cellw+0.5*\elemw,-0.095*\arrayh) {\footnotesize $q$};
-        \node[inner sep=0pt] at (2.0*\cellw+\elemw+0.5*\counterw,0.0*\arrayh) {\footnotesize $4$};
-        \node[inner sep=0pt] at (3.0*\cellw+0.5*\elemw,0.0*\arrayh) {\footnotesize $c$};
-        \node[inner sep=0pt] at (3.0*\cellw+\elemw+0.5*\counterw,0.0*\arrayh) {\footnotesize $9$};
-        \node[inner sep=0pt] at (4.0*\cellw+0.5*\elemw,0.0*\arrayh) {\footnotesize $d$};
-        \node[inner sep=0pt] at (4.0*\cellw+\elemw+0.5*\counterw,0.0*\arrayh) {\footnotesize $1$};
+        % The \vphantom gives every label the same height and depth, so all labels share a baseline
+        \node[inner sep=0pt] at (0.0*\cellw+0.5*\elemw,0.0*\arrayh) {\footnotesize $\vphantom{bd0}a$};
+        \node[inner sep=0pt] at (0.0*\cellw+\elemw+0.5*\counterw,0.0*\arrayh) {\footnotesize $\vphantom{bd0}5$};
+        \node[inner sep=0pt] at (1.0*\cellw+0.5*\elemw,0.0*\arrayh) {\footnotesize $\vphantom{bd0}b$};
+        \node[inner sep=0pt] at (1.0*\cellw+\elemw+0.5*\counterw,0.0*\arrayh) {\footnotesize $\vphantom{bd0}7$};
+        \node[inner sep=0pt] at (2.0*\cellw+0.5*\elemw,0.0*\arrayh) {\footnotesize $\vphantom{bd0}c$};
+        \node[inner sep=0pt] at (2.0*\cellw+\elemw+0.5*\counterw,0.0*\arrayh) {\footnotesize $\vphantom{bd0}4$};
+        \node[inner sep=0pt] at (3.0*\cellw+0.5*\elemw,0.0*\arrayh) {\footnotesize $\vphantom{bd0}d$};
+        \node[inner sep=0pt] at (3.0*\cellw+\elemw+0.5*\counterw,0.0*\arrayh) {\footnotesize $\vphantom{bd0}9$};
+        \node[inner sep=0pt] at (4.0*\cellw+0.5*\elemw,0.0*\arrayh) {\footnotesize $\vphantom{bd0}e$};
+        \node[inner sep=0pt] at (4.0*\cellw+\elemw+0.5*\counterw,0.0*\arrayh) {\footnotesize $\vphantom{bd0}1$};
     \end{tikzpicture}
     \caption{MG uses dedicated counters to track frequent keys.}
     \label{fig:mg_overview}
@@ -2944,21 +2945,21 @@ Each slot stores a full key (shown in gray) along with a dedicated counter (show
 To insert a key~$x$, MG first checks whether~$x$ is already stored in the array.
 If so, it increments~$x$'s counter.
 Otherwise, if the array contains an empty slot, MG stores~$x$ in that slot with a count of~1.
-If~$x$ is not present and the array is full, MG decrements all counters, and it evicts any key whose counter reached zero, freeing its slot.
+If~$x$ is not present and the array is full, MG decrements all counters, and it evicts any key whose counter reaches zero, freeing its slot.
 If at least one slot is freed, MG admits the incoming key~$x$ into the array with a count of~1.
 Otherwise, the key~$x$ is discarded.
 A query for a key currently stored in the array returns that key's counter as the frequency estimate, while a query for an untracked key returns zero.
 \Cref{fig:mg_overview} illustrates these \mbox{insertion and query cases}.
 
-MG's design gives rise to three useful properties.
+MG's design gives rise to three useful properties relative to CMS and CS.
 First, because a key's counter is incremented only when that key itself is inserted, MG never overestimates its frequency, though it may underestimate it due to the global decrement operations.
 Second, MG tends to retain the stream's heavy hitters because these keys accumulate enough increments to survive repeated global decrements, while less frequent keys are more likely to be evicted.
-Moreover, under skew, these heavy hitters accrue many more increments than the number of global decrements, making their dedicated counters relatively accurate frequency estimates.
+Under skew, these heavy hitters accrue many more increments than the number of global decrements, making the underestimation error small relative to their true frequencies.
 Third, because MG stores the full keys, it can directly report the heavy hitters it stores in the array.
 This is unlike CMS and CS, which do not directly support reporting the heavy hitters because they hash keys to counters without storing the keys.
 Reporting the heavy hitters is useful in applications such as identifying the network flows consuming the most bandwidth~\cite{HeavyGuardian,HeavyKeeper,WavingSketch} or unusually frequent events for anomaly detection~\cite{NetworkAnomalyDetection1,NetworkAnomalyDetection2}.
 
-In contrast to CMS and CS, MG cannot support deletions without weakening its error bound~\cite{BatchUpdateMisraGries,SpaceSavingBoundedDeletes}.
+However, an intrinsic limitation of MG relative to CMS and CS is that it cannot support deletions without weakening its error bound~\cite{BatchUpdateMisraGries,SpaceSavingBoundedDeletes}.
 This is because MG retains dedicated counters for only a bounded set of candidate heavy hitters.
 If the tracked heavy hitters are deleted, previously untracked keys may become heavy hitters, but MG has discarded their historical frequencies and can identify them only \mbox{from future updates}.
 
@@ -2972,7 +2973,7 @@ As this counting argument is deterministic, MG's error bound always holds with c
 \textbf{Classic Implementations.}
 MG is typically implemented using a hash table that maps each tracked key to its counter, enabling constant-time queries and constant-time updates for keys already being tracked.
 Global decrements are applied through a lazy offset~$L$ rather than by scanning the entire hash table to decrement each counter.
-Thus, a stored counter value~$v$ represents an effective count of~$v-L$, while a newly admitted key is assigned~$L+1$ to give it an effective count of~1, as in \mbox{the original MG}.
+Thus, a stored counter value~$v$ represents an effective count of~$v-L$, while a newly admitted key is assigned~$L+1$ to give it an effective count of~1 once~$L$ is subtraced.
 
 A remaining challenge is efficiently identifying entries whose effective counters reach zero so they can be evicted.
 While many MG implementations use a min-heap for this purpose~\cite{MGH1,MGH2,BatchUpdateMisraGries}, the most theoretically efficient implementation maintains a doubly linked list representing the counter values in increasing order~\cite{SpaceSaving}.
@@ -3037,7 +3038,7 @@ The following theorem, proven in Appendix~\ref{apx:upper_bounds_mg_normal}, form
     Compared to a fixed-size MG that, given prior knowledge of~$M$, is allocated upfront with~$W(M)$ counters, the error terms above are higher by at most a constant and a logarithmic factor.
     The above expressions are smaller than or equal to the corresponding expressions with the stream length~$N$ in place of~$M$, since~$M \leq N$.
 \end{restatable}
-Note that setting~$\epsilon \leq 1$ in the linear case trivially yields an error bound of~0, as \sketchmg will always grow enough to admit all keys and track their exact counts.
+Note that setting~$\epsilon \leq 1$ when~$\alpha=1$ trivially yields an error bound of~0, as \sketchmg will always grow enough to admit all keys and track their exact counts.
 Interestingly, setting~$\epsilon$ even slightly larger than~1 creates the logarithmic overhead of \Cref{thm:mg-normal}.
 
 \textbf{Tail Guarantees.}
@@ -3692,32 +3693,6 @@ workloads. This is because it exposes a tuning space that allows
 \counterencodingabbrv\ to save memory by employing longer and shorter stubs for
 more uniform and skewed workloads, respectively. 
 
-\iftods
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{cc}
-    \hspace*{-6mm}
-    \begin{minipage}{0.51\textwidth}
-        \centering
-        \includegraphics[width=\columnwidth]{expansion_camera_ready.pdf}
-        \vspace{-7mm}
-        \captionof{figure}{\sketchcms achieves both a low error rate and a small memory
-        footprint when processing~growing~streams.}
-        \label{fig:expansion_bench}
-    \end{minipage}
-    &
-    \begin{minipage}{0.47\textwidth}
-        \centering
-        \includegraphics[width=\columnwidth]{contraction_camera_ready.pdf}
-        \vspace{-7mm}
-        \captionof{figure}{\sketchcms saves a significant amount of memory by contracting when
-        many keys~are~deleted.}
-        \label{fig:contraction_bench}
-    \end{minipage}
-\end{tabular}
-\vspace{3mm}
-\fi
-
-
 \hypertarget{experiment:vale_tuning}{\textbf{Experiment 3: Memory Savings of Adaptively Tuning \counterencodingabbrv.}}
 We demonstrate the need for adapting \counterencodingabbrv's tuning as the
 stream grows by comparing \sketchcms's memory footprint when using a fixed
@@ -3735,13 +3710,39 @@ tails arrays. Nevertheless, it does not optimally leverage the shorter
 extension lengths and consumes~$\approx 10\%$ more memory than the adaptive
 version. 
 
+\iftods
+\begin{figure}[t]
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{cc}
+    \hspace*{-6mm}
+    \begin{minipage}{0.51\textwidth}
+        \centering
+        \includegraphics[width=\columnwidth]{expansion_camera_ready.pdf}
+        \vspace{-7mm}
+        \captionof{figure}{\sketchcms achieves both a low error rate and a small memory
+        footprint when processing \mbox{growing streams}.}
+        \label{fig:expansion_bench}
+    \end{minipage}
+    &
+    \begin{minipage}{0.47\textwidth}
+        \centering
+        \includegraphics[width=\columnwidth]{contraction_camera_ready.pdf}
+        \vspace{-7mm}
+        \captionof{figure}{\sketchcms saves a significant amount of memory by contracting when
+        many keys~are~deleted.}
+        \label{fig:contraction_bench}
+    \end{minipage}
+\end{tabular}
+\end{figure}
+\fi
+
 In this experiment, adaptations comprise less than~3\% of the processing time,
 as their overhead is amortized. One can expect this overhead in mixed workloads
 with both insertions and deletions to be similar to our insertion-only
 workload. This is because our workload triggers just as many adaptations as
 mixed workloads by growing the counters and causing many chunks to overflow.
 
-\hypertarget{experiment:expansion}{\textbf{Experiment 4: Accuracy and Memory under Data Growth.}}
+\hypertarget{experiment:expansion}{\textbf{Experiment 4: CMS Accuracy and Memory under Data Growth.}}
 We now compare the accuracy and memory footprint of the baselines when the
 stream grows indefinitely. Here, we allocate each baseline an initial memory
 footprint of 32KB and insert the \textsc{WebDocs} dataset.
@@ -3841,7 +3842,7 @@ take up at most~0.5\% of the total execution time.
 \end{figure*}
 \fi
 
-\hypertarget{experiment:accuracy_unbiased}{\textbf{Experiment 6: Unbiased Accuracy and Speed vs. Memory.}}
+\hypertarget{experiment:accuracy_unbiased}{\textbf{Experiment 6: CS Accuracy and Speed vs. Memory.}}
 We now turn to \sketchcs to demonstrate the applicability of \sketch\ beyond
 CMS. We compare it to a traditional CS and Waving sketch~\cite{WavingSketch},
 which is representative of unbiased hybrid methods. We also compare to Stingy
@@ -3936,6 +3937,29 @@ them without compounding errors.
     \label{fig:join_size_bench}
 \end{figure*}
 \fi
+
+\textbf{Experiment 9: MG Accuracy and Speed vs. Memory.}
+We now benchmark \sketchmg to demonstrate the benefits of applying \sketch\ to MG.
+We include a traditional MG implemented using a Cuckoo hash table~\cite{} without auxiliary structures for evictions as a baseline.
+We also include SpaceSaving~\cite{SpaceSaving}, which employs a doubly-linked list for identifying eviction victims.
+Additionally, we include Waving sketch~\cite{WavingSketch} as a baseline, since it is the state-of-the-art sketch in the literature that employs MG as a sub-structure in its hybrid design.
+We also compare to Stingy sketch~\cite{StingySketch} and Coding sketch~\cite{CodingSketch} applied to CS, representing counter sharing methods with unbiased estimates.
+We exclude
+SALSA~\cite{SALSA} as its library does not provide a variant with unbiased
+estimates. We employ the \textsc{CAIDA} dataset and optimally tune Coding
+sketch and \sketchcs.
+
+\Cref{fig:accuracy_unbiased_bench}
+shows that, by leveraging the memory savings of \counterencodingabbrv\ to store
+more counters, \sketchcs achieves lower errors than the next best baseline by
+as much as an order of magnitude. It also has the fastest insertions while
+closely matching the query speed of the most performant sketch due to its use
+of Optimizations~\hyperlink{optimization:rank_and_select}{1} to
+\hyperlink{optimization:horner_hack}{6} \mbox{from \Cref{sec:accommodating_skew}}.
+
+\textbf{Experiment 10: Tail Insertion Latency.}
+
+\textbf{Experiment 11: Expansion Based on Untracked-Key Insertions.}
 
 \section{Conclusion}
 We introduced \sketch, the first framework for generalizing a frequency estimation sketch to adapt to the skew and length of the stream.
