@@ -2894,29 +2894,25 @@ Near the end of the section, we also discuss several variants of Misra-Gries and
         \draw[black] (0,0.5*\arrayh) rectangle (\arrayw,-0.5*\arrayh);
 
         \iftods
-            \node[inner sep=4pt] (key_1) at (-3.0*\cellw,3.5*\arrayh) {\small Insert $a$};
-            \node[inner sep=4pt] (key_2) at (-3.0*\cellw,1.5*\arrayh) {\small Insert $x$};
+            \node[inner sep=2pt] (key_1) at (-1.6*\cellw,4.32*\arrayh) {\small Insert $a$};
+            \node[inner sep=2pt] (key_2) at (-1.6*\cellw,2.32*\arrayh) {\small Insert $x$};
         \else
-            \node[inner sep=4pt] (key_1) at (-2.6*\cellw,3.5*\arrayh) {\small Insert $a$};
-            \node[inner sep=4pt] (key_2) at (-2.6*\cellw,1.5*\arrayh) {\small Insert $x$};
+            \node[inner sep=2pt] (key_1) at (-1.2*\cellw,4.32*\arrayh) {\small Insert $a$};
+            \node[inner sep=2pt] (key_2) at (-1.2*\cellw,2.32*\arrayh) {\small Insert $x$};
         \fi
 
-        \draw[-stealth] (key_1.east) -| (1.0*\cellw+\elemw+0.5*\counterw,0.5*\arrayh) node[pos=0.25,above=2pt,align=center,inner sep=0pt] {\footnotesize $+1$};
-        \draw[decorate,decoration={brace,raise=1pt,amplitude=2pt}] (1*\cellw,0.65*\arrayh) -- (2*\cellw,0.65*\arrayh);
+        \draw[-stealth] (key_1.east) -| (0.0*\cellw+\elemw+0.5*\counterw,0.5*\arrayh) node[pos=0.35,above=2pt,align=center,inner sep=0pt] {\footnotesize $+1$};
         \iftods
-            \draw (key_2.east) -| (-0.22*\cellw,-\bottomymul*\arrayh) -- (\arraylen*\cellw-0.4852*\counterw,-\bottomymul*\arrayh) node[pos=0.119,below=2pt,align=center,inner sep=0pt] {\footnotesize $-1$};
+            \draw (key_2.east) -| (-0.22*\cellw,-\bottomymul*\arrayh) -- (\arraylen*\cellw-0.9852*\counterw,-\bottomymul*\arrayh) node[pos=0.089,below=2pt,align=center,inner sep=0pt] {\footnotesize $-1$};
         \else
-            \draw (key_2.east) -| (-0.15*\cellw,-\bottomymul*\arrayh) -- (\arraylen*\cellw-0.4765*\counterw,-\bottomymul*\arrayh) node[pos=0.119,below=2pt,align=center,inner sep=0pt] {\footnotesize $-1$};
+            \draw (key_2.east) -| (-0.15*\cellw,-\bottomymul*\arrayh) -- (\arraylen*\cellw-0.9765*\counterw,-\bottomymul*\arrayh) node[pos=0.119,below=2pt,align=center,inner sep=0pt] {\footnotesize $-1$};
         \fi
-        \foreach \j in {1, ..., \arraylen} {
-            \ifnum \j = 2 {
-            }
-            \else {
-                \draw[-stealth] (\j*\cellw-0.5*\counterw,-\bottomymul*\arrayh) -- (\j*\cellw-0.5*\counterw,-0.5*\arrayh);
-            }
-            \fi
+        \foreach \j in {1, ..., \arraylenminusone} {
+            \draw[-stealth] (\j*\cellw-0.5*\counterw,-\bottomymul*\arrayh) -- (\j*\cellw-0.5*\counterw,-0.5*\arrayh);
         }
-        \draw[-stealth] (1.5*\cellw,-\bottomymul*\arrayh) -- (1.5*\cellw,-1.15*\arrayh);
+        \draw[decorate,decoration={brace,mirror,raise=1pt,amplitude=2pt}] (4*\cellw,-0.65*\arrayh) -- (5*\cellw,-0.65*\arrayh);
+        \draw[-stealth] (4.5*\cellw,-\bottomymul*\arrayh) -- (4.5*\cellw,-1.15*\arrayh) node[pos=0.5,right=2pt,align=left,inner sep=0pt] {\footnotesize Free \\[-4pt] \footnotesize Store $x,1$};
+
 
         \iftods
             \node[inner sep=2pt,align=center] (query_1) at (\arrayw+1.5*\cellw,4.75*\arrayh) {\small Query $q$ \\[-2pt] \small Result$=4$};
@@ -2927,20 +2923,16 @@ Near the end of the section, we also discuss several variants of Misra-Gries and
         \fi
         \draw[stealth-] (query_1.194) -| (2.0*\cellw+\elemw+0.5*\counterw,0.5*\arrayh);
 
-        \node[inner sep=3pt,align=left,anchor=west] at (1.5*\cellw,-2.1*\arrayh) {\footnotesize Free \\[-4pt] \footnotesize Store $x,1$};
-
-        \draw[decorate,decoration={brace,mirror,raise=1pt,amplitude=2pt}] (1*\cellw,-0.65*\arrayh) -- (2*\cellw,-0.65*\arrayh);
-
         \node[inner sep=0pt] at (0.0*\cellw+0.5*\elemw,0.0*\arrayh) {\footnotesize $a$};
         \node[inner sep=0pt] at (0.0*\cellw+\elemw+0.5*\counterw,0.0*\arrayh) {\footnotesize $5$};
-        \node[inner sep=0pt] at (1.0*\cellw+0.5*\elemw,0.0*\arrayh) {\footnotesize $x$};
-        \node[inner sep=0pt] at (1.0*\cellw+\elemw+0.5*\counterw,0.0*\arrayh) {\footnotesize $1$};
+        \node[inner sep=0pt] at (1.0*\cellw+0.5*\elemw,0.0*\arrayh) {\footnotesize $b$};
+        \node[inner sep=0pt] at (1.0*\cellw+\elemw+0.5*\counterw,0.0*\arrayh) {\footnotesize $7$};
         \node[inner sep=0pt] at (2.0*\cellw+0.5*\elemw,-0.095*\arrayh) {\footnotesize $q$};
         \node[inner sep=0pt] at (2.0*\cellw+\elemw+0.5*\counterw,0.0*\arrayh) {\footnotesize $4$};
         \node[inner sep=0pt] at (3.0*\cellw+0.5*\elemw,0.0*\arrayh) {\footnotesize $c$};
         \node[inner sep=0pt] at (3.0*\cellw+\elemw+0.5*\counterw,0.0*\arrayh) {\footnotesize $9$};
-        \node[inner sep=0pt] at (4.0*\cellw+0.5*\elemw,0.0*\arrayh) {\footnotesize $b$};
-        \node[inner sep=0pt] at (4.0*\cellw+\elemw+0.5*\counterw,0.0*\arrayh) {\footnotesize $7$};
+        \node[inner sep=0pt] at (4.0*\cellw+0.5*\elemw,0.0*\arrayh) {\footnotesize $d$};
+        \node[inner sep=0pt] at (4.0*\cellw+\elemw+0.5*\counterw,0.0*\arrayh) {\footnotesize $1$};
     \end{tikzpicture}
     \caption{MG uses dedicated counters to track frequent keys.}
     \label{fig:mg_overview}
@@ -2975,26 +2967,26 @@ With~$w$ slots, MG guarantees an additive error of at most~$N/w$, i.e., $0 \leq 
 This bound holds because each global decrement subtracts one from~$w$ stored counters and can therefore be ``charged'' against~$w$ stream insertions.
 Since there are~$N$ insertions in total, at most~$N/w$ global decrements can occur, so the estimate of any key can fall below its true frequency by at most~$N/w$.
 As this counting argument is deterministic, MG's error bound always holds with confidence~1, unlike the probabilistic error bounds of CMS and CS.
-\Cref{tab:conventional_sketch_stats} compares Misra-Gries with CMS and CS.
+\Cref{tab:conventional_sketch_stats} compares Misra-Gries \mbox{with CMS and CS}.
 
 \textbf{Classic Implementations.}
 MG is typically implemented using a hash table that maps each tracked key to its counter, enabling constant-time queries and constant-time updates for keys already being tracked.
-To avoid scanning the entire hash table whenever all counters must be decremented, these decrements are applied through a lazy decrement counter~$L$.
-A stored counter value~$v$ then represents an effective count of~$v-L$, while a newly admitted key is assigned~$L+1$ to give it an effective count of~1, as in \mbox{the original MG}.
+Global decrements are applied through a lazy offset~$L$ rather than by scanning the entire hash table to decrement each counter.
+Thus, a stored counter value~$v$ represents an effective count of~$v-L$, while a newly admitted key is assigned~$L+1$ to give it an effective count of~1, as in \mbox{the original MG}.
 
 A remaining challenge is efficiently identifying entries whose effective counters reach zero so they can be evicted.
 While many MG implementations use a min-heap for this purpose~\cite{MGH1,MGH2,BatchUpdateMisraGries}, the most theoretically efficient implementation maintains a doubly linked list representing the counter values in increasing order~\cite{SpaceSaving}.
-Each node corresponds to a distinct counter value and points to all keys having that value.
+Each node in this linked list corresponds to a distinct counter value and points to all keys in the hash table with that count.
 Incrementing a counter moves its key by at most one position in the linked list, enabling constant-time updates, while keys with zero-valued counters appear at the head and can be evicted in constant time.
 The drawback of this approach is the space overhead of the associated pointers: each linked-list node stores three pointers, two linking it to its neighbors and one to the corresponding hash-table entry, while each hash-table entry stores an additional pointer back to its linked-list node.
-Together, these pointers increase MG's overall memory \mbox{footprint by~$2$--$3\times$}.
 
 \textbf{\sketchmg.}
-A shortcoming of traditional MG is its use of fixed-length counters: under skewed workloads, many counters store relatively small values, leaving their higher-order bits unused.
-Moreover, as discussed earlier, MG's error grows linearly with the stream length, causing its estimates to become increasingly inaccurate as the stream grows.
+Similarly to CMS and CS, a shortcoming of traditional MG is its use of fixed-length counters: under skewed workloads, many counters store relatively small values, leaving their higher-order bits unused.
+Moreover, MG's error grows linearly with the stream length, causing its estimates to become increasingly inaccurate as the stream grows.
 We now introduce \sketchmg, a generalization of MG that addresses both shortcomings.
+It employs \counterencodingabbrv\ to compress the counters and expands the hash table as the stream grows to control the estimation error.
 
-We also present an important new insight that substantially simplifies MG's implementation: global decrements occur infrequently.
+We also present a new insight that substantially simplifies MG's implementation: global decrements occur infrequently.
 In particular, they are sufficiently rare that, even if each performs a linear scan over the hash table to decrement all counters and evict keys, the total cost remains amortized constant per stream insertion.
 This observation allows us to eliminate the linked list traditionally used for efficient eviction, reducing the sketch's memory footprint by~2--3$\times$.
 We further show that these scans can be de-amortized using a compact segment tree with an overhead of only~2~bits~per~key.
@@ -3069,22 +3061,25 @@ These terms vanish if \sketchmg is allocated~$k$ counters from the start.
 
 \textbf{Eviction: Scans.}
 Recall that, after a global decrement, MG evicts any key whose count reaches zero.
-Classic MG implementations identify eviction victims using an auxiliary structure such as a heap or doubly linked list, which can incur significant memory overhead.
-\sketchmg avoids this overhead by eliminating the auxiliary structure and instead scans the hash table to identify eviction victims.
-During each scan, \sketchmg also applies the lazy global offset~$L$ to the counters, shrinking their values to save space with \counterencodingabbrv.
+Classic MG implementations identify eviction victims using an auxiliary structure, which can incur significant memory overhead.
+\sketchmg avoids this overhead by eliminating the auxiliary structure and instead scanning the hash table to identify eviction victims.
+During each scan, \sketchmg also subtracts the lazy offset~$L$ from every counter and resets~$L$ to zero, thus shrinking the counter values and allowing \counterencodingabbrv\ to save space.
+These scans occur infrequently for two reasons:
 (1)~each untracked-key insertion increases the worst-case estimation error by one, while
 (2)~an MG with~$w$ counters has an estimation error of at most~$N/w$ after~$N$ insertions.
 Together, these properties limit the number of untracked-key insertions and the corresponding scans to~$N/w$.
 Because each scan costs~$\Theta(w)$, their total cost over the stream is~$O(N)$, yielding an amortized cost of~$O(1)$ per insertion.
-While this approach works well for applications that prioritize high throughput, its~$\Theta(w)$ worst-case eviction cost may be unsuitable for applications requiring strict latency guarantees.
+
+While this approach works well for applications that prioritize high throughput, its~$\Theta(w)$ worst-case eviction cost may be unsuitable for applications requiring strict latency guarantees (e.g., aggregating traffic statistics within network routers without delaying packet forwarding~\cite{UnivMon,StingySketch}).
 
 \textbf{Eviction: Segment Tree.}
 \sketchmg improves its worst-case insertion cost to~$O(\log w)$ while keeping the amortized cost constant by creating a segment tree~\cite{SegmentTree1,SegmentTree2,CG} over its counter array, as shown in \Cref{fig:mg_segment_tree}.
-Each counter in \sketchmg's counter array is a leaf node in this tree, and each internal node indicates the leaf node within its subtree with the smallest counter value.
-Traditionally, an internal node within a segment tree stores a copy of the counter with the minimum value.
-However, doing so doubles the number of stored counters.
-To avoid this issue, \sketchmg stores in each internal node of the segment tree the offset of the counter with the minimum value within its subtree.
-For example, the lowest internal nodes shown in ? store the offsets 0, 1, 1, and 0, while the nodes on the upper level store offsets 2 and 3 to indicate the minimum within their subtrees.
+This segment tree is a full binary tree built over the counters within \sketchmg's counter array.
+Traditionally, each internal node of this tree stores a copy of the minimum counter within its subtree, as shown by the gray numbers in \Cref{fig:mg_segment_tree}.
+This causes the segment tree's root to always store the minimum count within the array.
+It also allows for identifying the minimum counter by traversing the segment tree from the root downward and following the path with subtree minimums matching the global minimum.
+Evicting 
+Both operations take~$O(\log w)$ time, since the segment tree is a full binary tree and thus has a logarithmic height.
 
 \begin{figure}
     \centering
@@ -3103,7 +3098,7 @@ For example, the lowest internal nodes shown in ? store the offsets 0, 1, 1, and
         \def\treediffy{0.25}
         \pgfmathtruncatemacro{\treelevels}{round(log2(\arraylen))}
 
-        \def\counterarray{{7,9,8,4,6,1,2,3}}
+        \def\counterarray{{7,9,8,4,0,1,2,3}}
         \foreach \i in {1, ..., \arraylen} {
             \draw[white,fill=gray!20] (\i*\cellw-\counterw,0.5*\arrayh) rectangle (\i*\cellw-\cellw,-0.5*\arrayh);
             \draw[black,dotted,dash phase=4pt] (\i*\cellw-\counterw,0.5*\arrayh) -- (\i*\cellw-\counterw,-0.5*\arrayh);
@@ -3113,10 +3108,15 @@ For example, the lowest internal nodes shown in ? store the offsets 0, 1, 1, and
             \let\countervalue\pgfmathresult
             \node[inner sep=0pt] at (\i*\cellw-0.5*\counterw,0.0*\arrayh) {\footnotesize \countervalue};
             \pgfmathtruncatemacro{\slotoffset}{\i-1}
-            \node[inner sep=0pt,anchor=north] at (\i*\cellw-0.5*\cellw,-0.5*\arrayh-\annotationoffset) {\footnotesize \slotoffset};
+            \node[inner sep=0pt,anchor=north] (slot-offset-\slotoffset) at (\i*\cellw-0.5*\cellw,-0.5*\arrayh-\annotationoffset) {\footnotesize \slotoffset};
             \coordinate (tree-0-\i) at ($(\i*\cellw-0.5*\cellw,0.5*\arrayh)+(0,2pt)$);
         }
         \draw[black] (0,0.5*\arrayh) rectangle (\arrayw,-0.5*\arrayh);
+        \foreach \x in {4, 5} {
+            \draw[black,dotted] (\x*\cellw,-0.5*\arrayh) -- ($(\x*\cellw,0 |- slot-offset-4.south)+(0,-3pt)$);
+        }
+        \draw[decorate,decoration={brace,raise=3pt,amplitude=2pt}] (5*\cellw,0 |- slot-offset-4.south) -- (4*\cellw,0 |- slot-offset-4.south)
+            node[pos=0.5,below=6pt,inner sep=1pt] {\footnotesize Overprovisioning};
 
         % Segment Tree
         \foreach \l in {1, ..., \treelevels} {
@@ -3149,20 +3149,29 @@ For example, the lowest internal nodes shown in ? store the offsets 0, 1, 1, and
                 %\pgfmathtruncatemacro{\rightchild}{2*\k}
                 %\pgfmathsetmacro{\nodex}{(\subtreestart+0.5*\subtreesize)*\cellw}
 
-                \node[inner sep=2pt,align=center,anchor=south,yshift=\treediffy cm] (tree-\l-\k) at (\nodex,0 |- tree-\childl-1.north) {\footnotesize \minoffset\ (\minvalue) \\[-4pt] \footnotesize \localoffsetbits};
+                %\node[inner sep=2pt,align=center,anchor=south,yshift=\treediffy cm] (tree-\l-\k) at (\nodex,0 |- tree-\childl-1.north) {\footnotesize \textcolor{gray!80}{\minoffset, \minvalue} \\[-4pt] \footnotesize $\localoffset=(\localoffsetbits)_2$};
+                \node[inner sep=2pt,align=center,anchor=south,yshift=\treediffy cm] (tree-\l-\k) at (\nodex,0 |- tree-\childl-1.north) {\footnotesize \textcolor{gray!80}{\minvalue} \\[-4pt] \footnotesize $\localoffset=(\localoffsetbits)_2$};
                 \draw (tree-\l-\k) -- (tree-\childl-\leftchild);
                 \draw (tree-\l-\k) -- (tree-\childl-\rightchild);
             }
         }
 
-        \node[inner sep=1pt,left=32pt of tree-3-1,align=left] (global_offset_label) {\footnotesize Global Offset of Min (Min Value): \\[-4pt] \footnotesize Subtree Offset of Min:};
+        \node[inner sep=1pt,left=32pt of tree-3-1,align=left] (global_offset_label) {\footnotesize \textcolor{gray!80}{Min Value:} \\[-4pt] \footnotesize Subtree-Local Offset of Min:};
     \end{tikzpicture}
     \caption{By storing a compressed segment tree, \sketchmg improves the worst-case insertion cost to logarithmic while retaining a constant amortized cost.}
     \label{fig:mg_segment_tree}
 \end{figure}
 
-The offset stored at the root of the segment tree 
-\sketchmg now identifies an eviction victim using the 
+For example, the lowest internal nodes shown in \Cref{fig:mg_segment_tree} would store global offsets 0, 3, 5, and 6, which correspond to the counters with values 7, 4, 1, and 2.
+Applying this approach to an MG with~$w$ counters leads to a memory overhead of~$\log_2 w$ bits per counter.
+
+\sketchmg reduces this overhead by instead storing subtree-local offsets: for each internal node, it stores the offset of the minimum counter within the node's subtree rather than the entire counter array.
+For the lowest internal nodes of \Cref{fig:mg_segment_tree}, these offsets would be 0, 1, 1, and 0.
+Similarly, the internal nodes in the middle level have offsets 3 and 1.
+We observe that subtree-local offsets can be encoded in~2 bits per counter for two reasons:
+(1)~The offsets of internal nodes at height~$i$ are in the range~$[0,2^i)$, which allows encoding each offset using~$i$ bits, as illustrated by the black bits in \Cref{fig:mg_segment_tree}.
+(2)~The number of nodes at height~$i$ is at most~$w/2^i$.
+Combining these reasons allows for bounding the total memory overhead of the subtree-local offsets as the geometric sum~$\sum_i i \cdot w/2^i \leq 2 \cdot w$ bits.
 
 \textbf{Localized Lazy Decrements.}
 
