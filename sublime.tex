@@ -2918,17 +2918,77 @@ As this counting argument is deterministic, MG's error bound always holds with c
 As shown, MG's worst-case estimation error grows linearly with the stream length, similarly to CMS and CS.
 
 \textbf{Classic Implementation.}
-MG is typically implemented using a hash table that maps each tracked key to its counter, enabling constant-time queries and constant-time updates for keys already being tracked.
-Global decrements are applied through a lazy offset~$L$ rather than by scanning the entire hash table to decrement each counter.
-Thus, a stored counter value~$v$ represents an effective count of~$v-L$, while a newly admitted key is assigned~$L+1$ to give it an effective count of~1 once~$L$ is subtraced.
+MG is typically implemented using a hash table that maps each tracked key to its counter, enabling constant-time queries and constant-time insertions for keys already being tracked.
+For insertions of untracked keys, the original MG paper~\cite{MisraGries} observes that the resulting global decrements occur infrequently enough that directly decrementing every counter incurs only constant amortized overhead.
+This follows from two properties:
+(1)~each global decrement increases the worst-case estimation error by one, while
+(2)~an MG with~$w$ counters has an estimation error of at most~$N/w$ after~$N$ insertions.
+Together, these properties limit the number of global decrements and the corresponding scans to~$N/w$.
+Because each decrement requires a~$\Theta(w)$ scan over the counters, their total cost over the stream is~$O(N)$.
+Thus, when implemented using a hash table, MG supports insertions in constant expected amortized time.
+Nevertheless, the worst-case insertion time remains at~$\Theta(w)$, making this approach unsuitable for applications requiring strict latency guarantees (e.g., aggregating traffic statistics within network routers without delaying packet forwarding~\cite{UnivMon,StingySketch}).
 
+\begin{table}
+    \centering
+    \setlength{\tabcolsep}{4.4pt}
+    \begin{tabular}{cccccc}
+        \toprule
+
+        \textbf{\footnotesize Decrement/Eviction Strategy}
+        & \footnotesize \textbf{Query}
+        & \footnotesize \textbf{Insert (Amortized)}
+        & \footnotesize \textbf{Insert (Worst-Case)}
+        & \footnotesize \textbf{Memory Overhead (Bits)} \\
+
+        \midrule
+
+        \footnotesize Scan
+        & \footnotesize $\Theta(1)$ 
+        & \footnotesize $\Theta(1)$
+        & \footnotesize $\Theta(w)$
+        & \footnotesize 0 \\
+
+        \footnotesize Heap
+        & \footnotesize $\Theta(1)$
+        & \footnotesize $\Theta(\log w)$
+        & \footnotesize $\Theta(\log w)$ 
+        & \footnotesize $2 \cdot \log_2 w$ \\
+
+        \footnotesize Doubly Linked List
+        & \footnotesize $\Theta(1)$
+        & \footnotesize $\Theta(1)$
+        & \footnotesize $\Theta(1)$ 
+        & \footnotesize $4 \cdot \log_2 w$ \\
+        
+        \midrule 
+
+        \footnotesize Segment Tree (\sketchmg)
+        & \footnotesize $\Theta(1)$
+        & \footnotesize $\Theta(1)$
+        & \footnotesize $\Theta(\log w)$ 
+        & \footnotesize 2 \\
+
+        \bottomrule
+    \end{tabular}
+    \caption{Different implementations of MG augment the hash table with additional data structures to de-amortize the cost of decrements and scans.
+    \sketchmg improves upon the worst-case insertion time while retaining the amortized cost constant and incuring a small memory overhead of~2 bits per key.}
+    \label{tab:mg_performance_space_overhead}
+\end{table}
+
+Many MG implementations aim to address this issue by de-amortizing the decrement scans.
+To this end, they apply global decrements through a lazy offset~$L$.
+Thus, a stored counter value~$v$ represents an effective count of~$v-L$, while a newly admitted key is assigned~$L+1$ to give it an effective count of~1 once~$L$ is subtraced.
 A remaining challenge is efficiently identifying entries whose effective counters reach zero so they can be evicted.
-Many MG implementations use a min-heap for this purpose~\cite{MGH1,MGH2,BatchUpdateMisraGries}, at the cost of slowing every insertion to logarithmic time.
-A faster alternative is to maintain a doubly linked list representing the counter values in increasing order~\cite{SpaceSaving}.
+
+Many implementations tackle this challenge using a min-heap that orders keys by their counts~\cite{MGH1,MGH2,BatchUpdateMisraGries}.
+This min-heap efficiently identifies eviction candidates at the cost of slowing every insertion to logarithmic time.
+Other implementations improve the worst-case insertion time by instead maintaining a doubly linked list representing the counter values in increasing order~\cite{SpaceSaving}.
 Each node in this linked list corresponds to a distinct counter value and points to all keys in the hash table with that count.
 Incrementing a counter moves its key by at most one position in the linked list, enabling constant-time updates, while keys with zero-valued counters appear at the head and can be evicted in constant time.
 The drawback of both approaches is the significant space overhead of their auxiliary structures: each entry in the auxiliary structure stores a pointer to its corresponding hash-table entry, while each hash-table entry stores a pointer back to the entry within the auxiliary structure.
 Each node in the doubly linked list additionally stores two pointers to its neighboring nodes.
+\Cref{tab:mg_performance_space_overhead} summarizes and compared the characteristics of the above implementations.
+
 
 \textbf{\sketchmg.}
 Similarly to CMS and CS, a shortcoming of traditional MG is its use of fixed-length counters: under skewed workloads, many counters store relatively small values, leaving their higher-order bits unused.
@@ -2936,10 +2996,8 @@ Moreover, MG's error grows linearly with the stream length, causing its estimate
 We now introduce \sketchmg, a generalization of MG that addresses both shortcomings.
 It employs \counterencodingabbrv\ to compress the counters and expands the hash table as the stream grows to control the estimation error.
 
-We also present a new insight to save a substantial amount of additional memory: global decrements occur infrequently.
-In particular, they are sufficiently rare that, even if each performs a linear scan over the hash table to decrement all counters and evict keys, the total cost remains amortized constant per stream insertion.
-This observation allows us to eliminate the linked list traditionally used for efficient eviction, reducing the sketch's memory footprint by~2--3$\times$.
-We further show that these scans can be de-amortized using a compact segment tree with a memory overhead of only 2 bits per key---significantly less than that of a heap or doubly linked list.
+Thus, the doubly linked list traditionally used for efficient eviction is needed only for de-amortizing these scans and can otherwise be eliminated, reducing memory consumption by~2--3$\times$.
+When worst-case latency matters, \sketchmg instead de-amortizes the scans using a compressed segment tree that requires only two additional bits per key---significantly less overhead than a linked list.
 
 \textbf{Accommodating Skew.}
 Recall from \Cref{sec:accommodating_skew} that \counterencodingabbrv\ compresses contiguous counters by packing them into the same cache line along with their extensions.
@@ -2959,7 +3017,7 @@ This involves copying the counter's stub and, if present, relocating its extensi
 Relocating an extension entails a small number of bitwise operations on the source and destination extension pools, since each extension pool is typically~1--2 machine words long (as discussed in \Cref{sec:accommodating_skew}).
 Moving counters therefore adds only a small constant overhead to insertions in expectation, since the counter movements correspond directly to key movements performed during collision resolution, whose total expected cost per insertion is constant.
 
-A remaining challenge of separating the keys and counters is that accessing a key's counter may incur an additional cache miss.
+A consequence of separating the keys and counters is that accessing a key's counter may incur an additional cache miss.
 \sketchmg mitigates this overhead by speculatively prefetching the regions of the counter array likely to contain the key's counter.
 In the case of a Cuckoo hash table, a key can reside in one of two locations, so \sketchmg prefetches the counters corresponding to both locations.
 
@@ -2976,7 +3034,7 @@ The following theorem, proven in Appendix~\ref{apx:upper_bounds_mg_normal}, show
     E(M) \leq  
     \begin{cases}
         O(1) \cdot \epsilon {M}^{1-\alpha} & \text{if $W(M)=M^{\alpha}/\epsilon$, for $\alpha \in [0,1)$,} \\
-        \ln M \cdot \epsilon & \text{if $W(M)=M/\epsilon$.}
+        \ln(M+1) \cdot \epsilon & \text{if $W(M)=M/\epsilon$.}
     \end{cases}
     $$
     Compared to a fixed-size MG that, given prior knowledge of~$M$, is allocated upfront with~$W(M)$ counters, the error terms above are higher by at most a constant and a logarithmic factor.
@@ -2995,7 +3053,7 @@ Other hash table implementations can also expand by factors smaller than~2 using
 These finer-grained expansions incur additional reconstruction overheads, but allow \sketchmg to add counters sooner than \sketchcms and \sketchcs.
 As a result, \sketchmg attains smaller constant factors in its error bounds than those of \sketchcms and \sketchcs, as shown in \Cref{thm:mg-normal}.
 In particular, when~$\alpha=1$, \sketchmg's error bound is a natural logarithm rather than the base-2 logarithm of Theorems~\ref{thm:cms-w} and \ref{thm:cs-w}.
-When~$\alpha<1$, the hidden constant factor\footnote{Appendix~\ref{apx:upper_bounds_mg_normal} shows that this factor is close to~$\frac{\alpha}{1+\alpha} \cdot \left[ {}_2F_1(1, 1+\frac1\alpha; 2+\frac1\alpha; -N^\alpha) - \frac12 \cdot {}_2F_1(1, 1+\frac1\alpha; 2+\frac1\alpha; -(N^\alpha - 1)/2) \right]$, where~${}_2F_1$ is Gauss's hypergeometric function. This quantity can be shown to be at most~$\frac{1}{1-\alpha}$, and that it converges to $\ln (N + 1)$ as $\alpha$ approaches~1.} is also smaller than those of \sketchcms and \sketchcs.
+When~$\alpha<1$, the hidden constant factor\footnote{Appendix~\ref{apx:upper_bounds_mg_normal} shows that this factor is close to~$\frac{\alpha}{1+\alpha} \cdot \left[ {}_2F_1(1, 1+\frac1\alpha; 2+\frac1\alpha; -M^\alpha) - \frac12 \cdot {}_2F_1(1, 1+\frac1\alpha; 2+\frac1\alpha; -(M^\alpha - 1)/2) \right]$, where~${}_2F_1$ is Gauss's hypergeometric function. This quantity can be shown to be at most~$\frac{1}{1-\alpha}$, and that it converges to $\ln (M + 1)$ as $\alpha$ approaches~1.} is also smaller than those of \sketchcms and \sketchcs.
 
 %The constant factor hidden by the asymptotics is~$(2^{1/\alpha}-1) \cdot \frac{1-2^{(\alpha-1) \cdot \log_2 N}}{2^{1/\alpha-1}-1}$, which is at most~$\frac{2^{1/\alpha}-1}{2^{1/\alpha-1}-1}$ and converges to~$\log_2 N$ as $\alpha$ tends to 1.
 
