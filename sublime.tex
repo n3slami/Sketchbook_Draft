@@ -208,30 +208,18 @@
 %% The abstract is a short summary of the work to be presented in the
 %% article.
 \begin{abstract}
-    Modern stream processing systems often need to track the frequency of
-    distinct keys in a data stream in real-time. Since maintaining exact counts
-    can require a prohibitive amount of memory, many applications rely on
-    compact, probabilistic data structures known as frequency estimation
-    sketches to approximate them. However, mainstream frequency estimation
-    sketches fall short in two critical aspects. First, they are
-    memory-inefficient under skewed workloads because they use uniformly-sized
-    counters to count the keys, thus wasting memory on storing the leading
-    zeros of many small counts. Second, their estimation error deteriorates at
-    least linearly with the length of the stream{\textemdash}which may grow
-    indefinitely{\textemdash}because they rely on a fixed number of counters.
+    Modern stream processing systems often need to track the frequency of distinct keys in a data stream in real-time.
+    Since maintaining exact counts can require a prohibitive amount of memory, many applications rely on compact, probabilistic data structures known as frequency estimation sketches to approximate them.
+    However, mainstream frequency estimation sketches fall short in two critical aspects.
+    First, they are memory-inefficient under skewed workloads because they use uniformly-sized counters to count the keys, thus wasting memory on storing the leading zeros of many small counts.
+    Second, their worst-case estimation error deteriorates at least linearly with the length of the stream{\textemdash}which may grow indefinitely{\textemdash}because they rely on a fixed number of counters.
 
-    We present \sketch, a framework that generalizes frequency estimation
-    sketches to address these challenges. To reduce memory footprint under
-    skew, \sketch\ begins with short counters and dynamically elongates them as
-    they overflow, storing their extensions within the same cache line. It
-    employs efficient bit manipulation routines to quickly locate and access a
-    counter's extensions. To maintain accuracy as the stream grows, \sketch\
-    also expands its number of counters at a configurable rate, exposing a new
-    spectrum of accuracy-memory trade-offs that applications can tune to their
-    needs. We apply \sketch\ to both Count-Min Sketch and Count Sketch. Through
-    theoretical analysis and empirical evaluation, we show that \sketch\
-    significantly improves accuracy and memory over the state of the art while
-    maintaining competitive or \mbox{superior~performance}.
+    We present \sketch, a framework that generalizes frequency estimation sketches to address these challenges.
+    To reduce memory footprint under skew, \sketch\ begins with short counters and dynamically elongates them as they overflow, storing their extensions within the same cache line.
+    It employs efficient bit manipulation routines to quickly locate and access a counter's extensions.
+    To maintain accuracy as the stream grows, \sketch\ also expands its number of counters at a configurable rate, exposing a new spectrum of accuracy-memory trade-offs that applications can tune to their needs.
+    We apply \sketch\ to both Count-Min Sketch and Count Sketch.
+    Through theoretical analysis and empirical evaluation, we show that \sketch\ significantly improves accuracy and memory over the state of the art while maintaining competitive or \mbox{superior~performance}.
 \end{abstract}
 
 %%
@@ -356,49 +344,30 @@ We show that these approaches compromise either accuracy or performance.
 Therefore, minimizing memory wastage under skew remains a challenge.
 
 \textbf{Problem~2: Unbounded Data Growth.}
-In most applications, data streams continuously grow over
-time~\cite{Compass,QueryOptimizationSketches,ConvolutionSketch,SketchBasedChangeDetection,WhatsNew,TrafficManagementSurvey}.
-Yet, all existing frequency estimation sketches are allocated with a fixed size
-from the get-go. This causes their estimation error to scale at least linearly
-with the stream's unknown length. One cannot construct a larger frequency
-estimation sketch to control the error without losing all prior information, as
-the stream is too large to be stored, rescanned, and reinserted into a new
-sketch. Thus, applications are unable to maintain tight~error~bounds~as the
-stream grows. This problem is critical when deploying frequency estimation
-sketches at scale, as recently reported by the creators of the Apache Data
-Sketches library~\cite{SimonsYahoo,DataSketches}. Recent works have tackled the
-challenge of accommodating unbounded data growth for filter data
-structures~\cite{PaghExpandability,TaffyFilters,InfiniFilter,AlephFilter,Zeno,BeyondBloomTutorial,Memento,Diva,Aeris}.
-This paper is the first to address this problem for frequency estimation
-sketches. In fact, to the best of our knowledge, this problem has not
-previously been studied in the context of any type of sketch. We expect this
-work to open up interesting directions for sketches supporting other
-statistics, such as cardinalities~\cite{HLL,HLLL,ULL},
-quantiles~\cite{GK,KLL,SplineSketch}, graph~analytics~\cite{LpSamplers,AGM}.
+In most applications, data streams continuously grow over time~\cite{Compass,QueryOptimizationSketches,ConvolutionSketch,SketchBasedChangeDetection,WhatsNew,TrafficManagementSurvey}.
+Yet, all existing frequency estimation sketches are allocated with a fixed size from the get-go.
+This causes their worst-case estimation error to scale at least linearly with the stream's unknown length.
+One cannot construct a larger frequency estimation sketch to control the error without losing all prior information, as the stream is too large to be stored, rescanned, and reinserted into a new sketch.
+Thus, applications are unable to maintain tight~error~bounds~as the stream grows.
+This problem is critical when deploying frequency estimation sketches at scale, as recently reported by the creators of the Apache Data Sketches library~\cite{SimonsYahoo,DataSketches}.
+Recent works have tackled the challenge of accommodating unbounded data growth for filter data structures~\cite{PaghExpandability,TaffyFilters,InfiniFilter,AlephFilter,Zeno,BeyondBloomTutorial,Memento,Diva,Aeris}.
+This paper is the first to address this problem for frequency estimation sketches.
+In fact, to the best of our knowledge, this problem has not previously been studied in the context of any type of sketch.
+We expect this work to open up interesting directions for sketches supporting other statistics, such as cardinalities~\cite{HLL,HLLL,ULL}, quantiles~\cite{GK,KLL,SplineSketch}, graph~analytics~\cite{LpSamplers,AGM}.
 
 \textbf{Solution: \sketch.}
-We introduce \sketch\footnote{\sketch\ is a play on words referring to the
-\textbf{subli}n\textbf{e}arly scaling error and memory footprint of our
-framework. It also describes, in the philosophical tradition of Immanuel Kant,
-the feeling of awe experienced when contemplating something vast or infinite.
-This notion of infinity resonates with the theme of our work, which addresses
-the challenge of accommodating indefinite data growth.}, a framework that
-generalizes frequency estimation sketches to address the above two challenges.
-To address Problem~1 (Skew), \sketch\ allocates short counters upfront and
-dynamically extends them as they overflow. It colocates each counter and its
-extension within the same cache line and employs specialized bit manipulation
-routines to decode them in constant time. To resolve Problem~2 (Unbounded Data
-Growth), \sketch\ expands the overall number of counters as the stream grows.
-In doing so, it achieves sublinear error bounds and memory footprint with
-respect to the stream's length. It further introduces a new Pareto frontier
-between these metrics, allowing applications to pick the trade-off that best
-suits their needs.
+We introduce \sketch\footnote{\sketch\ is a play on words referring to the \textbf{subli}n\textbf{e}arly scaling error and memory footprint of our framework. It also describes, in the philosophical tradition of Immanuel Kant, the feeling of awe experienced when contemplating something vast or infinite. This notion of infinity resonates with the theme of our work, which addresses the challenge of accommodating indefinite data growth.}, a framework that generalizes frequency estimation sketches to address the above two challenges.
+To address Problem~1 (Skew), \sketch\ allocates short counters upfront and dynamically extends them as they overflow.
+It colocates each counter and its extension within the same cache line and employs specialized bit manipulation routines to decode them in constant time.
+To resolve Problem~2 (Unbounded Data Growth), \sketch\ expands the overall number of counters as the stream grows.
+In doing so, it achieves sublinear worst-case error bounds and memory footprint with respect to the stream's length.
+It further introduces a new Pareto frontier between these metrics, allowing applications to pick the trade-off that best suits their needs.
 
 \textbf{Additional Contributions.}
 \begin{enumerate}
-    \item We show that while traditional Count-Min and Count Sketches exhibit an estimation error that grows linearly with the stream size, variants designed to handle skew~\cite{BitSense,PyramidSketch,StingySketch,AdaptiveCounterSplicing,CounterTree,TreeSensing,TailoredSketch,SALSA} cause the error to grow super-linearly, raising the question of how to address Problem~1 without exacerbating Problem~2 (\Cref{sec:problem_analysis_skew}).
+    \item We show that while traditional Count-Min and Count Sketches exhibit a worst-case estimation error that grows linearly with the stream size, variants designed to handle skew~\cite{BitSense,PyramidSketch,StingySketch,AdaptiveCounterSplicing,CounterTree,TreeSensing,TailoredSketch,SALSA} cause the error to grow super-linearly, raising the question of how to address Problem~1 without exacerbating Problem~2 (\Cref{sec:problem_analysis_skew}).
 
-    \item We are the first to identify the problem of designing frequency estimation sketches that maintain both error and memory usage sublinear in the stream length (\Cref{sec:problem_analysis_unbounded_growth}).
+    \item We are the first to identify the problem of designing frequency estimation sketches that maintain both worst-case error and memory usage sublinear in the stream length (\Cref{sec:problem_analysis_unbounded_growth}).
 
     \item We introduce a constant-time \underline{va}riable-\underline{l}ength data \underline{e}ncoding scheme~(\counterencodingabbrv) with applications beyond frequency estimation sketches, and use it to encode and maintain variable-length counters (\Cref{sec:accommodating_skew}).
 
@@ -464,45 +433,35 @@ lists the terms and symbols used
 throughout the paper.
 
 \textbf{Exhaustive Approach.}
-The simplest approach to tracking frequencies is to store each key and its
-count in a hash table. Although this approach is fully accurate, it entails a
-high memory overhead for three reasons: (i)~It stores all keys in the stream.
-(ii)~It stores one counter for each unique key. (iii)~The hash table can be as
-much as half empty to support collision resolution and expansions. These
-different overheads multiply with the number of streams an application
-monitors. These problems imply a memory footprint that is linear in the number
-of unique keys in the stream, which can be of the same magnitude as the total
-key count~$N$.
+The simplest approach to tracking frequencies is to store each key and its count in a hash table.
+Although this approach is fully accurate, it entails a high memory overhead for three reasons: 
+(i)~It stores all keys in the stream. 
+(ii)~It stores one counter for each unique key.
+(iii)~The hash table can be as much as half empty to support collision resolution and expansions.
+These different overheads multiply with the number of streams an application monitors.
+These problems imply a memory footprint that is linear in the number of unique keys in the stream, which can be of the same magnitude as the total key count~$N$.
 
-Frequency estimation (FE) sketches address these problems by trading accuracy
-for space. That is, for any key~$x$, an FE sketch returns an
-estimate~$\hat{f}(x)$ of key $x$'s count~$f(x)$. We focus on Count-Min
-Sketch~\cite{CountMin} for now, as it is the simplest and most widely used FE
-sketch~\cite{ADSMassiveDatasetBook,SketchesTrafficManagementSurvey}.
-Later, we describe Count Sketch~\cite{CountSketch} (\Cref{sec:cs}) and
-Misra-Gries~\cite{MisraGries} (\Cref{sec:mg}) and apply our techniques to them.
+Frequency estimation (FE) sketches address these problems by trading accuracy for space.
+That is, for any key~$x$, an FE sketch returns an estimate~$\hat{f}(x)$ of key $x$'s count~$f(x)$.
+We focus on Count-Min Sketch~\cite{CountMin} for now, as it is the simplest and most widely used FE sketch~\cite{ADSMassiveDatasetBook,SketchesTrafficManagementSurvey}.
+Later, we describe Count Sketch~\cite{CountSketch} (\Cref{sec:cs}) and Misra-Gries~\cite{MisraGries} (\Cref{sec:mg}) and apply our techniques to them.
 Finally in \Cref{sec:any_sketch}, we provide a general strategy for applying \sketch to any FE sketch.
 
 \textbf{Count-Min Sketch (CMS).}
-The core design element of CMS is an array consisting of~$w$ counters, each
-initialized to zero. We insert a key~$x$ into this array by hashing it to one
-counter and incrementing it. We delete key~$x$ by decrementing its
-corresponding counter.\footnote{Since CMS does not store the actual keys, users
-must ensure that deletions only target previously inserted keys.} The counter
-that key~$x$ hashes to provides an estimate of~$x$'s count. Due to hash
-collisions, however, multiple keys can map to the same counter. Because of
-this, CMS may overestimate a key's true count. This error is at most~$N/w$ in
-expectation since the~$N$ keys are randomly hashed into~$w$ counters.
-Increasing the array's size makes collisions less likely, thereby improving
-accuracy. Even then, the error may deviate from its expectation. The
-probability that errors do not exceed the expectation ``too much'' is known as
-the sketch's \emph{Confidence}. An application of Markov's inequality shows
-that for any key~$x$, the error does not exceed~$e \cdot N/w$ with a confidence
-of at least~$1-e^{-1}$, i.e., $\Pr(|\hat{f}(x)-f(x)| \leq e \cdot N/w) \geq
-1-e^{-1}$. Here, we use Euler's constant~$e$ due to convention. Any other
-constant would also work and would replace~$e$ in both the error bound and the
-confidence. This implies that the smaller the constant becomes, the more
-accurate we expect the FE sketch to be and the lower confidence drops.
+The core design element of CMS is an array consisting of~$w$ counters, each initialized to zero.
+We insert a key~$x$ into this array by hashing it to one counter and incrementing it.
+We delete key~$x$ by decrementing its corresponding counter.\footnote{Since CMS does not store the actual keys, users must ensure that deletions only target previously inserted keys.}
+The counter that key~$x$ hashes to provides an estimate of~$x$'s count.
+Due to hash collisions, however, multiple keys can map to the same counter.
+Because of this, CMS may overestimate a key's true count.
+This error is at most~$N/w$ in expectation since the~$N$ keys are randomly hashed into~$w$ counters.
+Increasing the array's size makes collisions less likely, thereby improving accuracy.
+Even then, the error may deviate from its expectation. 
+The probability that errors do not exceed the expectation ``too much'' is known as the sketch's \emph{Confidence}.
+An application of Markov's inequality shows that for any key~$x$, the error does not exceed~$e \cdot N/w$ with a confidence of at least~$1-e^{-1}$, i.e., $\Pr(|\hat{f}(x)-f(x)| \leq e \cdot N/w) \geq 1-e^{-1}$.
+Here, we use Euler's constant~$e$ due to convention.
+Any other constant would also work and would replace~$e$ in both the error bound and the confidence.
+This implies that the smaller the constant becomes, the more accurate we expect the FE sketch to be and the lower confidence drops.
 
 \begin{figure}
     \centering
@@ -1130,15 +1089,12 @@ is unpredictable. Bounding~$N$ by defining windows based on insertion count
 fails to resolve the issue, as the notion of time is lost.
 
 
-In existing FE sketches, the number of counters~$w$ is fixed at allocation
-time. Consequently, the expected error degrades linearly with~$N$ (e.g., $N/w$
-in the case of CMS). In hope of balancing accuracy and memory, practitioners
-can tune~$w$ upfront. This tuning is non-trivial, however, as having too few
-counters leads to significant errors, while having too many wastes memory.
-Deletions make the problem more challenging by causing~$N$ to fluctuate over
-time. Worse yet, even if the ultimate stream length is known upfront,
-allocating a large CMS from the start wastes memory during the early stages
-when the stream is short. 
+In existing FE sketches, the number of counters~$w$ is fixed at allocation time.
+Consequently, the expected error degrades linearly with~$N$ (e.g., $N/w$ in the case of CMS).
+In hope of balancing accuracy and memory, practitioners can tune~$w$ upfront.
+This tuning is non-trivial, however, as having too few counters leads to significant errors, while having too many wastes memory.
+Deletions make the problem more challenging by causing~$N$ to fluctuate over time.
+Worse yet, even if the ultimate stream length is known upfront, allocating a large CMS from the start wastes memory during the early stages when the stream is short. 
 
 \textbf{Summary.}
 An ideal FE sketch should: 1)~compactly encode counter values without incurring
@@ -1981,16 +1937,11 @@ bit (which is equivalent to multiplication~by~2).
 
 
 \subsection{Accommodating Unbounded Growth}\label{sec:accommodating_unknown_stream_lengths}
-We now address the problem of maintaining bounded estimation error for
-frequency estimation sketches over growing streams. Recall from
-\Cref{sec:problem_analysis} that processing
-growing streams with existing FE sketches (e.g., CMS) yields an estimation
-error that increases at least linearly with the total key count~$N$. Since~$N$
-is typically unknown in advance, bounding this error requires overprovisioning
-memory upfront, leading to significant waste. \sketch\ addresses this
-limitation by generalizing an FE sketch to increase its number of counters as
-the stream grows. We also show how to support deletions and contractions
-without deteriorating accuracy.
+We now address the problem of maintaining bounded estimation error for frequency estimation sketches over growing streams.
+Recall from \Cref{sec:problem_analysis} that processing growing streams with existing FE sketches (e.g., CMS) yields a worst-case estimation error that increases at least linearly with the total key count~$N$.
+Since~$N$ is typically unknown in advance, bounding this error requires overprovisioning memory upfront, leading to significant waste.
+\sketch\ addresses this limitation by generalizing an FE sketch to increase its number of counters as the stream grows.
+We also show how to support deletions and contractions without deteriorating accuracy.
 
 \begin{figure}
     \centering
@@ -2456,18 +2407,13 @@ total key count fluctuates, the memory saved by contracting outweighs this
 cost.
 
 \textbf{Rich Space of Trade-offs.}
-By varying the expansion thresholds, we expose a rich spectrum of
-accuracy-memory trade-offs. We encode these policies using a \emph{Size
-Function}, denoted as~$W(N)$, which captures the growth rate of the number of
-counters in each array with respect to~$N$. The faster the size function grows
-with respect to~$N$, the sooner \sketchcms expands, thereby tracking more of
-the stream's keys accurately in exchange for a larger memory footprint. By
-default, the size function is set to~$W(N)=\sqrt{N}$. We generalize it to a
-\emph{Sublinear Power} of the form~$W(N)=N^\alpha/\epsilon$, with
-constants~$\alpha \in [0,1)$ and $\epsilon > 0$. This corresponds to
-having~$1/\epsilon$ chunks in each array at the beginning and expanding
-when~$N$ grows by a factor of~$2^{1/\alpha}$. Note that this factor is greater
-than~two.
+By varying the expansion thresholds, we expose a rich spectrum of accuracy-memory trade-offs.
+We encode these policies using a \emph{Size Function}, denoted as~$W(N)$, which captures the growth rate of the number of counters in each array with respect to~$N$.
+The faster the size function grows with respect to~$N$, the sooner \sketchcms expands, thereby tracking more of the stream's keys accurately in exchange for a larger memory footprint.
+By default, the size function is set to~$W(N)=\sqrt{N}$.
+We generalize it to a \emph{Sublinear Power} of the form~$W(N)=N^\alpha/\epsilon$, with constants~$\alpha \in [0,1)$ and $\epsilon > 0$.
+This corresponds to having~$1/\epsilon$ chunks in each array at the beginning and expanding when~$N$ grows by a factor of~$2^{1/\alpha}$.
+Note that this factor is greater than~two.
 
 \ifnotods
 \begin{figure}
@@ -2753,18 +2699,15 @@ Skew exacerbates this phenomenon since a heavy hitter drastically changes the es
 Therefore, to bound the probability of severe errors, we compute the estimation variance.
 Denoting the frequency of key~$y$ by $f(y)$, this variance can be expressed as~$V=\sum_y (f(y))^2/w$.
 This lines up with the intuition that larger arrays make hash collisions less likely, reducing the variance.
-A straight-forward application of Chebyshev's inequality shows that the error does not exceed~$e \cdot \sqrt{V}$ with a confidence of at least~$1-e^{-2}$.\footnote{CS's error bound is~$\sqrt{V} = O(\sqrt{N/w})$ when the workload is more uniform due to the squared summands being small. This bound is smaller than CMS's error, i.e., $N/w$.}
+A straight-forward application of Chebyshev's inequality shows that the error does not exceed~$e \cdot \sqrt{V}$ with a confidence of at least~$1-e^{-2}$.
+When the workload is more uniform, this error bound becomes~$O(\sqrt{N/w})$ due to the squared summands being small.
+Compared to CMS's~$N/w$ error bound, this bound is significantly smaller.
+As the workload becomes more skewed, CS's error bound becomes more similar to that of CMS.\footnote{Consider a workload where~$2 \cdot w$ distinct keys are inserted, each~$N/(w \cdot w)$ times. This causes most counters within CS's array to have two or more keys mapped to it. With a probability strictly larger than~$0.5$, the signed updates to such a counter will not ``cancel in the right way.'' More specifically, the counter will carry a value of~0, $\pm 2 \cdot N/(2 \cdot w)$, $\pm 3 \cdot N/(2 \cdot w)$, ..., which leads to an estimation error of at least~$N/(2 \cdot w)=\Omega(N)$ for all keys mapping to it.}
 
-Similarly to CMS, CS boosts confidence by employing~$d$ independent arrays,
-each with its own hash functions~$h_i$ and $\sigma_i$. It answers a query by
-returning the median estimate, as shown in
-\Cref{fig:cs_overview}.
-The median is returned, as it only has large errors when most estimates err
-significantly, which becomes exponentially less likely given more arrays.
-Formally, by a Chernoff bound, CS guarantees an error bound of at most~$e \cdot
-\sqrt{V}$ with a confidence of at least~$1-e^{-d}$.\footnote{The precise
-confidence given by the Chernoff bound is~$1-e^{-(e^4/8) \cdot d}$, which is
-higher than the text's simplified expression.}
+Similarly to CMS, CS boosts confidence by employing~$d$ independent arrays, each with its own hash functions~$h_i$ and $\sigma_i$.
+It answers a query by returning the median estimate, as shown in \Cref{fig:cs_overview}.
+The median is returned, as it only has large errors when most estimates err significantly, which becomes exponentially less likely given more arrays.
+Formally, by a Chernoff bound, CS guarantees an error bound of at most~$e \cdot \sqrt{V}$ with a confidence of at least~$1-e^{-d}$.\footnote{The precise confidence given by the Chernoff bound is~$1-e^{-(e^4/8) \cdot d}$, which is higher than the text's simplified expression.}
 
 \textbf{Accommodating Skew.}
 To avoid the space wastage of uniformly-sized counters, \sketchcs applies
@@ -2796,10 +2739,11 @@ In Appendix~\ref{apx:upper_bounds_cs}, we prove through a similar analysis to th
         \log_2 F \cdot \epsilon & \text{if $W(F)=F/\epsilon$.}
 	\end{cases}
     $$
-    Compared to a fixed-size CS allocated upfront with an array of~$W(F)$ counters with  knowledge of~$F$, the variance terms above are higher by at most a constant and a logarithmic\footnote{This logarithmic term can be bounded in terms of the total key count~$N$, as $F \leq N^2$ and thus $\log_2 F \leq 2 \cdot \log_2 N$.} factor.
+    Compared to a fixed-size CS allocated upfront with an array of~$W(F)$ counters with knowledge of~$F$, the variance terms above are higher by at most a constant and a logarithmic factor.
 \end{restatable}
-Applying Chebyshev's inequality and employing~$d$ independent arrays yields
-stable confidence bounds that match those of CS.
+The logarithmic term in the theorem can be bounded in terms of the total key count~$N$, as $F \leq N^2$ and thus $\log_2 F \leq 2 \cdot \log_2 N$.
+The analysis in Appendix~\ref{apx:upper_bounds_cs} further shows that the constant factor in the upper case of \Cref{thm:cs-w} equals the corresponding factor for \sketchcms in \Cref{thm:cms-w}.
+Moreover, applying Chebyshev's inequality to the variance of \Cref{thm:cs-w} and using~$d$ independent arrays gives \sketchcs stable confidence bounds that match those of CS.
 
 \sketchcs maps keys to consistent counters and update directions by employing
 the same hash functions~$h_1,\dots,h_d$ and $\sigma_1,\dots,\sigma_d$ across
@@ -2864,10 +2808,9 @@ This result follows from an argument analogous to that for \sketchcms's \mbox{ta
 \subsection{Applying \sketch\ to Misra-Gries}\label{sec:mg}
 As we have seen, CMS and CS may overestimate a key's true frequency.
 While overestimation is acceptable in some applications, in others it can trigger unwarranted actions that degrade quality of service or waste resources (e.g., unnecessarily throttling a network connection~\cite{NetworkThrottling1,NetworkThrottling2,NetworkThrottling3} or admitting an infrequent data item into a cache~\cite{TinyLFU}).
-In such cases, an overestimate may trigger an unwarranted action, degrading quality of service or wasting resources.
 The Misra-Gries sketch~\cite{MisraGries} mitigates such concerns by ensuring that its frequency estimates never exceed the true frequency, although they may underestimate it.
 Throughout this section, we apply \sketch\ to Misra-Gries.
-Near the end of the section, we also discuss several variants of Misra-Gries and how \sketch\ can be applied to them.
+Near the end of the section, we also discuss several variants of Misra-Gries and how \sketch\ can \mbox{be applied to them}.
 
 \begin{figure}
     \centering
@@ -2889,9 +2832,9 @@ Near the end of the section, we also discuss several variants of Misra-Gries and
             \draw[black,dotted,dash phase=4pt] (\j*\cellw-\counterw,0.5*\arrayh) -- (\j*\cellw-\counterw,-0.5*\arrayh);
         }
         \foreach \j in {2, ..., \arraylen} {
-            \draw (\j*\cellw-\cellw,0.5*\arrayh) -- (\j*\cellw-\cellw,-0.5*\arrayh);
+            \draw[thick] (\j*\cellw-\cellw,0.5*\arrayh) -- (\j*\cellw-\cellw,-0.5*\arrayh);
         }
-        \draw[black] (0,0.5*\arrayh) rectangle (\arrayw,-0.5*\arrayh);
+        \draw[thick] (0,0.5*\arrayh) rectangle (\arrayw,-0.5*\arrayh);
 
         \iftods
             \node[inner sep=2pt] (key_1) at (-1.6*\cellw,4.32*\arrayh) {\small Insert $a$};
@@ -2935,12 +2878,15 @@ Near the end of the section, we also discuss several variants of Misra-Gries and
         \node[inner sep=0pt] at (4.0*\cellw+0.5*\elemw,0.0*\arrayh) {\footnotesize $\vphantom{bd0}e$};
         \node[inner sep=0pt] at (4.0*\cellw+\elemw+0.5*\counterw,0.0*\arrayh) {\footnotesize $\vphantom{bd0}1$};
     \end{tikzpicture}
-    \caption{MG uses dedicated counters to track frequent keys.}
+    \caption{MG uses a dedicated counter to track each frequent key.
+    In this example, a query for an existing key~$c$ returns its counter value, 4, while a query for an untracked key~$q$ returns~0.
+    Inserting an existing key~$a$ increments its counter from~5 to 6.
+    Inserting an untracked key~$x$ decrements all counters, causing~$e$'s counter to reach zero. As a result, $e$ is evicted and~$x$ is stored in its place with a count of~1.}
     \label{fig:mg_overview}
 \end{figure}
 
 \textbf{Misra-Gries (MG).}
-As shown in \Cref{fig:mg_overview}, MG maintains an array of~$w$ slots.
+As shown in \Cref{fig:mg_overview}, MG consists of an array of~$w$ slots.
 Each slot stores a full key (shown in gray) along with a dedicated counter (shown in white).
 To insert a key~$x$, MG first checks whether~$x$ is already stored in the array.
 If so, it increments~$x$'s counter.
@@ -2954,32 +2900,35 @@ A query for a key currently stored in the array returns that key's counter as th
 MG's design gives rise to three useful properties relative to CMS and CS.
 First, because a key's counter is incremented only when that key itself is inserted, MG never overestimates its frequency, though it may underestimate it due to the global decrement operations.
 Second, MG tends to retain the stream's heavy hitters because these keys accumulate enough increments to survive repeated global decrements, while less frequent keys are more likely to be evicted.
-Under skew, these heavy hitters accrue many more increments than the number of global decrements, making the underestimation error small relative to their true frequencies.
+Under skew, these heavy hitters accrue many more increments than global decrements, making their underestimation error small relative to their true frequencies.
 Third, because MG stores the full keys, it can directly report the heavy hitters it stores in the array.
 This is unlike CMS and CS, which do not directly support reporting the heavy hitters because they hash keys to counters without storing the keys.
-Reporting the heavy hitters is useful in applications such as identifying the network flows consuming the most bandwidth~\cite{HeavyGuardian,HeavyKeeper,WavingSketch} or unusually frequent events for anomaly detection~\cite{NetworkAnomalyDetection1,NetworkAnomalyDetection2}.
+This capability is useful for identifying the network flows that consume the most bandwidth~\cite{HeavyGuardian,HeavyKeeper,WavingSketch} or unusually frequent events for anomaly detection~\cite{NetworkAnomalyDetection1,NetworkAnomalyDetection2}.
 
 However, an intrinsic limitation of MG relative to CMS and CS is that it cannot support deletions without weakening its error bound~\cite{BatchUpdateMisraGries,SpaceSavingBoundedDeletes}.
 This is because MG retains dedicated counters for only a bounded set of candidate heavy hitters.
 If the tracked heavy hitters are deleted, previously untracked keys may become heavy hitters, but MG has discarded their historical frequencies and can identify them only \mbox{from future updates}.
 
-Increasing the number of slots~$w$ allows MG to retain more keys, making global decrements less frequent and thereby improving the accuracy of its frequency estimates.
-With~$w$ slots, MG guarantees an additive error of at most~$N/w$, i.e., $0 \leq f(x)-\hat{f}(x) \leq N/w$ for any key~$x$.
+Increasing the number of slots~$w$ allows MG to retain more keys, thereby making global decrements less frequent and improving estimation accuracy.
+With~$w$ slots, MG guarantees an additive underestimation error of at most~$N/w$, i.e., $0 \leq f(x)-\hat{f}(x) \leq N/w$ for any key~$x$.
 This bound holds because each global decrement subtracts one from~$w$ stored counters and can therefore be ``charged'' against~$w$ stream insertions.
 Since there are~$N$ insertions in total, at most~$N/w$ global decrements can occur, so the estimate of any key can fall below its true frequency by at most~$N/w$.
 As this counting argument is deterministic, MG's error bound always holds with confidence~1, unlike the probabilistic error bounds of CMS and CS.
-\Cref{tab:conventional_sketch_stats} compares Misra-Gries \mbox{with CMS and CS}.
+\Cref{tab:conventional_sketch_stats} compares MG with CMS and CS.
+As shown, MG's worst-case estimation error grows linearly with the stream length, similarly to CMS and CS.
 
-\textbf{Classic Implementations.}
+\textbf{Classic Implementation.}
 MG is typically implemented using a hash table that maps each tracked key to its counter, enabling constant-time queries and constant-time updates for keys already being tracked.
 Global decrements are applied through a lazy offset~$L$ rather than by scanning the entire hash table to decrement each counter.
 Thus, a stored counter value~$v$ represents an effective count of~$v-L$, while a newly admitted key is assigned~$L+1$ to give it an effective count of~1 once~$L$ is subtraced.
 
 A remaining challenge is efficiently identifying entries whose effective counters reach zero so they can be evicted.
-While many MG implementations use a min-heap for this purpose~\cite{MGH1,MGH2,BatchUpdateMisraGries}, the most theoretically efficient implementation maintains a doubly linked list representing the counter values in increasing order~\cite{SpaceSaving}.
+Many MG implementations use a min-heap for this purpose~\cite{MGH1,MGH2,BatchUpdateMisraGries}, at the cost of slowing every insertion to logarithmic time.
+A faster alternative is to maintain a doubly linked list representing the counter values in increasing order~\cite{SpaceSaving}.
 Each node in this linked list corresponds to a distinct counter value and points to all keys in the hash table with that count.
 Incrementing a counter moves its key by at most one position in the linked list, enabling constant-time updates, while keys with zero-valued counters appear at the head and can be evicted in constant time.
-The drawback of this approach is the space overhead of the associated pointers: each linked-list node stores three pointers, two linking it to its neighbors and one to the corresponding hash-table entry, while each hash-table entry stores an additional pointer back to its linked-list node.
+The drawback of both approaches is the significant space overhead of their auxiliary structures: each entry in the auxiliary structure stores a pointer to its corresponding hash-table entry, while each hash-table entry stores a pointer back to the entry within the auxiliary structure.
+Each node in the doubly linked list additionally stores two pointers to its neighboring nodes.
 
 \textbf{\sketchmg.}
 Similarly to CMS and CS, a shortcoming of traditional MG is its use of fixed-length counters: under skewed workloads, many counters store relatively small values, leaving their higher-order bits unused.
@@ -2987,10 +2936,10 @@ Moreover, MG's error grows linearly with the stream length, causing its estimate
 We now introduce \sketchmg, a generalization of MG that addresses both shortcomings.
 It employs \counterencodingabbrv\ to compress the counters and expands the hash table as the stream grows to control the estimation error.
 
-We also present a new insight that substantially simplifies MG's implementation: global decrements occur infrequently.
+We also present a new insight to save a substantial amount of additional memory: global decrements occur infrequently.
 In particular, they are sufficiently rare that, even if each performs a linear scan over the hash table to decrement all counters and evict keys, the total cost remains amortized constant per stream insertion.
 This observation allows us to eliminate the linked list traditionally used for efficient eviction, reducing the sketch's memory footprint by~2--3$\times$.
-We further show that these scans can be de-amortized using a compact segment tree with an overhead of only~2~bits~per~key.
+We further show that these scans can be de-amortized using a compact segment tree with a memory overhead of only 2 bits per key---significantly less than that of a heap or doubly linked list.
 
 \textbf{Accommodating Skew.}
 Recall from \Cref{sec:accommodating_skew} that \counterencodingabbrv\ compresses contiguous counters by packing them into the same cache line along with their extensions.
@@ -2999,7 +2948,8 @@ MG, however, stores keys and counters together within a hash table, making \coun
 
 To address this, \sketchmg separates the counters from the keys.
 It stores the keys in an open-addressed hash table, where they are arranged in a contiguous array of slots.
-Our implementation uses Cuckoo hashing~\cite{CuckooHashing,CuckooHashingConference}, though other open-addressing schemes (e.g., linear or quadratic probing) are also applicable.
+To ensure that the hash table's operations remain efficient, \sketchmg handles an insertion with a global decrement whenever the hash table's occupancy reaches a maximum load factor.
+Our implementation uses a Cuckoo hash table~\cite{CuckooHashing,CuckooHashingConference} with buckets of four slots each and a maximum load factor of~95\%, though other open-addressing schemes (e.g., linear or quadratic probing) are also applicable.
 \sketchmg then allocates a separate counter array that mirrors the hash table's layout, with one counter per hash-table slot.
 It stores the counter corresponding to the key in the~$i${\nobreakdash-}th slot of the hash table at offset~$i$ in the counter array.
 Separating the counters in this way allows them to be encoded directly using \counterencodingabbrv, while the mirrored layout makes locating a key's counter efficient.
@@ -3019,13 +2969,7 @@ MG's error grows only through global decrements triggered by insertions of untra
 Thus, \sketchmg controls its worst-case estimation error by doubling its size whenever the number of untracked-key insertions, denoted by~$M$, more than doubles.\footnote{In~$M$, we also count untracked-key insertions that are admitted into empty slots without triggering a global decrement. This definition allows our analysis to use the charging argument described earlier in this section; excluding these insertions from~$M$ would prevent the resulting error bounds from holding.}
 As with \sketchcs in the previous section, this corresponds to defining the size function in terms of~$M$, i.e., as~$W(M)$.
 
-Unlike \sketchcms and \sketchcs, \sketchmg can expand by factors smaller than~2 because it uses a hash table rather than flat counter arrays.
-\sketchmg achieves this with Cuckoo hashing by rebuilding the hash table with one additional slot per bucket.
-Once the bucket size reaches twice its original size, \sketchmg restructures the hash table by doubling the number of buckets and restoring the original bucket size.
-Other hash table implementations can also expand by factors smaller than~2 using techniques such as linear hashing~\cite{LinearHashing,VirtualHashing} or stretching~\cite{Zeno}.
-These finer-grained expansions incur additional reconstruction overheads, but allow \sketchmg to add counters sooner than \sketchcms and \sketchcs.
-As a result, \sketchmg achieves the same asymptotic error scaling as \sketchcms and \sketchcs while attaining a smaller constant factor.
-The following theorem, proven in Appendix~\ref{apx:upper_bounds_mg_normal}, formalizes this result:
+The following theorem, proven in Appendix~\ref{apx:upper_bounds_mg_normal}, shows that \sketchmg achieves the same asymptotic error scaling as \sketchcms and \sketchcs:
 \begin{restatable}{theorem}{thmmgnormal}
     \label{thm:mg-normal} When using a size function~$W(\cdot)$ on a stream where a total of~$M$ insertions of untracked keys occur, \sketchmg provides an estimation error~$E(M)$ satisfying
     $$
@@ -3036,10 +2980,24 @@ The following theorem, proven in Appendix~\ref{apx:upper_bounds_mg_normal}, form
     \end{cases}
     $$
     Compared to a fixed-size MG that, given prior knowledge of~$M$, is allocated upfront with~$W(M)$ counters, the error terms above are higher by at most a constant and a logarithmic factor.
-    The above expressions are smaller than or equal to the corresponding expressions with the stream length~$N$ in place of~$M$, since~$M \leq N$.
 \end{restatable}
+To tune the parameters~$\alpha$ and $\epsilon$ for \sketchmg before processing a stream, practitioners can replace~$M$ in \Cref{thm:mg-normal} with the stream length~$N$ to derive an upper bound on the estimation error, as~$M \leq N$.
+At runtime, \sketchmg keeps track of the number of untracked-key insertions~$M$ and can report it as a tighter upper bound on the estimation error.
 Note that setting~$\epsilon \leq 1$ when~$\alpha=1$ trivially yields an error bound of~0, as \sketchmg will always grow enough to admit all keys and track their exact counts.
 Interestingly, setting~$\epsilon$ even slightly larger than~1 creates the logarithmic overhead of \Cref{thm:mg-normal}.
+
+\textbf{Fine-Grained Expansions.}
+Unlike \sketchcms and \sketchcs, \sketchmg can expand by factors smaller than~2 because it uses a hash table rather than flat counter arrays.
+\sketchmg achieves this with Cuckoo hashing by rebuilding the hash table from scratch with one additional slot per bucket.
+This expansion occurs whenever the size function~$W(M)$ exceeds the hash table's current capacity.
+Once the bucket size reaches twice its original size (eight slots), \sketchmg restructures the hash table by doubling the number of buckets and restoring the original bucket size (four slots).
+Other hash table implementations can also expand by factors smaller than~2 using techniques such as linear hashing~\cite{LinearHashing,VirtualHashing} or stretching~\cite{Zeno}.
+These finer-grained expansions incur additional reconstruction overheads, but allow \sketchmg to add counters sooner than \sketchcms and \sketchcs.
+As a result, \sketchmg attains smaller constant factors in its error bounds than those of \sketchcms and \sketchcs, as shown in \Cref{thm:mg-normal}.
+In particular, when~$\alpha=1$, \sketchmg's error bound is a natural logarithm rather than the base-2 logarithm of Theorems~\ref{thm:cms-w} and \ref{thm:cs-w}.
+When~$\alpha<1$, the hidden constant factor\footnote{Appendix~\ref{apx:upper_bounds_mg_normal} shows that this factor is close to~$\frac{\alpha}{1+\alpha} \cdot \left[ {}_2F_1(1, 1+\frac1\alpha; 2+\frac1\alpha; -N^\alpha) - \frac12 \cdot {}_2F_1(1, 1+\frac1\alpha; 2+\frac1\alpha; -(N^\alpha - 1)/2) \right]$, where~${}_2F_1$ is Gauss's hypergeometric function. This quantity can be shown to be at most~$\frac{1}{1-\alpha}$, and that it converges to $\ln (N + 1)$ as $\alpha$ approaches~1.} is also smaller than those of \sketchcms and \sketchcs.
+
+%The constant factor hidden by the asymptotics is~$(2^{1/\alpha}-1) \cdot \frac{1-2^{(\alpha-1) \cdot \log_2 N}}{2^{1/\alpha-1}-1}$, which is at most~$\frac{2^{1/\alpha}-1}{2^{1/\alpha-1}-1}$ and converges to~$\log_2 N$ as $\alpha$ tends to 1.
 
 \textbf{Tail Guarantees.}
 As with CMS and CS, MG also provides a tail guarantee: any key's estimation error is at most~$\min_{1 \leq i \leq w} \frac{M^{\mathrm{res}(i)}}{w-i+1}$, where~$M^{\mathrm{res}(i)}$ is the total number of insertions for untracked keys that are not among the~$i$ most frequent.
@@ -3099,7 +3057,7 @@ Thus, the segment tree incurs a memory overhead of at \mbox{most~2 bits per coun
         \def\arrayw{\arraylen*\cellw}
         \def\elemw{0.5*\cellw}
         \def\counterw{0.5*\cellw}
-        \def\annotationoffset{0.15}
+        \def\annotationoffset{0.22}
         \def\bottomymul{3.1}
         \def\casebracewidth{1.5}
         \def\casebracewidthquery{0.55}
@@ -3114,7 +3072,7 @@ Thus, the segment tree incurs a memory overhead of at \mbox{most~2 bits per coun
                 \draw[white,fill=gray!20] (\i*\cellw-\counterw,0.5*\arrayh) rectangle (\i*\cellw-\cellw,-0.5*\arrayh);
             \fi
             \draw[black,dotted,dash phase=4pt] (\i*\cellw-\counterw,0.5*\arrayh) -- (\i*\cellw-\counterw,-0.5*\arrayh);
-            \draw (\i*\cellw-\cellw,0.5*\arrayh) -- (\i*\cellw-\cellw,-0.5*\arrayh);
+            \draw[thick] (\i*\cellw-\cellw,0.5*\arrayh) -- (\i*\cellw-\cellw,-0.5*\arrayh);
 
             \pgfmathparse{\counterarray[\i-1]}
             \let\countervalue\pgfmathresult
@@ -3123,7 +3081,12 @@ Thus, the segment tree incurs a memory overhead of at \mbox{most~2 bits per coun
             \node[inner sep=0pt,anchor=north] (slot-offset-\slotoffset) at (\i*\cellw-0.5*\cellw,-0.5*\arrayh-\annotationoffset) {\footnotesize \slotoffset};
             \coordinate (tree-0-\i) at ($(\i*\cellw-0.5*\cellw,0.5*\arrayh)+(0,2pt)$);
         }
-        \draw[black] (0,0.5*\arrayh) rectangle (\arrayw,-0.5*\arrayh);
+        \draw[thick] (0,0.5*\arrayh) rectangle (\arrayw,-0.5*\arrayh);
+        % Slot layout: key (left half) and counter (right half) of the first slot
+        \node[inner sep=1pt,anchor=east] (key-label) at (-0.3,0) {\footnotesize Key};
+        \node[inner sep=1pt,anchor=east] (counter-label) at (-0.3,-0.27) {\footnotesize Counter};
+        \draw[-stealth] (3pt,0) -- (key-label.east);
+        \draw[stealth-] (counter-label.east) -| ($(\cellw-0.5*\counterw,-0.5*\arrayh)+(0,1pt)$);
         \foreach \x in {4, 5} {
             \draw[black,dotted] (\x*\cellw,-0.5*\arrayh) -- ($(\x*\cellw,0 |- slot-offset-4.south)+(0,-3pt)$);
         }
@@ -3940,7 +3903,7 @@ them without compounding errors.
 
 \textbf{Experiment 9: MG Accuracy and Speed vs. Memory.}
 We now benchmark \sketchmg to demonstrate the benefits of applying \sketch\ to MG.
-We include a traditional MG implemented using a Cuckoo hash table~\cite{} without auxiliary structures for evictions as a baseline.
+We include a traditional MG implemented using a Cuckoo hash table~\cite{CuckooHashing,CuckooHashingConference} without auxiliary structures for evictions as a baseline.
 We also include SpaceSaving~\cite{SpaceSaving}, which employs a doubly-linked list for identifying eviction victims.
 Additionally, we include Waving sketch~\cite{WavingSketch} as a baseline, since it is the state-of-the-art sketch in the literature that employs MG as a sub-structure in its hybrid design.
 We also compare to Stingy sketch~\cite{StingySketch} and Coding sketch~\cite{CodingSketch} applied to CS, representing counter sharing methods with unbiased estimates.
