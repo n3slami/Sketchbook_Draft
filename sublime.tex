@@ -2923,10 +2923,11 @@ For insertions of untracked keys, the original MG paper~\cite{MisraGries} observ
 This follows from two properties:
 (1)~each global decrement increases the worst-case estimation error by one, while
 (2)~an MG with~$w$ counters has an estimation error of at most~$N/w$ after~$N$ insertions.
-Together, these properties limit the number of global decrements and the corresponding scans to~$N/w$.
+Together, these properties limit the number of global decrements to~$N/w$.
 Because each decrement requires a~$\Theta(w)$ scan over the counters, their total cost over the stream is~$O(N)$.
 Thus, when implemented using a hash table, MG supports insertions in constant expected amortized time.
-Nevertheless, the worst-case insertion time remains at~$\Theta(w)$, making this approach unsuitable for applications requiring strict latency guarantees (e.g., aggregating traffic statistics within network routers without delaying packet forwarding~\cite{UnivMon,StingySketch}).
+However, an individual insertion can still take~$\Theta(w)$ time, making this approach unsuitable for applications that require strict latency guarantees (e.g., aggregating traffic statistics within network routers without delaying packet forwarding~\cite{UnivMon,StingySketch}).
+The first row of \Cref{tab:mg_performance_space_overhead} summarizes the performance and space characteristics of \mbox{this scan-based approach}.
 
 \begin{table}
     \centering
@@ -2975,20 +2976,23 @@ Nevertheless, the worst-case insertion time remains at~$\Theta(w)$, making this 
     \label{tab:mg_performance_space_overhead}
 \end{table}
 
-Many MG implementations aim to address this issue by de-amortizing the decrement scans.
-To this end, they apply global decrements through a lazy offset~$L$.
-Thus, a stored counter value~$v$ represents an effective count of~$v-L$, while a newly admitted key is assigned~$L+1$ to give it an effective count of~1 once~$L$ is subtraced.
-A remaining challenge is efficiently identifying entries whose effective counters reach zero so they can be evicted.
+To avoid the~$\Theta(w)$ worst-case insertion time, many MG implementations de-amortize global decrements by applying them lazily.
+In particular, they maintain a global lazy offset~$L$ that is incremented with each global decrement.
+A stored counter value~$v$ then represents an effective count of~$v-L$, while a newly admitted key is assigned~$L+1$ to give it an effective count of~1 after subtracting~$L$.
+The remaining challenge is efficiently identifying entries whose effective counts reach zero so they can be evicted.
 
-Many implementations tackle this challenge using a min-heap that orders keys by their counts~\cite{MGH1,MGH2,BatchUpdateMisraGries}.
-This min-heap efficiently identifies eviction candidates at the cost of slowing every insertion to logarithmic time.
-Other implementations improve the worst-case insertion time by instead maintaining a doubly linked list representing the counter values in increasing order~\cite{SpaceSaving}.
+Existing MG implementations address this challenge using one of two auxiliary data structures: a min-heap~\cite{MGH1,MGH2,BatchUpdateMisraGries} or a doubly linked list~\cite{SpaceSaving,UnbiasedSpaceSaving}.
+Heap-based implementations maintain a min-heap that orders keys by their counts.
+The minimum element then identifies the evicttion victim, but maintaining the heap increases the cost of every insertion to~$O(\log w)$, sacrificing the constant amortized insertion time of the scan-based approach.
+To avoid these logarithmic costs, other implementations instead maintain a doubly linked list that organizes keys by their counter values.
 Each node in this linked list corresponds to a distinct counter value and points to all keys in the hash table with that count.
 Incrementing a counter moves its key by at most one position in the linked list, enabling constant-time updates, while keys with zero-valued counters appear at the head and can be evicted in constant time.
-The drawback of both approaches is the significant space overhead of their auxiliary structures: each entry in the auxiliary structure stores a pointer to its corresponding hash-table entry, while each hash-table entry stores a pointer back to the entry within the auxiliary structure.
-Each node in the doubly linked list additionally stores two pointers to its neighboring nodes.
-\Cref{tab:mg_performance_space_overhead} summarizes and compared the characteristics of the above implementations.
 
+While both approaches avoid the~$\Theta(w)$ scan, they incur significant space overhead.
+Each entry in the auxiliary structure must store a pointer to its corresponding hash-table entry to identify eviction victims, while each hash-table entry must store a pointer back to the auxiliary structure to support updates.
+The doubly linked list additionally requires two pointers per node to link neighboring counter values.
+These pointers can be compressed to~$\log_2 w$-bit offsets because the hash table, heap, and linked list can each be stored in a contiguous array of size~$w$ and therefore addressed using~$\log_2 w$ bits.
+\Cref{tab:mg_performance_space_overhead} summarizes the performance and space characteristics of these two approaches.
 
 \textbf{\sketchmg.}
 Similarly to CMS and CS, a shortcoming of traditional MG is its use of fixed-length counters: under skewed workloads, many counters store relatively small values, leaving their higher-order bits unused.
@@ -2996,8 +3000,8 @@ Moreover, MG's error grows linearly with the stream length, causing its estimate
 We now introduce \sketchmg, a generalization of MG that addresses both shortcomings.
 It employs \counterencodingabbrv\ to compress the counters and expands the hash table as the stream grows to control the estimation error.
 
-Thus, the doubly linked list traditionally used for efficient eviction is needed only for de-amortizing these scans and can otherwise be eliminated, reducing memory consumption by~2--3$\times$.
-When worst-case latency matters, \sketchmg instead de-amortizes the scans using a compressed segment tree that requires only two additional bits per key---significantly less overhead than a linked list.
+\sketchmg further de-amortizes evictions using a compressed segment tree that consumes only two additional bits per key, reducing the memory footprint by~2--3$\times$ compared with implementations that use conventional auxiliary structures.
+We show that this design provides logarithmic worst-case insertion time while retaining constant amortized insertion time.
 
 \textbf{Accommodating Skew.}
 Recall from \Cref{sec:accommodating_skew} that \counterencodingabbrv\ compresses contiguous counters by packing them into the same cache line along with their extensions.
@@ -3005,29 +3009,30 @@ Recall from \Cref{sec:accommodating_skew} that \counterencodingabbrv\ compresses
 MG, however, stores keys and counters together within a hash table, making \counterencodingabbrv\ less straightforward to apply.
 
 To address this, \sketchmg separates the counters from the keys.
-It stores the keys in an open-addressed hash table, where they are arranged in a contiguous array of slots.
-To ensure that the hash table's operations remain efficient, \sketchmg handles an insertion with a global decrement whenever the hash table's occupancy reaches a maximum load factor.
-Our implementation uses a Cuckoo hash table~\cite{CuckooHashing,CuckooHashingConference} with buckets of four slots each and a maximum load factor of~95\%, though other open-addressing schemes (e.g., linear or quadratic probing) are also applicable.
-\sketchmg then allocates a separate counter array that mirrors the hash table's layout, with one counter per hash-table slot.
-It stores the counter corresponding to the key in the~$i${\nobreakdash-}th slot of the hash table at offset~$i$ in the counter array.
-Separating the counters in this way allows them to be encoded directly using \counterencodingabbrv, while the mirrored layout makes locating a key's counter efficient.
+It stores the keys in an open-addressed hash table, which arranges them in a contiguous array of slots.
+To maintain efficient hash-table operations, \sketchmg triggers a global decrement whenever an untracked key arrives after the table reaches its maximum load factor.
+Our implementation uses a Cuckoo hash table~\cite{CuckooHashing,CuckooHashingConference} with four slots per bucket and a maximum load factor of~95\%, though other open-addressing schemes (e.g., linear or quadratic probing) are also applicable.
+The contiguous layout of an open-addressed hash table allows \sketchmg to store the counters in a separate array that mirrors the hash table, with one counter per slot.
+Specifically, the counter corresponding to a key in the~$i${\nobreakdash-}th hash-table slot is stored at offset~$i$ in the counter array.
+Separating the counters in this way allows them to be encoded directly using \counterencodingabbrv, while the mirrored layout enables efficient access to a key's counter.
 
 Maintaining this mirrored layout requires moving a key's counter whenever the key moves to a different slot in the hash table.
 This involves copying the counter's stub and, if present, relocating its extension.
 Relocating an extension entails a small number of bitwise operations on the source and destination extension pools, since each extension pool is typically~1--2 machine words long (as discussed in \Cref{sec:accommodating_skew}).
 Moving counters therefore adds only a small constant overhead to insertions in expectation, since the counter movements correspond directly to key movements performed during collision resolution, whose total expected cost per insertion is constant.
 
-A consequence of separating the keys and counters is that accessing a key's counter may incur an additional cache miss.
-\sketchmg mitigates this overhead by speculatively prefetching the regions of the counter array likely to contain the key's counter.
-In the case of a Cuckoo hash table, a key can reside in one of two locations, so \sketchmg prefetches the counters corresponding to both locations.
+A consequence of separating keys and their counters is that accessing a key's counter may incur an additional cache miss.
+We mitigate this overhead by speculatively prefetching the regions of the counter array likely to contain a key's counter while searching for it in the hash table.
+For a Cuckoo hash table, a key can reside in one of two locations, so we prefetch the counters at both locations.
 
 \textbf{Accommodating Unbounded Data Growth.}
-As discussed earlier in this section, inserting a key already tracked by MG simply increments its counter in the hash table and does not increase the estimation error.
-MG's error grows only through global decrements triggered by insertions of untracked keys, and each such decrement increases the worst-case error by one.
-Thus, \sketchmg controls its worst-case estimation error by doubling its size whenever the number of untracked-key insertions, denoted by~$M$, more than doubles.\footnote{In~$M$, we also count untracked-key insertions that are admitted into empty slots without triggering a global decrement. This definition allows our analysis to use the charging argument described earlier in this section; excluding these insertions from~$M$ would prevent the resulting error bounds from holding.}
-As with \sketchcs in the previous section, this corresponds to defining the size function in terms of~$M$, i.e., as~$W(M)$.
+As discussed earlier, inserting a key already tracked by MG simply increments its counter and does not increase the estimation error.
+MG's error grows only through global decrements triggered by insertions of untracked keys, with each decrement increasing the worst-case error by one.
+This suggests a different expansion criterion from those of CMS and CS: whereas CMS expands with the total number of insertions and CS with the stream's~$\ell_2$-norm, MG should expand with the number of untracked-key insertions\footnote{We also count insertions of untracked keys that are admitted into empty slots without triggering a global decrement. Such insertions capture the amount of churn in the sketch, which intuitively reflects the future estimation error: higher churn causes keys to be retained for shorter periods, reducing the accuracy of their frequency estimates. This definition also allows our analysis to use the charging argument described earlier in this section; excluding these insertions would prevent the resulting error bounds from holding.} thus far, denoted by~$M$.
+Accordingly, \sketchmg doubles its size whenever~$M$ more than doubles.
+We define the size function~$W(M)$ to specify how many entries \sketchmg should maintain after~$M$ insertions of untracked keys.
 
-The following theorem, proven in Appendix~\ref{apx:upper_bounds_mg_normal}, shows that \sketchmg achieves the same asymptotic error scaling as \sketchcms and \sketchcs:
+This size function allows \sketchmg to achieve the same asymptotic sublinear error scaling as \sketchcms and \sketchcs. The following theorem, proven in Appendix~\ref{apx:upper_bounds_mg_normal}, formalizes this result:
 \begin{restatable}{theorem}{thmmgnormal}
     \label{thm:mg-normal} When using a size function~$W(\cdot)$ on a stream where a total of~$M$ insertions of untracked keys occur, \sketchmg provides an estimation error~$E(M)$ satisfying
     $$
@@ -3039,23 +3044,22 @@ The following theorem, proven in Appendix~\ref{apx:upper_bounds_mg_normal}, show
     $$
     Compared to a fixed-size MG that, given prior knowledge of~$M$, is allocated upfront with~$W(M)$ counters, the error terms above are higher by at most a constant and a logarithmic factor.
 \end{restatable}
-To tune the parameters~$\alpha$ and $\epsilon$ for \sketchmg before processing a stream, practitioners can replace~$M$ in \Cref{thm:mg-normal} with the stream length~$N$ to derive an upper bound on the estimation error, as~$M \leq N$.
-At runtime, \sketchmg keeps track of the number of untracked-key insertions~$M$ and can report it as a tighter upper bound on the estimation error.
-Note that setting~$\epsilon \leq 1$ when~$\alpha=1$ trivially yields an error bound of~0, as \sketchmg will always grow enough to admit all keys and track their exact counts.
-Interestingly, setting~$\epsilon$ even slightly larger than~1 creates the logarithmic overhead of \Cref{thm:mg-normal}.
+
+To tune the parameters~$\alpha$ and~$\epsilon$ for \sketchmg before processing a stream, practitioners can replace~$M$ in \Cref{thm:mg-normal} with the stream length~$N$ to obtain an upper bound on the estimation error, since~$M \leq N$.
+At runtime, \sketchmg tracks the actual number of untracked-key insertions~$M$ and can use it to report a tighter error bound.
+Note that when~$\alpha=1$, setting~$\epsilon \leq 1$ trivially yields an error bound of~0 because \sketchmg always grows sufficiently large to admit every key and track its exact count.
+Interestingly, increasing~$\epsilon$ even slightly above~1 introduces the logarithmic factor in the error bound of \Cref{thm:mg-normal}.
 
 \textbf{Fine-Grained Expansions.}
 Unlike \sketchcms and \sketchcs, \sketchmg can expand by factors smaller than~2 because it uses a hash table rather than flat counter arrays.
-\sketchmg achieves this with Cuckoo hashing by rebuilding the hash table from scratch with one additional slot per bucket.
-This expansion occurs whenever the size function~$W(M)$ exceeds the hash table's current capacity.
+\sketchmg achieves this with Cuckoo hashing by rebuilding the hash table from scratch with one additional slot in each bucket.
+This expansion occurs whenever the size function~$W(M)$ exceeds the hash table's current maximum capacity.
 Once the bucket size reaches twice its original size (eight slots), \sketchmg restructures the hash table by doubling the number of buckets and restoring the original bucket size (four slots).
 Other hash table implementations can also expand by factors smaller than~2 using techniques such as linear hashing~\cite{LinearHashing,VirtualHashing} or stretching~\cite{Zeno}.
 These finer-grained expansions incur additional reconstruction overheads, but allow \sketchmg to add counters sooner than \sketchcms and \sketchcs.
 As a result, \sketchmg attains smaller constant factors in its error bounds than those of \sketchcms and \sketchcs, as shown in \Cref{thm:mg-normal}.
 In particular, when~$\alpha=1$, \sketchmg's error bound is a natural logarithm rather than the base-2 logarithm of Theorems~\ref{thm:cms-w} and \ref{thm:cs-w}.
 When~$\alpha<1$, the hidden constant factor\footnote{Appendix~\ref{apx:upper_bounds_mg_normal} shows that this factor is close to~$\frac{\alpha}{1+\alpha} \cdot \left[ {}_2F_1(1, 1+\frac1\alpha; 2+\frac1\alpha; -M^\alpha) - \frac12 \cdot {}_2F_1(1, 1+\frac1\alpha; 2+\frac1\alpha; -(M^\alpha - 1)/2) \right]$, where~${}_2F_1$ is Gauss's hypergeometric function. This quantity can be shown to be at most~$\frac{1}{1-\alpha}$, and that it converges to $\ln (M + 1)$ as $\alpha$ approaches~1.} is also smaller than those of \sketchcms and \sketchcs.
-
-%The constant factor hidden by the asymptotics is~$(2^{1/\alpha}-1) \cdot \frac{1-2^{(\alpha-1) \cdot \log_2 N}}{2^{1/\alpha-1}-1}$, which is at most~$\frac{2^{1/\alpha}-1}{2^{1/\alpha-1}-1}$ and converges to~$\log_2 N$ as $\alpha$ tends to 1.
 
 \textbf{Tail Guarantees.}
 As with CMS and CS, MG also provides a tail guarantee: any key's estimation error is at most~$\min_{1 \leq i \leq w} \frac{M^{\mathrm{res}(i)}}{w-i+1}$, where~$M^{\mathrm{res}(i)}$ is the total number of insertions for untracked keys that are not among the~$i$ most frequent.
@@ -3092,12 +3096,13 @@ While this approach works well for applications that prioritize high throughput,
 \textbf{Eviction: Segment Tree.}
 \sketchmg improves its worst-case insertion cost to~$O(\log w)$ while retaining constant amortized cost by maintaining a compressed segment tree~\cite{SegmentTree1,SegmentTree2,CG} over its counter array, as shown in \Cref{fig:mg_segment_tree}.
 This segment tree is a full binary tree whose leaves are the counters in \sketchmg's counter array.
-Each internal node identifies the smallest non-zero counter in its subtree by storing its offset from the subtree's leftmost leaf.
+Each internal node identifies the counter with the smallest non-zero effective count (i.e., the smallest counter a value larger than the global lazy offset~$L$) in its subtree by storing its offset from the subtree's leftmost leaf.
 We exclude zero counters because they correspond to overprovisioned empty slots in the hash table that help speed up insertions.
 The segment tree's root therefore stores the offset of the smallest non-zero counter in the entire counter array, allowing \sketchmg to efficiently identify an eviction victim.
 
 \Cref{fig:mg_segment_tree} shows these offsets in black and the corresponding counter values in gray.
 The lowest internal nodes store offsets~0, 1, 1, and 0, indicating which of their two children contains the smaller non-zero counter.
+The third node from the left in this level stores~1 rather than 0, since its left child has an effective count of zero.
 The two internal nodes in the level above store offsets~3 and 1, identifying counters with values~4 and 1 as the minima of their respective subtrees.
 
 Since an internal node at height~$h$ has at most~$2^h$ leaves in its subtree, its subtree-local offset lies in the range~$[0,2^h)$.
@@ -3197,7 +3202,8 @@ Thus, the segment tree incurs a memory overhead of at \mbox{most~2 bits per coun
 
         \node[inner sep=1pt,left=32pt of tree-3-1,yshift=1.075pt,align=left] (global_offset_label) {\footnotesize \textcolor{gray!80}{Min Value:} \\[-4pt] \footnotesize Subtree-Local Offset of Min:};
     \end{tikzpicture}
-    \caption{By storing a compressed segment tree, \sketchmg improves the worst-case insertion cost to logarithmic while retaining a constant amortized cost.}
+    \caption{By storing a compressed segment tree, \sketchmg improves the worst-case insertion cost to logarithmic while retaining a constant amortized cost.
+    To simplify the figure, this example considers the scenario where the global lazy offset is~$L=0$.}
     \label{fig:mg_segment_tree}
 \end{figure}
 
@@ -3220,17 +3226,14 @@ This complexity is optimal among MG implementations that use comparison-based da
 
 \textbf{Localized Lazy Decrements.}
 Using the segment tree, \sketchmg avoids scanning the hash table during eviction.
-However, eliminating these scans also removes the opportunity to apply the global lazy offset~$L$ to all counters in a single pass.
-As a result, counter values can grow larger and reduce the space savings provided by \counterencodingabbrv.
-
-
-\sketchmg addresses this issue by applying lazy decrements locally.
+However, because global decrements are applied through the lazy offset~$L$, stored counter values may grow over time, reducing the space savings provided by \counterencodingabbrv.
+To prevent this growth without introducing full-table scans, \sketchmg applies the accumulated lazy decrements locally.
 Specifically, it partitions the counter array into blocks of~32 counters and stores a~32{\nobreakdash-}bit local decrement for each block.
-This value records the global lazy offset that was last applied to the block.
-During an insertion, \sketchmg compares the global lazy offset with the local decrement of the block containing the counter being updated.
-If their difference exceeds a tunable threshold ($2^{s-1}$ by default, where~$s$ is the stub size used by \counterencodingabbrv), \sketchmg applies the outstanding lazy decrements to the block's counters and sets its local decrement to the current global lazy offset.
-This process deamortizes the work of a full scan and therefore preserves constant amortized insertion time.\footnote{In practice, processing a block of~32 counters has a cost comparable to~$O(\log w)$, preserving the logarithmic worst-case insertion cost. When~$\log_2 w \ll 32$, the same guarantee can be maintained by shrinking the blocks to contain~$O(\log_2 w)$ counters and storing~$O(\log_2 w)$-bit local offsets.}
-Moreover, the local offsets incur a memory overhead of only one bit per counter.
+This value records the global lazy offset last applied to the corresponding block.
+During an insertion, \sketchmg compares the global lazy offset~$L$ with the local decrement of the block containing the counter being updated.
+If their difference exceeds a tunable threshold ($2^{s-1}$ by default, where~$s$ is the stub size used by \counterencodingabbrv), \sketchmg applies the outstanding decrements to all counters in the block and updates its local decrement to the current value of~$L$.
+This process distributes the work of periodically subtracting~$L$ from all counters across insertions, thereby preserving constant amortized insertion time.\footnote{In practice, processing a block of~32 counters has a cost comparable to~$O(\log w)$, preserving the logarithmic worst-case insertion cost. When~$\log_2 w \ll 32$, the same guarantee can be maintained by reducing the block size to~$O(\log_2 w)$ counters and storing~$O(\log_2 w)$-bit local decrements.}
+Moreover, at~32 bits per block of~32 counters, these local decrements incur a memory overhead of only one bit per counter.
 
 \textbf{Applicability to Other MG Variants.}
 MG has several variants with different estimation and update properties.
