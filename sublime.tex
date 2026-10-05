@@ -2953,13 +2953,13 @@ The first row of \Cref{tab:mg_performance_space_overhead} summarizes the perform
         & \footnotesize $\Theta(1)$
         & \footnotesize $\Theta(\log w)$
         & \footnotesize $\Theta(\log w)$ 
-        & \footnotesize $2 \cdot \log_2 w$ \\
+        & \footnotesize $2 \cdot w \cdot \log_2 w$ \\
 
         \footnotesize Doubly Linked List
         & \footnotesize $\Theta(1)$
         & \footnotesize $\Theta(1)$
         & \footnotesize $\Theta(1)$ 
-        & \footnotesize $4 \cdot \log_2 w$ \\
+        & \footnotesize $4 \cdot w \cdot \log_2 w$ \\
         
         \midrule 
 
@@ -2967,7 +2967,7 @@ The first row of \Cref{tab:mg_performance_space_overhead} summarizes the perform
         & \footnotesize $\Theta(1)$
         & \footnotesize $\Theta(1)$
         & \footnotesize $\Theta(\log w)$ 
-        & \footnotesize 2 \\
+        & \footnotesize $2 \cdot w$ \\
 
         \bottomrule
     \end{tabular}
@@ -2988,7 +2988,7 @@ To avoid these logarithmic costs, other implementations instead maintain a doubl
 Each node in this linked list corresponds to a distinct counter value and points to all keys in the hash table with that count.
 Incrementing a counter moves its key by at most one position in the linked list, enabling constant-time updates, while keys with zero-valued counters appear at the head and can be evicted in constant time.
 
-While both approaches avoid the~$\Theta(w)$ scan, they incur significant space overhead.
+Although both approaches avoid the~$\Theta(w)$ scan, they incur significant space overhead.
 Each entry in the auxiliary structure must store a pointer to its corresponding hash-table entry to identify eviction victims, while each hash-table entry must store a pointer back to the auxiliary structure to support updates.
 The doubly linked list additionally requires two pointers per node to link neighboring counter values.
 These pointers can be compressed to~$\log_2 w$-bit offsets because the hash table, heap, and linked list can each be stored in a contiguous array of size~$w$ and therefore addressed using~$\log_2 w$ bits.
@@ -3000,8 +3000,10 @@ Moreover, MG's error grows linearly with the stream length, causing its estimate
 We now introduce \sketchmg, a generalization of MG that addresses both shortcomings.
 It employs \counterencodingabbrv\ to compress the counters and expands the hash table as the stream grows to control the estimation error.
 
-\sketchmg further de-amortizes evictions using a compressed segment tree that consumes only two additional bits per key, reducing the memory footprint by~2--3$\times$ compared with implementations that use conventional auxiliary structures.
-We show that this design provides logarithmic worst-case insertion time while retaining constant amortized insertion time.
+
+In addition to using a global lazy offset to de-amortize decrements, \sketchmg de-amortizes evictions using a compressed segment tree that consumes only two additional bits per key.
+This design reduces the memory footprint by~2--3$\times$ compared with implementations that rely on conventional auxiliary structures.
+At the same time, it provides logarithmic worst-case insertion time while preserving constant amortized insertion time.
 
 \textbf{Accommodating Skew.}
 Recall from \Cref{sec:accommodating_skew} that \counterencodingabbrv\ compresses contiguous counters by packing them into the same cache line along with their extensions.
@@ -3015,6 +3017,7 @@ Our implementation uses a Cuckoo hash table~\cite{CuckooHashing,CuckooHashingCon
 The contiguous layout of an open-addressed hash table allows \sketchmg to store the counters in a separate array that mirrors the hash table, with one counter per slot.
 Specifically, the counter corresponding to a key in the~$i${\nobreakdash-}th hash-table slot is stored at offset~$i$ in the counter array.
 Separating the counters in this way allows them to be encoded directly using \counterencodingabbrv, while the mirrored layout enables efficient access to a key's counter.
+As in the case of \sketchcms and \sketchcs, \sketchmg saves space by adaptively retuning \counterencodingabbrv\ as the counter values evolve.
 
 Maintaining this mirrored layout requires moving a key's counter whenever the key moves to a different slot in the hash table.
 This involves copying the counter's stub and, if present, relocating its extension.
@@ -3024,6 +3027,18 @@ Moving counters therefore adds only a small constant overhead to insertions in e
 A consequence of separating keys and their counters is that accessing a key's counter may incur an additional cache miss.
 We mitigate this overhead by speculatively prefetching the regions of the counter array likely to contain a key's counter while searching for it in the hash table.
 For a Cuckoo hash table, a key can reside in one of two locations, so we prefetch the counters at both locations.
+
+\textbf{Blocked Lazy Decrements.}
+\sketchmg implements global decrements in constant time through a global lazy offset~$L$, similarly to classic MG implementations.
+However, this approach allows stored counter values to grow needlessly over time, reducing the space savings provided by \counterencodingabbrv.
+To prevent this growth without introducing full-table scans, \sketchmg applies the accumulated lazy decrements to small blocks of counters at a time.
+Specifically, it partitions the counter array into blocks of~32 counters and stores a~32{\nobreakdash-}bit local decrement for each block.
+This value records the global lazy offset last applied to the corresponding block.
+During an insertion, \sketchmg compares the global lazy offset~$L$ with the local decrement of the block containing the counter being updated.
+If their difference exceeds a tunable threshold ($2^{s-1}$ by default, where~$s$ is the stub size used by \counterencodingabbrv), \sketchmg applies the outstanding decrements to all counters in the block and updates its local decrement to the current value of~$L$.
+This process distributes the work of periodically subtracting~$L$ from all counters across insertions, thereby preserving constant amortized insertion time.\footnote{In practice, processing a block of~32 counters has a cost comparable to~$O(\log w)$, ensuring a logarithmic worst-case insertion cost. When~$\log_2 w \ll 32$, the same guarantee can be maintained by reducing the block size to~$O(\log_2 w)$ counters and storing~$O(\log_2 w)$-bit local decrements.}
+This process distributes the work of applying accumulated lazy decrements across insertions, thereby preserving constant amortized insertion time.\footnote{In practice, processing a block of~32 counters has a cost comparable to~$O(\log w)$, ensuring a logarithmic worst-case insertion cost. When~$\log_2 w \ll 32$, the same guarantee can be maintained by reducing the block size to~$O(\log_2 w)$ counters and storing~$O(\log_2 w)$-bit local decrements.}
+Moreover, at~32 bits per block of~32 counters, these local decrements incur a memory overhead of only one bit per counter.
 
 \textbf{Accommodating Unbounded Data Growth.}
 As discussed earlier, inserting a key already tracked by MG simply increments its counter and does not increase the estimation error.
@@ -3080,35 +3095,14 @@ The additive terms on the right side of the above error bounds arise because \sk
 This forces \sketchmg to ``wait out'' the stream until the hash table's capacity reaches~$k$, introducing the additive error.
 These terms vanish if \sketchmg is allocated~$k$ counters from the start.
 
-\textbf{Eviction: Scans.}
-Recall that, after a global decrement, MG evicts any key whose count reaches zero.
-Classic MG implementations identify eviction victims using an auxiliary structure, which can incur significant memory overhead.
-\sketchmg avoids this overhead by eliminating the auxiliary structure and instead scanning the hash table to identify eviction victims.
-During each scan, \sketchmg also subtracts the lazy offset~$L$ from every counter and resets~$L$ to zero, thus shrinking the counter values and allowing \counterencodingabbrv\ to save space.
-These scans occur infrequently for two reasons:
-(1)~each untracked-key insertion increases the worst-case estimation error by one, while
-(2)~an MG with~$w$ counters has an estimation error of at most~$N/w$ after~$N$ insertions.
-Together, these properties limit the number of untracked-key insertions and the corresponding scans to~$N/w$.
-Because each scan costs~$\Theta(w)$, their total cost over the stream is~$O(N)$, yielding an amortized cost of~$O(1)$ per insertion.
-
-While this approach works well for applications that prioritize high throughput, its~$\Theta(w)$ worst-case eviction cost may be unsuitable for applications requiring strict latency guarantees (e.g., aggregating traffic statistics within network routers without delaying packet forwarding~\cite{UnivMon,StingySketch}).
-
-\textbf{Eviction: Segment Tree.}
-\sketchmg improves its worst-case insertion cost to~$O(\log w)$ while retaining constant amortized cost by maintaining a compressed segment tree~\cite{SegmentTree1,SegmentTree2,CG} over its counter array, as shown in \Cref{fig:mg_segment_tree}.
+\textbf{Evictions via a Segment Tree.}
+\sketchmg provides the option to handle evictions by scanning its hash table and counter array, similarly to the original MG.
+Although this approach provides constant amortized insertion time, its worst-case insertion cost is linear in the sketch size~$w$.
+To reduce this cost to~$O(\log w)$ while retaining constant amortized insertion time, \sketchmg maintains a compressed segment tree~\cite{SegmentTree1,SegmentTree2,CG} over its counter array, as shown in \Cref{fig:mg_segment_tree}.
 This segment tree is a full binary tree whose leaves are the counters in \sketchmg's counter array.
-Each internal node identifies the counter with the smallest non-zero effective count (i.e., the smallest counter a value larger than the global lazy offset~$L$) in its subtree by storing its offset from the subtree's leftmost leaf.
-We exclude zero counters because they correspond to overprovisioned empty slots in the hash table that help speed up insertions.
+Each internal node identifies the counter with the smallest non-zero effective count in its subtree by storing its offset from the subtree's leftmost leaf.
+We exclude zero effective counts because they correspond to overprovisioned empty slots in the hash table that help speed up insertions.
 The segment tree's root therefore stores the offset of the smallest non-zero counter in the entire counter array, allowing \sketchmg to efficiently identify an eviction victim.
-
-\Cref{fig:mg_segment_tree} shows these offsets in black and the corresponding counter values in gray.
-The lowest internal nodes store offsets~0, 1, 1, and 0, indicating which of their two children contains the smaller non-zero counter.
-The third node from the left in this level stores~1 rather than 0, since its left child has an effective count of zero.
-The two internal nodes in the level above store offsets~3 and 1, identifying counters with values~4 and 1 as the minima of their respective subtrees.
-
-Since an internal node at height~$h$ has at most~$2^h$ leaves in its subtree, its subtree-local offset lies in the range~$[0,2^h)$.
-Therefore, \sketchmg encodes this offset using~$h$ bits.
-Because there are at most~$w/2^h$ internal nodes at height~$h$, the total memory required for all subtree-local offsets is at most~$\sum_h h \cdot w/2^h \leq 2 \cdot w$ bits.
-Thus, the segment tree incurs a memory overhead of at \mbox{most~2 bits per counter}.
 
 \begin{figure}
     \centering
@@ -3116,10 +3110,9 @@ Thus, the segment tree incurs a memory overhead of at \mbox{most~2 bits per coun
         \def\arrayh{0.3}
         \def\arraylen{8}
         \def\arraylenminusone{7}
-        \def\cellw{0.95}
+        \def\cellw{0.75}
         \def\arrayw{\arraylen*\cellw}
-        \def\elemw{0.5*\cellw}
-        \def\counterw{0.5*\cellw}
+        \def\arraygap{0.1}
         \def\annotationoffset{0.22}
         \def\bottomymul{3.1}
         \def\casebracewidth{1.5}
@@ -3128,30 +3121,32 @@ Thus, the segment tree incurs a memory overhead of at \mbox{most~2 bits per coun
         \pgfmathtruncatemacro{\treelevels}{round(log2(\arraylen))}
 
         \def\counterarray{{7,9,8,4,0,1,2,3}}
+        \pgfmathsetmacro{\keyy}{-\arrayh-\arraygap}
         \foreach \i in {1, ..., \arraylen} {
+            % Key array (bottom)
             \ifnum\i=5
-                \fill[pattern=north east lines,pattern color=gray!60] (\i*\cellw-\counterw,0.5*\arrayh) rectangle (\i*\cellw-\cellw,-0.5*\arrayh);
+                \fill[pattern=north east lines,pattern color=gray!60] (\i*\cellw-\cellw,\keyy+0.5*\arrayh) rectangle (\i*\cellw,\keyy-0.5*\arrayh);
             \else
-                \draw[white,fill=gray!20] (\i*\cellw-\counterw,0.5*\arrayh) rectangle (\i*\cellw-\cellw,-0.5*\arrayh);
+                \fill[gray!20] (\i*\cellw-\cellw,\keyy+0.5*\arrayh) rectangle (\i*\cellw,\keyy-0.5*\arrayh);
             \fi
-            \draw[black,dotted,dash phase=4pt] (\i*\cellw-\counterw,0.5*\arrayh) -- (\i*\cellw-\counterw,-0.5*\arrayh);
-            \draw[thick] (\i*\cellw-\cellw,0.5*\arrayh) -- (\i*\cellw-\cellw,-0.5*\arrayh);
+            \draw (\i*\cellw-\cellw,\keyy+0.5*\arrayh) -- (\i*\cellw-\cellw,\keyy-0.5*\arrayh);
 
+            % Counter array (top)
+            \draw (\i*\cellw-\cellw,0.5*\arrayh) -- (\i*\cellw-\cellw,-0.5*\arrayh);
             \pgfmathparse{\counterarray[\i-1]}
             \let\countervalue\pgfmathresult
-            \node[inner sep=0pt] at (\i*\cellw-0.5*\counterw,0.0*\arrayh) {\footnotesize \countervalue};
+            \node[inner sep=0pt] at (\i*\cellw-0.5*\cellw,0.0*\arrayh) {\footnotesize \countervalue};
+
             \pgfmathtruncatemacro{\slotoffset}{\i-1}
-            \node[inner sep=0pt,anchor=north] (slot-offset-\slotoffset) at (\i*\cellw-0.5*\cellw,-0.5*\arrayh-\annotationoffset) {\footnotesize \slotoffset};
+            \node[inner sep=0pt,anchor=north] (slot-offset-\slotoffset) at (\i*\cellw-0.5*\cellw,\keyy-0.5*\arrayh-\annotationoffset) {\footnotesize \slotoffset};
             \coordinate (tree-0-\i) at ($(\i*\cellw-0.5*\cellw,0.5*\arrayh)+(0,2pt)$);
         }
-        \draw[thick] (0,0.5*\arrayh) rectangle (\arrayw,-0.5*\arrayh);
-        % Slot layout: key (left half) and counter (right half) of the first slot
-        \node[inner sep=1pt,anchor=east] (key-label) at (-0.3,0) {\footnotesize Key};
-        \node[inner sep=1pt,anchor=east] (counter-label) at (-0.3,-0.27) {\footnotesize Counter};
-        \draw[-stealth] (3pt,0) -- (key-label.east);
-        \draw[stealth-] (counter-label.east) -| ($(\cellw-0.5*\counterw,-0.5*\arrayh)+(0,1pt)$);
+        \draw (0,0.5*\arrayh) rectangle (\arrayw,-0.5*\arrayh);
+        \draw (0,\keyy+0.5*\arrayh) rectangle (\arrayw,\keyy-0.5*\arrayh);
+        \node[inner sep=1pt,anchor=east] at (-0.15,0) {\footnotesize Counters};
+        \node[inner sep=1pt,anchor=east] at (-0.15,\keyy) {\footnotesize Keys};
         \foreach \x in {4, 5} {
-            \draw[black,dotted] (\x*\cellw,-0.5*\arrayh) -- ($(\x*\cellw,0 |- slot-offset-4.south)+(0,-3pt)$);
+            \draw[black,dotted] (\x*\cellw,\keyy-0.5*\arrayh) -- ($(\x*\cellw,0 |- slot-offset-4.south)+(0,-3pt)$);
         }
         \draw[decorate,decoration={brace,raise=3pt,amplitude=2pt}] (5*\cellw,0 |- slot-offset-4.south) -- (4*\cellw,0 |- slot-offset-4.south)
             node[pos=0.5,below=6pt,inner sep=1pt] {\footnotesize Overprovisioning};
@@ -3200,40 +3195,48 @@ Thus, the segment tree incurs a memory overhead of at \mbox{most~2 bits per coun
             }
         }
 
-        \node[inner sep=1pt,left=32pt of tree-3-1,yshift=1.075pt,align=left] (global_offset_label) {\footnotesize \textcolor{gray!80}{Min Value:} \\[-4pt] \footnotesize Subtree-Local Offset of Min:};
+        \node[inner sep=1pt,left=22pt of tree-3-1,yshift=1.075pt,align=left] (global_offset_label) {\footnotesize \textcolor{gray!80}{Min Value:} \\[-4pt] \footnotesize Subtree-Local Offset of Min:};
+        \draw[-stealth] ($(tree-3-1.south east)+(0,5.75pt)$) -- ++(0.6,0) node[right,inner sep=1pt] {\footnotesize Stored Binary Encoding};
     \end{tikzpicture}
     \caption{By storing a compressed segment tree, \sketchmg improves the worst-case insertion cost to logarithmic while retaining a constant amortized cost.
-    To simplify the figure, this example considers the scenario where the global lazy offset is~$L=0$.}
+    To simplify the figure, each counter value in this example represents the effective count of its key.}
     \label{fig:mg_segment_tree}
 \end{figure}
 
+\Cref{fig:mg_segment_tree} shows these offsets in black and the corresponding counter values in gray.
+The lowest internal nodes store offsets~0, 1, 1, and 0, indicating which of their two children contains the smaller non-zero counter.
+The third node from the left in this level stores~1 rather than 0, since its left child has an effective count of zero.
+The two internal nodes in the level above store offsets~3 and 1, identifying counters with values~4 and 1 as the minima of their respective subtrees.
+
+Since an internal node at height~$h$ has at most~$2^h$ leaves in its subtree, its subtree-local offset lies in the range~$[0,2^h)$.
+Therefore, \sketchmg encodes this offset using~$h$ bits.
+The binary numbers in \Cref{fig:mg_segment_tree} illustrate the encoding of the subtree-local offsets.
+Because there are at most~$w/2^h$ internal nodes at height~$h$, the total memory required for all subtree-local offsets is at most~$\sum_h h \cdot w/2^h \leq 2 \cdot w$ bits.
+Thus, the segment tree incurs a memory overhead of at most~2 bits per counter.
+
 \sketchmg evicts a key by emptying the slot indicated by the segment tree's root and setting its counter to zero.
 It then updates the path from the corresponding leaf to the root to reflect the eviction.
-Similarly, when incrementing a counter, \sketchmg traverses the tree upward from the corresponding leaf and updates the affected internal nodes.
-This traversal terminates once it reaches an internal node whose subtree minimum remains unchanged.
-Both operations take~$O(\log w)$ time in the worst case.
+A similar update occurs when a counter moves within the array to mirror the hash table's collision resolution policy.
+When incrementing a counter, \sketchmg likewise traverses the tree upward from the corresponding leaf and updates the affected internal nodes.
+Each of these traversals terminates once it reaches an internal node whose subtree minimum remains unchanged and takes~$O(\log w)$ time in the worst case.
 
-These operations also preserve constant amortized insertion time for two reasons:
-(1)~The segment tree makes evictions asymptotically faster than the scan-based approach, which was already shown to provide constant amortized insertion time.
-(2)~Updates to internal nodes caused by counter increments are infrequent.
-In particular, the value of the minimum counter indicated by an internal node (shown in gray in \Cref{fig:mg_segment_tree}) can increase only after every leaf in its subtree has been incremented.
+These three update operations also preserve constant amortized insertion time:
+(1)~\emph{Evictions.}
+The segment tree makes evictions asymptotically faster than the scan-based approach, which already provides constant amortized insertion time.
+(2)~\emph{Counter movements.}
+The collision resolution policy of a Cuckoo hash table moves random keys across the table.
+The moved counters are therefore effectively chosen at random from the counter array, so their update traversals advance only one level up the segment tree in expectation.
+A similar argument bounds the expected traversal cost for other collision resolution strategies (e.g., linear probing).
+(3)~\emph{Counter increments.}
+Updates to internal nodes caused by counter increments are infrequent.
+In particular, the minimum counter value represented by an internal node (shown in gray in \Cref{fig:mg_segment_tree}) can increase only after every leaf in its subtree has been incremented.
 For a node at height~$h$, each such increase can therefore be charged to at least~$2^h$ leaf increments within its subtree.
 Equivalently, each leaf increment incurs an amortized cost of at most~$2^{-h}$ for updating its ancestor at height~$h$.
 Summing over all ancestors gives a total amortized cost of at most~$\sum_{h=1}^{\infty}2^{-h}=1$ per leaf increment.
+The last row of \Cref{tab:mg_performance_space_overhead} summarizes the properties of using this segment tree for evictions.
 
 Using this segment tree, \sketchmg also supports weighted updates, where a key's frequency can increase by an arbitrary amount in a single insertion, in time logarithmic in the sketch's size.
 This complexity is optimal among MG implementations that use comparison-based data structures such as segment trees~\cite{MisraGries}.
-
-\textbf{Localized Lazy Decrements.}
-Using the segment tree, \sketchmg avoids scanning the hash table during eviction.
-However, because global decrements are applied through the lazy offset~$L$, stored counter values may grow over time, reducing the space savings provided by \counterencodingabbrv.
-To prevent this growth without introducing full-table scans, \sketchmg applies the accumulated lazy decrements locally.
-Specifically, it partitions the counter array into blocks of~32 counters and stores a~32{\nobreakdash-}bit local decrement for each block.
-This value records the global lazy offset last applied to the corresponding block.
-During an insertion, \sketchmg compares the global lazy offset~$L$ with the local decrement of the block containing the counter being updated.
-If their difference exceeds a tunable threshold ($2^{s-1}$ by default, where~$s$ is the stub size used by \counterencodingabbrv), \sketchmg applies the outstanding decrements to all counters in the block and updates its local decrement to the current value of~$L$.
-This process distributes the work of periodically subtracting~$L$ from all counters across insertions, thereby preserving constant amortized insertion time.\footnote{In practice, processing a block of~32 counters has a cost comparable to~$O(\log w)$, preserving the logarithmic worst-case insertion cost. When~$\log_2 w \ll 32$, the same guarantee can be maintained by reducing the block size to~$O(\log_2 w)$ counters and storing~$O(\log_2 w)$-bit local decrements.}
-Moreover, at~32 bits per block of~32 counters, these local decrements incur a memory overhead of only one bit per counter.
 
 \textbf{Applicability to Other MG Variants.}
 MG has several variants with different estimation and update properties.
