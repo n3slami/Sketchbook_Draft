@@ -2969,7 +2969,7 @@ The first row of \Cref{tab:mg_performance_space_overhead} summarizes the perform
         & \footnotesize $\Theta(1)$
         & \footnotesize $\Theta(\log w)$ 
         & \footnotesize $2 \cdot w$
-        & \footnotesize $\leq O(w \cdot \log (N/w))$ \\
+        & \footnotesize $w \cdot (4.41 + 1.26 \cdot \log (N/w))$ \\
 
         \bottomrule
     \end{tabular}
@@ -3028,24 +3028,24 @@ We mitigate this overhead by speculatively prefetching the regions of the counte
 For a Cuckoo hash table, a key can reside in one of two locations, so we prefetch the counters at both locations.
 
 As proven in \Cref{thm:all_counters_space} of \Cref{sec:memory_analysis}, \counterencodingabbrv\ encodes \sketchmg's counters using at most~$O(w \cdot \log (N/w))$ bits.
-This is because, in the worst case, the stream's~$N$ insertions are evenly distributed across all~$w$ counters, giving each a value of~$N/w$.
-Thus, \counterencodingabbrv\ requires only~$\log_2(N/w)$ bits per counter, whereas conventional fixed-length counters must each be~$\log_2 N$ bits long to support skewed counts.
-The rightmost column of \Cref{tab:mg_performance_space_overhead} compares the space overhead of \sketchmg's counters with that of classic MG implementations.
+This is because \counterencodingabbrv's worst case occurs when the stream's~$N$ insertions are evenly distributed across all~$w$ counters, giving each a value of~$N/w$.
+Thus, \counterencodingabbrv\ requires only~$O(\log_2(N/w))$ bits per counter, whereas conventional fixed-length counters must each be at least~$\log_2 N$ bits long to support skewed counts.
+The rightmost column of \Cref{tab:mg_performance_space_overhead} compares the space overhead of \sketchmg's counters with those of classic MG implementations.
 
 \textbf{Blocked Lazy Decrements.}
 \sketchmg implements global decrements in constant time using a global lazy offset~$L$, as in classic MG implementations.
 A consequence of this approach is that the stored value of each counter can exceed its effective count.
-With \counterencodingabbrv, these inflated values cause counters to occupy more bits than necessary, reducing the resulting space savings.
+This causes counters to occupy more bits than necessary when encoded with \counterencodingabbrv, reducing its space savings.
 One way to address this problem is to periodically scan the entire structure and subtract~$L$ from every counter.
-However, each such scan requires linear time, degrading worst-case insertion performance.
+However, each such scan requires linear time in the sketch size~$w$, degrading worst-case insertion performance.
 
-Instead, \sketchmg applies lazy decrements incrementally over blocks of~$\log_2 w$ counters (this block size balances the worst-case running time against the metadata overhead, as explained below).
+Instead, \sketchmg applies lazy decrements incrementally over blocks of~$\log_2 w$ counters (this block size bounds both the worst-case running time and the metadata overhead, as explained below).
 For each block, \sketchmg stores a \emph{local decrement} that records the global lazy offset last applied to that block.
-After each global decrement, \sketchmg advances to the next block in circular order and applies any outstanding decrements to it.
+With each global decrement, \sketchmg applies the outstanding decrements to one block and advances to the next block in circular order, which it processes upon the next global decrement.
 Because there are~$w/\log_2 w$ blocks, every block is visited once every~$w/\log_2 w$ global decrements and therefore accumulates at most~$w/\log_2 w$ outstanding decrements.
 This allows both the global lazy offset~$L$ and the local decrements to wrap around modulo~$w/\log_2 w$, enabling each to be stored in at most~$\log_2 w$ bits.
 Since each~$\log_2 w$-bit local decrement is shared by the~$\log_2 w$ counters in its block, the total metadata overhead is only~1 bit per counter.
-At the same time, applying the outstanding decrements one block at a time requires only~$O(\log w)$ worst-case time while preserving constant amortized insertion cost.
+At the same time, applying the outstanding decrements to a single block takes only~$O(\log w)$ worst-case time while preserving constant amortized insertion cost.
 
 \textbf{Accommodating Unbounded Data Growth.}
 As discussed earlier, inserting a key already tracked by MG simply increments its counter and does not increase the estimation error.
@@ -3061,7 +3061,7 @@ This size function allows \sketchmg to achieve the same asymptotic sublinear err
     E(M) \leq  
     \begin{cases}
         O(1) \cdot \epsilon {M}^{1-\alpha} & \text{if $W(M)=M^{\alpha}/\epsilon$, for $\alpha \in [0,1)$,} \\
-        \ln(M+1) \cdot \epsilon & \text{if $W(M)=M/\epsilon$.}
+        \ln M \cdot \epsilon & \text{if $W(M)=M/\epsilon$.}
     \end{cases}
     $$
     Compared to a fixed-size MG that, given prior knowledge of~$M$, is allocated upfront with~$W(M)$ counters, the error terms above are higher by at most a constant and a logarithmic factor.
@@ -3081,7 +3081,7 @@ Other hash table implementations can also expand by factors smaller than~2 using
 These finer-grained expansions incur additional reconstruction overheads, but allow \sketchmg to add counters sooner than \sketchcms and \sketchcs.
 As a result, \sketchmg attains smaller constant factors in its error bounds than those of \sketchcms and \sketchcs, as shown in \Cref{thm:mg-normal}.
 In particular, when~$\alpha=1$, \sketchmg's error bound is a natural logarithm rather than the base-2 logarithm of Theorems~\ref{thm:cms-w} and \ref{thm:cs-w}.
-When~$\alpha<1$, the hidden constant factor\footnote{Appendix~\ref{apx:upper_bounds_mg_normal} shows that this factor is close to~$\frac{\alpha}{1+\alpha} \cdot \left[ {}_2F_1(1, 1+\frac1\alpha; 2+\frac1\alpha; -M^\alpha) - \frac12 \cdot {}_2F_1(1, 1+\frac1\alpha; 2+\frac1\alpha; -(M^\alpha - 1)/2) \right]$, where~${}_2F_1$ is Gauss's hypergeometric function. This quantity can be shown to be at most~$\frac{1}{1-\alpha}$, and that it converges to $\ln (M + 1)$ as $\alpha$ approaches~1.} is also smaller than those of \sketchcms and \sketchcs.
+When~$\alpha<1$, the hidden constant factor\footnote{Appendix~\ref{apx:upper_bounds_mg_normal} shows that this factor is close to~$\frac{\alpha}{\alpha+1} \cdot \left[ \left( N^\alpha/\epsilon \right)^{2 \cdot (\frac1\alpha+1)} \cdot {}_2F_1\left( 1, \frac{1+\alpha}{\alpha}; \frac{1+2\alpha}{\alpha}; -N^\alpha/\epsilon \right) \vphantom{\frac{(N^\alpha/\epsilon \cdot (N^\alpha/\epsilon-1))^{\frac1\alpha+1}}2} \right. -{}$ $\left. \frac{(N^\alpha/\epsilon \cdot (N^\alpha/\epsilon-1))^{\frac1\alpha+1}}2 \cdot {}_2F_1\left( 1, \frac{1+\alpha}\alpha; \frac{1+2\alpha}\alpha; -\frac{N^\alpha/\epsilon-1}{2} \right) \right]$, where~${}_2F_1$ is Gauss's hypergeometric function. This quantity can be shown to be at most~$\frac{1}{1-\alpha}$, and that it converges to $\ln M$ as $\alpha$ approaches~1.} is also smaller than those of \sketchcms and \sketchcs.
 
 \textbf{Tail Guarantees.}
 As with CMS and CS, MG also provides a tail guarantee: any key's estimation error is at most~$\min_{1 \leq i \leq w} \frac{M^{\mathrm{res}(i)}}{w-i+1}$, where~$M^{\mathrm{res}(i)}$ is the total number of insertions for untracked keys that are not among the~$i$ most frequent.
@@ -3215,32 +3215,33 @@ The lowest internal nodes store offsets~0, 1, 1, and 0, indicating which of thei
 The third node from the left in this level stores~1 rather than 0, since its left child has an effective count of zero.
 The two internal nodes in the level above store offsets~3 and 1, identifying counters with values~4 and 1 as the minima of their respective subtrees.
 
-Since an internal node at height~$h$ has at most~$2^h$ leaves in its subtree, its subtree-local offset lies in the range~$[0,2^h)$.
-Therefore, \sketchmg encodes this offset using~$h$ bits.
-The binary numbers in \Cref{fig:mg_segment_tree} illustrate the encoding of the subtree-local offsets.
-Because there are at most~$w/2^h$ internal nodes at height~$h$, the total memory required for all subtree-local offsets is at most~$\sum_h h \cdot w/2^h \leq 2 \cdot w$ bits.
-Thus, the segment tree incurs a memory overhead of at most~2 bits per counter.
+Since an internal node at height~$h$ has at most~$2^h$ leaves in its subtree, its subtree-local offset lies in the range~$[0,2^h)$, allowing \sketchmg to encode it in~$h$ bits.
+The binary numbers in \Cref{fig:mg_segment_tree} illustrate this encoding.
+Because there are at most~$w/2^h$ internal nodes at height~$h$, the total memory required for the subtree-local offsets is at most~$\sum_h h \cdot w/2^h \leq 2 \cdot w$ bits.
+Thus, the segment tree incurs an overhead of at most~2 bits per counter.
+\Cref{tab:mg_performance_space_overhead} compares this overhead with those of classic MG implementations.
 
-\sketchmg evicts a key by emptying the slot indicated by the segment tree's root and setting its counter to zero.
+\sketchmg evicts a key by emptying the slot indicated by the segment tree's root and resetting its counter to zero.
 It then updates the path from the corresponding leaf to the root to reflect the eviction.
-This traversals terminates once it reaches an internal node whose subtree minimum remains unchanged.
+This traversal terminates once it reaches an internal node whose subtree minimum remains unchanged.
 Thus, it takes~$O(\log w)$ time in the worst case.
-The same traversal occurs when a counter moves within the array to mirror the hash table's collision resolution policy, and when incrementing a counter during an insertion.
+The same traversal is performed when a counter moves within the array to mirror the hash table's collision resolution policy or when an insertion increments the counter of a tracked key.
 
-This update traversal preserves constant amortized insertion time due to three reasons:
-(1)~For evictions, the traversal is more efficient than the scan-based approach, which already provides constant amortized insertion time.
-(2)~When moving a Cuckoo hash table moves keys to handle collisions, it chooses a random key to move across the table.
-The corresponding moved counters are therefore effectively chosen at random from the counter array, so their update traversals advance only one level up the segment tree in expectation.
+These update traversals preserve constant amortized insertion time for three reasons:
+(1)~For evictions, the traversal is asymptotically faster than the scan-based approach, which already provides constant amortized insertion time.
+(2)~When a Cuckoo hash table moves a key to resolve a collision, the key being moved is effectively chosen at random from the table.
+The corresponding counter is therefore chosen at random from the counter array, so its update traversal advances only one level up the segment tree in expectation.
 A similar argument bounds the expected traversal cost for other collision resolution strategies (e.g., linear probing).
-(3)~When incrementing a counter, updates to the segment tree's internal nodes are infrequent.
+(3)~For counter increments, updates to the segment tree's internal nodes are infrequent.
 To see why, we observe that the minimum counter value represented by an internal node (shown in gray in \Cref{fig:mg_segment_tree}) can increase only after every leaf in its subtree has been incremented.
 For a node at height~$h$, each such increase can therefore be charged to at least~$2^h$ leaf increments within its subtree.
 Equivalently, each leaf increment incurs an amortized cost of at most~$2^{-h}$ for updating its ancestor at height~$h$.
 Summing over all ancestors gives a total amortized cost of at most~$\sum_{h=1}^{\infty}2^{-h}=1$ per leaf increment.
 The last row of \Cref{tab:mg_performance_space_overhead} summarizes the properties of using this segment tree for evictions.
 
-Using this segment tree, \sketchmg also supports weighted updates, where a key's frequency can increase by an arbitrary amount in a single insertion, in time logarithmic in the sketch's size.
-This complexity is optimal among MG implementations that use comparison-based data structures such as segment trees~\cite{MisraGries}.
+\textbf{Weighted Updates.}
+Using the segment tree, \sketchmg also supports weighted updates, where a key's frequency can increase by an arbitrary amount in a single insertion, in time logarithmic in the sketch's size.
+This complexity is optimal among MG implementations that rely on comparison-based data structures such as segment trees~\cite{MisraGries}.
 
 \textbf{Applicability to Other MG Variants.}
 MG has several variants with different estimation and update properties.
@@ -4362,7 +4363,9 @@ We simplify our exposition of \sketchmg by assuming, w.l.o.g., that every insert
 That is, we assume that the number of untracked-key insertions~$M$ equals the total number of insertions~$N$, which corresponds to the sketch's worst-case error.
 Thus, the expressions we derive also hold with~$N$ replaced by~$M$.
 
-To handle the case of \sketchmg, we consider a slightly more general division of time into epochs.
+We also restrict our focus to implementations of \sketchmg that implement fine-grained expansions, as described in \Cref{sec:mg}.
+In particular, we consider expansions that increase the size of the hash table by one slot at a time.
+In this case, we consider a more general division of time into epochs.
 We start with a sketch that uses~$W(N_0)$ counters until the stream length reaches~$N_0$.
 At this point in time, the sketch sets the number of counters to~$W(N_1)$.
 We leave the relationship between~$W(N_0)$ and $W(N_1)$ undefined for now.
@@ -4417,12 +4420,11 @@ We then prove the following lemma:
         &=\sum_{j=0}^i \frac{N_j - N_{j-1}}{W_j+1} - \sum_{j=0}^{i-1} C_j \cdot \frac{W_{j+1} - W_j}{(W_j+1)(W_{j+1}+1)} - \frac{C_i}{W_i+1}\\
         &\leq \sum_{j=0}^i  \frac{N_j - N_{j-1}}{W_j+1}  \;,
     \end{align*}
-    where the last inequality holds because~$W_{j+1}>W_j$, so we are ignoring
-    negative factors in the sum.
+    where the last inequality holds because~$W_{j+1}>W_j$, so we are ignoring negative factors in the~sum.
 \end{proof}
 
-In addition to~\Cref{lemma:mg-w}, we require the following technical claim to
-prove \Cref{thm:mg-normal}:
+We first present a simple derivation of the theorem's bounds, and then provide a more involved derivation to compute tighter constant factors.
+This derivation requires the following technical claim in addition to~\Cref{lemma:mg-w}:
 \begin{claim}
     \label{claim:technical}
     For any constant~$\alpha<1$, it holds that 
@@ -4477,6 +4479,41 @@ We are now ready to prove \Cref{thm:mg-normal}:
     \end{align*}
     proving the desired result.
 \end{proof}
+
+Another derivation with tighter constant factors is as follows:
+\begin{proof} ‌
+    We define the epoch boundaries~$N_j$ such that~$W(N_j)=j$. 
+    This corresponds to setting~$N_j=(\epsilon \cdot j)^{1/\alpha}$.
+    Plugging these values into \Cref{lemma:mg-w} yields
+    $$
+    E(N_i) \leq \sum_{j=1}^i \frac{(\epsilon \cdot j)^{1/\alpha} - (\epsilon \cdot (j-1))^{1/\alpha}}{j+1} = \epsilon^{1/\alpha} \cdot \sum_{j=1}^i \frac{j^{1/\alpha} - (j-1)^{1/\alpha}}{j+1} = \epsilon^{1/\alpha} \cdot \sum_{j=1}^i f(j),
+    $$
+    where~$f(j)=\frac{j^{1/\alpha}-(j-1)^{1/\alpha}}{j+1}$. 
+    We notice from analyzing the derivative of~$f$ that the function itself is either an increasing function (when~$\alpha \in [0, 1/2]$) or a unimodal function that increases first and then decreases (when~$\alpha \in (1/2, 1]$).
+    Thus, we can bound the summation as
+    $$
+    E(N_i) \leq \epsilon^{1/\alpha} \cdot \sum_{j=1}^i f(j) \leq \epsilon^{1/\alpha} \cdot \left( \int_0^i f(x) dx + \max_{1 \leq x \leq i} f(x) \right).
+    $$
+    By the mean value theorem, we have that~$f(x) \leq \frac1\alpha \cdot x^{1/\alpha-2}$.
+    We will use this bound to upper bound both the integral and the maximum term.
+    For the maximum term, when~$\alpha \in (1/2, 1]$, we get~$\max_{1 \leq x \leq i} f(x) \leq \frac1\alpha$, and when~$\alpha \in [0, 1/2]$, we get~$\max_{1 \leq x \leq i} f(x) \leq \frac1\alpha \cdot i^{1/\alpha-2} = \frac{\epsilon^{2-1/\alpha}}\alpha \cdot N^{1-2\alpha}$.
+    For the integral, by expanding~$\frac{1}{1+j} = \sum_k (-j)^k$ and integrating term-by-term, we derive a bound based on Gauss's hypergeometric function~${}_2F_1$ as
+    \begin{align*}
+        \int_1^i f(x) \, dx = \frac{\alpha}{1+\alpha} \cdot \left[ i^{\frac1\alpha+1} \cdot {}_2F_1\left( 1, \frac{1+\alpha}{\alpha}; \frac{1+2\alpha}{\alpha}; -i \right) - \frac{(i-1)^{\frac1\alpha+1}}2 \cdot {}_2F_1\left( 1, \frac{1+\alpha}\alpha; \frac{1+2\alpha}\alpha; -\frac{i-1}{2} \right) \right].
+    \end{align*}
+    Thus, plugging in~$i=N^\alpha/\epsilon$ and rewriting, we derive
+    \begin{align*}
+        E(N_i) \leq \epsilon \cdot N^{1-\alpha} \cdot \frac{\alpha}{1+\alpha} \cdot & \left[ \left( \frac{N^\alpha}\epsilon \right)^{2 \cdot (\frac1\alpha+1)} \cdot {}_2F_1\left( 1, \frac{1+\alpha}{\alpha}; \frac{1+2\alpha}{\alpha}; -\frac{N^\alpha}\epsilon \right) \vphantom{\frac{(\frac{N^\alpha}\epsilon-1)^{\frac1\alpha+1}}2} \right. \\
+        & \left. \qquad - \frac{(\frac{N^\alpha}\epsilon \cdot (\frac{N^\alpha}\epsilon-1))^{\frac1\alpha+1}}2 \cdot {}_2F_1\left( 1, \frac{1+\alpha}\alpha; \frac{1+2\alpha}\alpha; -\frac{\frac{N^\alpha}\epsilon-1}{2} \right) \right].
+    \end{align*}
+
+    One can further simplify this bound by integrating~$f(x) \leq \frac1\alpha \cdot x^{\frac1\alpha-2}$ to derive, when~$\alpha < 1$,
+    $$ \int_0^i f(x) \, dx \leq \frac{i^{1/\alpha-1}-1}{1-\alpha}, $$
+    and, when~$\alpha=1$,
+    $$ \int_0^i f(x) \, dx \leq \ln i. $$
+    Once again substituting~$i=N^\alpha/\epsilon$ in these bounds yields the desired result.
+\end{proof}
+
 
 \subsection{Tail Bounds for \sketchmg}\label{apx:upper_bounds_mg_res}
 We prove the tail error guarantees for \sketchmg by following the same general argument of \Cref{apx:upper_bounds_mg_normal}.
