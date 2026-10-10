@@ -3116,8 +3116,9 @@ For each block, \sketchmg stores a \emph{local decrement} that records the globa
 A counter's effective value is then obtained by subtracting its block's outstanding decrements (i.e., the difference between the global lazy offset~$L$ and the block's local decrement) from its stored value.
 When a counter is relocated to mirror a key's movement in the Cuckoo hash table, \sketchmg preserves its effective count by adjusting its stored value according to the difference in outstanding decrements between the source and destination blocks.
 
-With each global decrement, \sketchmg applies the outstanding decrements to one block and advances to the next block in circular order, which it processes upon the next global decrement.
-Because there are~$w/\log_2 w$ blocks, every block is visited once every~$w/\log_2 w$ global decrements and therefore accumulates at most~$w/\log_2 w$ outstanding decrements.
+With each global decrement, \sketchmg applies the outstanding decrements to one block, removing each counter's corresponding key from the hash table if its value reaches zero.
+It then advances to the next block in circular order, which it processes upon the next global decrement.
+Because there are~$w/\log_2 w$ blocks, each block is visited once every~$w/\log_2 w$ global decrements and therefore accumulates at most~$w/\log_2 w$ outstanding decrements.
 This allows both the global lazy offset~$L$ and the local decrements to wrap around modulo~$w/\log_2 w$, enabling each to be stored in at most~$\log_2 w$ bits.
 Since each~$\log_2 w$-bit local decrement is shared by the~$\log_2 w$ counters in its block, the total metadata overhead is only~1 bit per counter.
 At the same time, applying the outstanding decrements to a single block takes only~$O(\log w)$ worst-case time while preserving constant amortized insertion cost.
@@ -3234,12 +3235,11 @@ The lowest internal nodes store offsets~0, 1, 1, and 0, indicating which of thei
 The third node from the left in this level stores~1 rather than 0, since its left child has an effective count of zero.
 The two internal nodes in the level above store offsets~3 and 1, identifying counters with values~4 and 1 as the minima of their respective subtrees.
 
-
 Since an internal node at height~$h$ has at most~$2^h$ leaves in its subtree, its subtree-local offset lies in the range~$[0,2^h)$ and can therefore be encoded in~$h$ bits.
 The binary numbers in \Cref{fig:mg_segment_tree} illustrate this encoding.
 Because there are at most~$w/2^h$ internal nodes at height~$h$, the total memory required for the subtree-local offsets is at most~$\sum_h h \cdot w/2^h \leq 2 \cdot w$ bits.
 Thus, the segment tree incurs an overhead of at most~2 bits per counter.
-\Cref{tab:mg_performance_space_overhead} compares the combined space overhead of \sketchmg's segment tree and local decrements with that of the auxiliary structures in classic MG implementations.
+\Cref{tab:mg_performance_space_overhead} compares the combined space overhead of \sketchmg's segment tree and local decrements with that of the auxiliary structures in \mbox{classic MG implementations}.
 
 \sketchmg evicts a key by emptying the slot indicated by the segment tree's root and resetting its counter to zero.
 It then updates the path from the corresponding leaf toward the root to reflect the eviction, taking~$O(\log w)$ time in the worst case.
