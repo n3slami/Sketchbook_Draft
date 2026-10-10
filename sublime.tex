@@ -212,14 +212,14 @@
     Since maintaining exact counts can require a prohibitive amount of memory, many applications rely on compact, probabilistic data structures known as frequency estimation sketches to approximate them.
     However, mainstream frequency estimation sketches fall short in two critical aspects.
     First, they are memory-inefficient under skewed workloads because they use uniformly-sized counters to count the keys, thus wasting memory on storing the leading zeros of many small counts.
-    Second, their worst-case estimation error deteriorates at least linearly with the length of the stream{\textemdash}which may grow indefinitely{\textemdash}because they rely on a fixed number of counters.
+    Second, their worst-case estimation error deteriorates at least linearly with the length of the stream---which may grow indefinitely---because they rely on a fixed number of counters.
 
     We present \sketch, a framework that generalizes frequency estimation sketches to address these challenges.
     To reduce memory footprint under skew, \sketch\ begins with short counters and dynamically elongates them as they overflow, storing their extensions within the same cache line.
     It employs efficient bit manipulation routines to quickly locate and access a counter's extensions.
     To maintain accuracy as the stream grows, \sketch\ also expands its number of counters at a configurable rate, exposing a new spectrum of accuracy-memory trade-offs that applications can tune to their needs.
-    We apply \sketch\ to both Count-Min Sketch and Count Sketch.
-    Through theoretical analysis and empirical evaluation, we show that \sketch\ significantly improves accuracy and memory over the state of the art while maintaining competitive or \mbox{superior~performance}.
+    We apply \sketch\ to the three most prominent frequency estimation sketches: Count-Min Sketch, Count Sketch, and Misra-Gries.
+    Through theoretical analysis and empirical evaluation, we show that \sketch\ significantly improves accuracy and memory over the state of the art while maintaining competitive or superior performance.
 \end{abstract}
 
 %%
@@ -356,12 +356,16 @@ In fact, to the best of our knowledge, this problem has not previously been stud
 We expect this work to open up interesting directions for sketches supporting other statistics, such as cardinalities~\cite{HLL,HLLL,ULL}, quantiles~\cite{GK,KLL,SplineSketch}, graph~analytics~\cite{LpSamplers,AGM}.
 
 \textbf{Solution: \sketch.}
-We introduce \sketch\footnote{\sketch\ is a play on words referring to the \textbf{subli}n\textbf{e}arly scaling error and memory footprint of our framework. It also describes, in the philosophical tradition of Immanuel Kant, the feeling of awe experienced when contemplating something vast or infinite. This notion of infinity resonates with the theme of our work, which addresses the challenge of accommodating indefinite data growth.}, a framework that generalizes frequency estimation sketches to address the above two challenges.
-To address Problem~1 (Skew), \sketch\ allocates short counters upfront and dynamically extends them as they overflow.
+We introduce \sketch\footnote{
+    \sketch\ is a play on words referring to the \textbf{subli}n\textbf{e}arly scaling error and memory footprint of our framework.
+    It also describes, in the philosophical tradition of Immanuel Kant, the feeling of awe experienced when contemplating something vast or infinite.
+    This notion of infinity resonates with the theme of our work, which addresses the challenge of accommodating indefinite data growth.
+}, a framework that generalizes frequency estimation sketches to address the above two challenges.
+To address Problem~1 (Skew), \sketch\ allocates short counters upfront and extends them as they overflow.
 It colocates each counter and its extension within the same cache line and employs specialized bit manipulation routines to decode them in constant time.
 To resolve Problem~2 (Unbounded Data Growth), \sketch\ expands the overall number of counters as the stream grows.
 In doing so, it achieves sublinear worst-case error bounds and memory footprint with respect to the stream's length.
-It further introduces a new Pareto frontier between these metrics, allowing applications to pick the trade-off that best suits their needs.
+It further introduces a new Pareto frontier between these metrics, allowing applications to pick the trade-off that best suits their~needs.
 
 \textbf{Additional Contributions.}
 \begin{enumerate}
@@ -369,7 +373,7 @@ It further introduces a new Pareto frontier between these metrics, allowing appl
 
     \item We are the first to identify the problem of designing frequency estimation sketches that maintain both worst-case error and memory usage sublinear in the stream length (\Cref{sec:problem_analysis_unbounded_growth}).
 
-    \item We introduce a constant-time \underline{va}riable-\underline{l}ength data \underline{e}ncoding scheme~(\counterencodingabbrv) with applications beyond frequency estimation sketches, and use it to encode and maintain variable-length counters (\Cref{sec:accommodating_skew}).
+    \item We introduce a constant-time \underline{va}riable-\underline{l}ength data \underline{e}ncoding scheme~(\counterencodingabbrv) applicable beyond frequency estimation sketches, and use it to maintain variable-length counters (\Cref{sec:accommodating_skew}).
 
     \item We describe how to expand and contract a frequency estimation sketch based on the stream's length while supporting constant-time queries and enabling fine-grained control over the accuracy-memory trade-off.
         We also characterize this new trade-off space (\Cref{sec:accommodating_unknown_stream_lengths}).
@@ -2997,8 +3001,9 @@ The second and third rows of \Cref{tab:mg_performance_space_overhead} summarize 
 Similarly to CMS and CS, a shortcoming of traditional MG is its use of fixed-length counters: under skewed workloads, many counters store relatively small values, leaving their higher-order bits unused.
 Moreover, MG's error grows linearly with the stream length, causing its estimates to become increasingly inaccurate as the stream grows.
 We now introduce \sketchmg, a generalization of MG that addresses both shortcomings.
-It employs \counterencodingabbrv\ to compress the counters and expands the hash table as the stream grows to control the estimation error.
-Applied to the scan-based implementation of MG, these techniques significantly improve both memory efficiency and estimation accuracy.
+It employs \counterencodingabbrv\ to compress the counters, and it expands the hash table as the stream grows to control the estimation error.
+These two techniques are compatible with all MG variant, including those listed in \Cref{tab:mg_performance_space_overhead} and beyond.
+%Applied to the scan-based implementation of MG, these techniques significantly improve both memory efficiency and estimation accuracy.
 
 For applications requiring stronger worst-case latency guarantees, \sketchmg also provides the option to de-amortize global decrements and evictions without sacrificing memory efficiency.
 Like classic MG implementations, this alternative performs global decrements in constant time using a global lazy offset.
