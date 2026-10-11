@@ -3070,13 +3070,15 @@ The following theorem, proven in Appendix~\ref{apx:upper_bounds_mg_normal}, form
     $$
 \end{restatable}
 \noindent
-As with \sketchcms and \sketchcs, when~$\alpha \in [0,1)$, \sketchmg's error bounds in the above theorem are larger by at most a constant factor than those of a fixed-size MG allocated upfront with~$W(M)$ counters, assuming prior knowledge of~$M$.
-While this suggests that setting~$\alpha=1$ might yield constant additive estimation error, whether this is possible depends on the value of~$\epsilon$.
-Setting~$\epsilon \leq 1$ yields zero additive error, as \sketchmg grows by at least one slot with each untracked-key insertion, effectively becoming a simple hash table that admits every key and tracks its exact count.
-Interestingly, increasing~$\epsilon$ even slightly above~1 to achieve any space savings over a conventional hash table introduces the~$\ln M$ factor in the bottom case of \Cref{thm:mg-normal}.
-The memory footprint lower bound in \Cref{thm:sketch_expandability_special_case} further establishes that this loss of accuracy is fundamental to dynamically expanding sketches with MG's deterministic error guarantees.
+This theorem shows that for~$\alpha \in [0,1)$, \sketchmg's error bounds are within a constant factor of those of a fixed-size MG allocated upfront with~$W(M)$ counters, assuming prior knowledge of~$M$.
+As with \sketchcms and \sketchcs, one might hope to achieve constant additive error by setting~$\alpha=1$.
+While this choice does not yield constant additive error for \sketchcms and \sketchcs, whether it does so for \sketchmg depends on the value of~$\epsilon$.
+When~$\alpha=1$ and~$\epsilon \leq 1$, \sketchmg achieves zero additive error because it expands with every untracked-key insertion, effectively becoming a conventional hash table that stores every key and tracks its exact count.
+However, increasing~$\epsilon$ even slightly above~1 to reduce memory consumption causes the additive error to grow logarithmically with~$M$ rather than remain constant.
+The memory footprint lower bound in \Cref{thm:sketch_expandability_special_case} establishes that this trade-off is fundamental to dynamically expanding sketches with MG's deterministic error guarantees.
+In practice, these two regimes can be combined to allow \sketchmg to maintain exact counts during a ``warm-up phase'' and then switch to a slower expansion policy upon reaching a memory threshold, trading estimation accuracy for a smaller memory footprint.
 
-To tune the parameters~$\alpha$ and~$\epsilon$ for \sketchmg before processing a stream, practitioners can replace~$M$ in \Cref{thm:mg-normal} with the stream length~$N$ to obtain an upper bound on the estimation error, since~$M \leq N$.
+To tune the parameters~$\alpha$ and~$\epsilon$ for \sketchmg before processing a stream, practitioners can substitute the stream length~$N$ for~$M$ in \Cref{thm:mg-normal} to obtain an upper bound on the estimation error, since~$N \geq M$.
 At runtime, \sketchmg tracks the actual number of untracked-key insertions~$M$ and can use it to report a tighter error bound.
 
 \textbf{Fine-Grained Expansions.}
