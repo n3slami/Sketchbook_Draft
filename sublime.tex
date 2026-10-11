@@ -2480,15 +2480,13 @@ Yet, \sketchcms obtains an error bound of~$\log_2 N \cdot \epsilon$ in this case
 The following theorem, proven in Appendix~\ref{apx:upper_bounds_cms}, formalizes the above error bounds:
 \begin{restatable}{theorem}{thmcms}
     \label{thm:cms-w}
-    When using a size function~$W(\cdot)$ and a single array on a stream with a
-    total key count of~$N$, \sketchcms provides an estimation error~$E(N)$
-    satisfying
-	$$
+    When using a sublinear power size function~$W(N)=N^\alpha/\epsilon$ and a single array on a stream with a total key count of~$N$, \sketchcms provides an estimation error~$E(N)$ satisfying
+    $$
     \expectation{E(N)} \leq  
     \begin{cases}
-        O(1) \cdot \epsilon N^{1-\alpha} & \text{if $W(N)=N^{\alpha}/\epsilon$, for $\alpha \in [0,1)$,} \\
-		\log_2 N \cdot \epsilon & \text{if $W(N)=N/\epsilon$.}
-	\end{cases}
+        O(1) \cdot \epsilon N^{1-\alpha} & \text{$\alpha \in [0,1)$,} \\
+        \log_2 N \cdot \epsilon & \text{$\alpha=1$.}
+    \end{cases}
     $$
 \end{restatable}
 \noindent
@@ -2517,12 +2515,12 @@ As with Euler's number~$e$ in CMS's standard error bound (\Cref{sec:background})
 This follows by modifying the proof of \Cref{thm:cms-w} with an argument similar to the above:
 \begin{theorem}
     \label{thm:cms-w-tail}
-    When using a size function~$W(\cdot)$ and a single array, \sketchcms provides an estimation error~$E(N)$ satisfying 
+    When using a sublinear power size function~$W(N)=N^\alpha/\epsilon$ and a single array on a stream with a total key count of~$N$, \sketchcms provides an estimation error~$E(N)$ satisfying 
 	$$
     E(N) \leq  
     \begin{cases}
-        O(1) \cdot \epsilon \left( N^{\textup{res}(W(N)/4)} \right)^{1-\alpha} & \text{if $W(N)=N^{\alpha}/\epsilon$, for $\alpha \in [0,1)$,} \\
-        \log_2 N^{\textup{res}(W(N)/4)} \cdot \epsilon & \text{if $W(N)=N/\epsilon$,}
+        O(1) \cdot \epsilon \left( N^{\textup{res}(W(N)/4)} \right)^{1-\alpha} & \text{$\alpha \in [0,1)$,} \\
+        \log_2 N^{\textup{res}(W(N)/4)} \cdot \epsilon & \text{$\alpha=1$,}
 	\end{cases}
     $$
     with a confidence of at least~$1/2$.
@@ -2728,12 +2726,12 @@ the squared~$\ell_2$-norm of the stream.
 In Appendix~\ref{apx:upper_bounds_cs}, we prove through a similar analysis to that of \sketchcms, the following variance bounds for \sketchcs:
 \begin{restatable}{theorem}{thmcs}
     \label{thm:cs-w}
-    When using a size function~$W(\cdot)$ and a single array on a stream with a squared~$\ell_2${\nobreakdash-}norm of $F = \sum_y f(y)^2$, \sketchcs provides unbiased estimates with a variance~$V(F)$ satisfying
+    When using a sublinear power size function~$W(F)=F^\alpha/\epsilon$ and a single array on a stream with a squared~$\ell_2${\nobreakdash-}norm of $F = \sum_y f(y)^2$, \sketchcs provides unbiased estimates with a variance~$V(F)$ satisfying
 	$$
     V(F) \leq  
     \begin{cases}
-        O(1) \cdot \epsilon F^{1-\alpha} & \text{if $W(F)=F^{\alpha}/\epsilon$, for $\alpha \in [0,1)$, } \\
-        \log_2 F \cdot \epsilon & \text{if $W(F)=F/\epsilon$.}
+        O(1) \cdot \epsilon F^{1-\alpha} & \text{$\alpha \in [0,1)$,} \\
+        \log_2 F \cdot \epsilon & \text{$\alpha=1$.}
 	\end{cases}
     $$
 \end{restatable}
@@ -2788,12 +2786,12 @@ This result follows from an argument analogous to that for \sketchcms's \mbox{ta
 \fi
 \begin{theorem}
     \label{thm:cs-w-tail}
-    When using a size function~$W(\cdot)$ and a single array, \sketchcs provides unbiased estimates with a variance~$V(F)$ satisfying
+    When using a sublinear power size function~$W(F)=F^\alpha/\epsilon$ and a single array on a stream with a squared~$\ell_2${\nobreakdash-}norm of~$F = \sum_y f(y)^2$, \sketchcs provides unbiased estimates with a variance~$V(F)$ satisfying
 	$$
     V(F) \leq  
     \begin{cases}
-        O(1) \cdot \epsilon \left( F^{\textup{res}(W(F)/4)} \right)^{1-\alpha} & \text{if $W(F)=F^{\alpha}/\epsilon$, for $\alpha \in [0,1)$, } \\
-        \log_2 F^{\textup{res}(W(F)/4)} \cdot \epsilon & \text{if $W(F)=F/\epsilon$.}
+        O(1) \cdot \epsilon \left( F^{\textup{res}(W(F)/4)} \right)^{1-\alpha} & \text{$\alpha \in [0,1)$,} \\
+        \log_2 F^{\textup{res}(W(F)/4)} \cdot \epsilon & \text{$\alpha=1$,}
 	\end{cases}
     $$
     with confidence at least~$1/2$.
@@ -2974,10 +2972,12 @@ The first row of \Cref{tab:mg_performance_space_overhead} summarizes the propert
     \label{tab:mg_performance_space_overhead}
 \end{table}
 
+\textbf{Classic Implementation: De-amortizing Decrements.}
 To avoid the~$\Theta(w)$ worst-case insertion time, many MG implementations de-amortize global decrements by applying them lazily.
 In particular, they maintain a global lazy offset~$L$ that is incremented with each global decrement.
 A stored counter value~$v$ then represents an effective count of~$v-L$, while a newly admitted key is assigned~$L+1$ to give it an effective count of~1 \mbox{after subtracting~$L$}.
 
+\textbf{Classic Implementation: De-amortizing Evictions.}
 The remaining challenge is efficiently identifying entries whose effective counts reach zero so they can be evicted.
 Existing MG implementations tackle this challenge using auxiliary data structures.
 Heap-based implementations~\cite{MGH1,MGH2,BatchUpdateMisraGries} maintain a min-heap that orders keys by their counts.
@@ -2997,16 +2997,20 @@ The second and third rows of \Cref{tab:mg_performance_space_overhead} summarize 
 Similarly to CMS and CS, a shortcoming of traditional MG is its use of fixed-length counters: under skewed workloads, many counters store relatively small values, leaving their higher-order bits unused.
 Moreover, MG's error grows linearly with the stream length, causing its estimates to become increasingly inaccurate as the stream grows.
 We now introduce \sketchmg, a generalization of MG that addresses both shortcomings.
-It employs \counterencodingabbrv\ to compress the counters and expands the hash table as the stream grows to control the estimation error.
-Applied to the scan-based implementation of MG, these techniques significantly improve both memory efficiency and estimation accuracy.
+It employs \counterencodingabbrv\ to compress the counters, and it expands the hash table as the stream grows to control the estimation error.
+Both techniques are compatible with all MG variants, including those listed in \Cref{tab:mg_performance_space_overhead} and others~\cite{UnbiasedSpaceSaving,SpaceSavingBoundedDeletes,HeavyGuardian,HeavyKeeper,WavingSketch}.
 
-For applications requiring stronger worst-case latency guarantees, \sketchmg also provides the option to de-amortize global decrements and evictions without sacrificing memory efficiency.
-Like classic MG implementations, this alternative performs global decrements in constant time using a global lazy offset.
-However, using this approach alone can cause each counter's stored value to exceed its effective count, consuming more space than necessary when it is encoded with \counterencodingabbrv.
-\sketchmg avoids this overhead by incrementally applying the accumulated decrements to the counters.
-For evictions, \sketchmg employs a compressed segment tree rather than a min-heap or doubly linked list.
-This segment tree requires only two bits per counter, reducing the total memory footprint by~2--3$\times$ relative to conventional heap- or linked-list-based implementations.
-We show that these techniques preserve constant amortized insertion time while reducing the worst-case insertion time from linear to logarithmic \mbox{in the sketch size}.
+For applications requiring strong worst-case latency guarantees, we observe that the existing de-amortization techniques described above pose two challenges when combined with \counterencodingabbrv.
+First, recall that the global lazy offset enables performing decrements in constant time without immediately updating every individual counter.
+However, as decrements accumulate, stored counter values can become substantially larger than their effective counts, inflating the space consumed by their \counterencodingabbrv\ encodings.
+We address this issue by gradually applying accumulated decrements to individual counters over subsequent insertions.
+This keeps the stored counter values close to their effective counts, preserving compact \counterencodingabbrv\ encodings while avoiding costly bulk updates.
+
+Second, the conventional data structures used to de-amortize evictions (i.e., min-heaps and linked lists) incur substantial memory overhead.
+This overhead reduces the space available for storing entries in the hash table, thereby limiting estimation accuracy.
+In the context of \sketchmg, it also overshadows the space savings achieved by \counterencodingabbrv.
+To address this challenge, we introduce a compressed segment tree that identifies eviction candidates using only two additional bits per counter, reducing the overall memory footprint by a factor of~2--3 compared with conventional heap- or linked-list-based implementations.
+Together, these techniques preserve constant amortized insertion time while guaranteeing a modest worst-case insertion cost logarithmic in the sketch size.
 
 \textbf{Accommodating Skew with \counterencodingabbrv.}
 Recall from \Cref{sec:accommodating_skew} that \counterencodingabbrv\ compresses contiguous counters by packing them into the same cache line along with their extensions.
@@ -3021,17 +3025,18 @@ Specifically, the counter corresponding to a key in the~$i${\nobreakdash-}th has
 Separating the counters in this way allows them to be encoded directly using \counterencodingabbrv, while the mirrored layout enables efficient access to a key's counter.
 To save space as the counter values evolve, \sketchmg adaptively retunues \counterencodingabbrv\ using the same procedure as \sketchcms and \sketchcs (described under the paragraph titled ``Adaptive Tuning'' in \Cref{sec:accommodating_skew}).
 
-Maintaining this mirrored layout requires moving a key's counter whenever the key moves to a different slot in the hash table.
+When hash collisions trigger cuckooing, an existing key may be relocated to a different slot in the hash table.
+To preserve mirroring, each key relocation must be accompanied by moving its corresponding counter.
 This involves copying the counter's stub and, if present, relocating its extension.
 Relocating an extension entails a small number of bitwise operations on the source and destination extension pools, since each extension pool is typically~1--2 machine words long (as discussed in \Cref{sec:accommodating_skew}).
-Moving counters therefore adds only a small constant overhead to insertions in expectation, since the counter movements correspond directly to key movements performed during collision resolution, whose total expected cost per insertion is constant.
+Counter relocation therefore adds only a small constant overhead to insertions in expectation, since the counter movements correspond directly to key movements performed during collision resolution, whose total expected cost per insertion is constant.
 
 A consequence of separating keys and their counters is that accessing a key's counter may incur an additional cache miss.
 We mitigate this overhead by speculatively prefetching the regions of the counter array likely to contain a key's counter while searching for it in the hash table.
 For a Cuckoo hash table, a key can reside in one of two buckets, so we prefetch the counters corresponding to both buckets in addition to prefetching the buckets themselves.
 
 In \Cref{thm:all_counters_space} of \Cref{sec:memory_analysis}, we prove that \counterencodingabbrv\ encodes \sketchmg's counters using at most~$4.41 + 1.26 \cdot \log_2 (N/w)$ bits per counter while achieving significantly lower space consumption under skew.
-In contrast, conventional fixed-length counters must each use at least~$\log_2 N$ bits regardless of the workload.
+In contrast, conventional fixed-length counters each use at least~$\log_2 N$ bits regardless of the workload.
 The rightmost column of \Cref{tab:mg_performance_space_overhead} compares the space consumption of \sketchmg's counters with that of conventional MG implementations.
 
 \textbf{Accommodating Unbounded Data Growth with Expansions.}
@@ -3054,17 +3059,18 @@ Using sublinear power size functions, \sketchmg achieves the same asymptotic acc
 The following theorem, proven in Appendix~\ref{apx:upper_bounds_mg_normal}, formalizes this result:
 \begin{restatable}{theorem}{thmmgnormal}
     \label{thm:mg-normal} 
-    When using a size function~$W(\cdot)$ on a stream where a total of~$M$ insertions of untracked keys occur, \sketchmg provides an estimation error~$E(M)$ satisfying
+    When using a sublinear power size function~$W(M)=M^\alpha/\epsilon$ on a stream where a total of~$M$ insertions of untracked keys occur, \sketchmg provides an estimation error~$E(M)$ satisfying
     $$
     E(M) \leq  
     \begin{cases}
-        O(1) \cdot \epsilon {M}^{1-\alpha} & \text{if $W(M)=M^\alpha/\epsilon$, for $\alpha \in [0,1)$,} \\
-        \ln M \cdot \epsilon & \text{if $W(M)=M/\epsilon$.}
+        O(1) \cdot \epsilon {M}^{1-\alpha} & \text{$\alpha \in [0,1)$,} \\
+        \ln M \cdot \epsilon & \text{$\alpha=1$ and $\epsilon>1$,} \\
+        0 & \text{$\alpha=1$ and $\epsilon \leq 1$.}
     \end{cases}
     $$
 \end{restatable}
 \noindent
-As with \sketchcms and \sketchcs, when~$\alpha < 1$, \sketchmg's error bounds in the above theorem are larger by at most a constant factor than those of a fixed-size MG allocated upfront with~$W(M)$ counters, assuming prior knowledge of~$M$.
+As with \sketchcms and \sketchcs, when~$\alpha \in [0,1)$, \sketchmg's error bounds in the above theorem are larger by at most a constant factor than those of a fixed-size MG allocated upfront with~$W(M)$ counters, assuming prior knowledge of~$M$.
 While this suggests that setting~$\alpha=1$ might yield constant additive estimation error, whether this is possible depends on the value of~$\epsilon$.
 Setting~$\epsilon \leq 1$ yields zero additive error, as \sketchmg grows by at least one slot with each untracked-key insertion, effectively becoming a simple hash table that admits every key and tracks its exact count.
 Interestingly, increasing~$\epsilon$ even slightly above~1 to achieve any space savings over a conventional hash table introduces the~$\ln M$ factor in the bottom case of \Cref{thm:mg-normal}.
@@ -3089,12 +3095,13 @@ As with CMS and CS, MG also provides a tail guarantee: any key's estimation erro
 The following theorem, proven in Appendix~\ref{apx:upper_bounds_mg_res}, shows that \sketchmg improves upon this tail bound with the same sublinear scaling as in \Cref{thm:mg-normal}:
 \begin{restatable}{theorem}{thmmgres}
     \label{thm:mg-res}
-    When using a size function~$W(\cdot)$ on a stream where a total of~$M$ insertions of untracked keys occur, \sketchmg provides an estimation error~$E(M)$ satisfying
+    When using a sublinear power size function~$W(M)=M^\alpha/\epsilon$ on a stream where a total of~$M$ insertions of untracked keys occur, \sketchmg provides an estimation error~$E(M)$ satisfying
     $$
     E(M) \leq  
     \begin{cases}
-        O(1) \cdot \epsilon \parentheses{M^{\textup{res}(k)}}^{1-\alpha} + O(k^{1/\alpha-1}) & \text{if $W(M)=M^{\alpha}/\epsilon$} \\
-        \ln M^{\textup{res}(k)} \cdot \epsilon + \log_2 k  & \text{if $W(M)=M/\epsilon$,}
+        O(1) \cdot \epsilon \parentheses{M^{\textup{res}(k)}}^{1-\alpha} + O(k^{1/\alpha-1}) & \text{$\alpha \in [0,1)$,} \\
+        \ln M^{\textup{res}(k)} \cdot \epsilon + \log_2 k  & \text{$\alpha=1$ and $\epsilon > 1$,} \\
+        0  & \text{$\alpha=1$ and $\epsilon \leq 1$,}
     \end{cases}
     $$
     where~$M^{\textup{res}(k)}$ is the total number of untracked-key insertions of all keys not among the top~$k$.
