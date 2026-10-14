@@ -2493,7 +2493,7 @@ The following theorem, proven in Appendix~\ref{apx:upper_bounds_cms}, formalizes
     $$
     \expectation{E(N)} \leq  
     \begin{cases}
-        N/W(N) = \epsilon N & \text{$\alpha=0$,} \\
+        \epsilon N & \text{$\alpha=0$,} \\
         O(1) \cdot \epsilon N^{1-\alpha} & \text{$0<\alpha<1$,} \\
         \log_2 N \cdot \epsilon & \text{$\alpha=1$.}
     \end{cases}
@@ -2527,7 +2527,7 @@ This follows by modifying the proof of \Cref{thm:cms-w} with an argument similar
 	$$
     E(N) \leq  
     \begin{cases}
-        N^{\textup{res}(W(N)/4)}/W(N) = \epsilon N^{\textup{res}(W(N)/4)} & \text{$\alpha=0$,} \\
+        \epsilon N^{\textup{res}(W(N)/4)} & \text{$\alpha=0$,} \\
         O(1) \cdot \epsilon \left( N^{\textup{res}(W(N)/4)} \right)^{1-\alpha} & \text{$0<\alpha<1$,} \\
         \log_2 N^{\textup{res}(W(N)/4)} \cdot \epsilon & \text{$\alpha=1$,}
 	\end{cases}
@@ -2746,7 +2746,7 @@ In Appendix~\ref{apx:upper_bounds_cs}, we prove through a similar analysis to th
 	$$
     V(F) \leq  
     \begin{cases}
-        F/W(F) = \epsilon F & \text{$\alpha=0$,} \\
+        \epsilon F & \text{$\alpha=0$,} \\
         O(1) \cdot \epsilon F^{1-\alpha} & \text{$0<\alpha<1$,} \\
         \log_2 F \cdot \epsilon & \text{$\alpha=1$.}
 	\end{cases}
@@ -2809,7 +2809,7 @@ This result follows from an argument analogous to that for \sketchcms's \mbox{ta
 	$$
     V(F) \leq  
     \begin{cases}
-        F^{\textup{res}(W(F)/4)}/W(F) = \epsilon F^{\textup{res}(W(F)/4)} & \text{$\alpha=0$,} \\
+        \epsilon F^{\textup{res}(W(F)/4)} & \text{$\alpha=0$,} \\
         O(1) \cdot \epsilon \left( F^{\textup{res}(W(F)/4)} \right)^{1-\alpha} & \text{$0<\alpha<1$,} \\
         \log_2 F^{\textup{res}(W(F)/4)} \cdot \epsilon & \text{$\alpha=1$,}
 	\end{cases}
@@ -2938,7 +2938,7 @@ MG is typically implemented using a hash table that maps each tracked key to its
 Inserting an untracked key may trigger a global decrement, requiring a scan of all~$\Theta(w)$ counters.
 However, as observed in the original MG paper~\cite{MisraGries}, the error bound of~$N/w$ implies that at most~$N/w$ global decrements can occur over a stream of~$N$ insertions.
 Consequently, the total cost of these scans is~$O(N)$, yielding~$O(1)$ amortized overhead per insertion.
-Thus, when implemented using a hash table, MG supports insertions in constant expected\footnote{The expectation arises from MG's hash table operations, which take constant time in expectation.} amortized time.
+Thus, when implemented using a hash table, MG supports insertions in constant expected amortized time.
 The first row of \Cref{tab:mg_performance_space_overhead} summarizes the properties of this scan-based approach.
 
 \begin{table}
@@ -3020,7 +3020,7 @@ The second and third rows of \Cref{tab:mg_performance_space_overhead} summarize 
 Similarly to CMS and CS, a shortcoming of classic MG designs is their use of fixed-length counters: under skewed workloads, many counters store relatively small values, leaving their higher-order bits unused.
 Moreover, the estimation errors of these MG designs grow linearly with the stream length, causing estimates to become increasingly inaccurate as the stream grows.
 We now introduce \sketchmg, a generalization of MG that addresses both shortcomings.
-It employs \counterencodingabbrv\ to compress the counters, and it expands the hash table as the stream grows to control the estimation error.
+It employs \counterencodingabbrv\ to compress the counters, and it should expand the hash table as the stream grows to control the estimation error.
 Both techniques are compatible with all MG variants, including those listed in \Cref{tab:mg_performance_space_overhead} \mbox{and others~\cite{UnbiasedSpaceSaving,SpaceSavingBoundedDeletes,HeavyGuardian,HeavyKeeper,WavingSketch}}.
 
 For applications requiring strong worst-case latency guarantees, we observe that the existing de-amortization techniques described above pose two challenges when combined with \counterencodingabbrv.
@@ -3070,8 +3070,8 @@ Moreover, inserting an untracked key into an empty slot without triggering a glo
 These observations motivate a different expansion criterion from those used by \sketchcms and \sketchcs.
 Whereas \sketchcms expands based on the total number of insertions and \sketchcs on the stream's~$\ell_2$-norm, \sketchmg expands based on the number of untracked-key insertions observed so far, denoted by~$M$.
 This is because the number of untracked-key insertions governs the estimation error.
-We therefore define the size function~$W(M)$ to specify the number of entries \sketchmg should maintain after~$M$ \mbox{untracked-key insertions}.
 
+Thus, we specify the number of counters \sketchmg should expand to accommodate after~$M$ untracked-key insertions by defining a size function~$W(M)$.
 As in Sections~\ref{sec:accommodating_unknown_stream_lengths} and \ref{sec:cs}, we expose a wide range of accuracy--memory trade-offs by defining the size function as a sublinear power of the form~$W(M)=M^\alpha/\epsilon$.
 The parameter~$\epsilon$ determines \sketchmg's initial size of~$1/\epsilon$ counters.
 When~$\epsilon>1$, \sketchmg still starts with one counter but delays its first expansion, trading estimation accuracy for a smaller memory footprint.
@@ -3087,7 +3087,7 @@ The following theorem, proven in Appendix~\ref{apx:upper_bounds_mg_normal}, form
     $$
     E(M) \leq  
     \begin{cases}
-        M/W(M) = \epsilon M & \text{$\alpha=0$,} \\
+        \epsilon M & \text{$\alpha=0$,} \\
         O(1) \cdot \epsilon {M}^{1-\alpha} & \text{$0<\alpha<1$,} \\
         \ln M \cdot \epsilon & \text{$\alpha=1$ \textup{and} $\epsilon>1$,} \\
         0 & \text{$\alpha=1$ \textup{and} $\epsilon \leq 1$.}
@@ -3098,26 +3098,38 @@ The following theorem, proven in Appendix~\ref{apx:upper_bounds_mg_normal}, form
 This theorem shows that when~$\alpha=0$, \sketchmg's error bounds match those of a classic fixed-size MG.
 When~$0<\alpha<1$, despite not knowing the final number of untracked-key insertions~$M$, \sketchmg achieves error bounds within a small constant factor of those of a clairvoyantly sized MG, i.e., an MG allocated upfront with~$W(M)$ counters given prior knowledge of~$M$.
 We quantify this constant factor shortly.
-As with \sketchcms and \sketchcs, one might hope to achieve constant additive error by setting~$\alpha=1$.
-While this choice does not yield constant additive error for \sketchcms and \sketchcs, whether it does so for \sketchmg depends on the value of~$\epsilon$.
-When~$\alpha=1$ and~$\epsilon \leq 1$, \sketchmg achieves zero additive error because it expands with every untracked-key insertion, effectively becoming a conventional hash table that stores every key and tracks its exact count.
-However, increasing~$\epsilon$ even slightly above~1 to reduce memory consumption causes the additive error to grow logarithmically with~$M$ rather than remain constant.
+
+When~$\alpha=1$ and~$\epsilon\leq1$, \sketchmg trivially achieves zero additive error because it expands with every untracked-key insertion, effectively becoming a conventional hash table that stores every key and tracks its exact count.
+This is captured by the bottom case of \Cref{thm:mg-normal}, which we include for completeness.
+When~$\alpha=1$ and $\epsilon>1$, \sketchmg instead expands proportionally to the number of untracked-key insertions, but maintains too few entries to track every key.
+One might hope that this would still yield constant additive error.
+However, as with \sketchcms and \sketchcs, the additive error grows logarithmically rather than remaining constant, as shown by the third case of the theorem.
 The memory footprint lower bound in \Cref{thm:sketch_expandability_special_case} establishes that this trade-off is fundamental to dynamically expanding sketches with MG's deterministic error guarantees.
-In practice, these two regimes can be combined: \sketchmg first maintains exact counts during a ``warm-up phase'' until reaching a memory threshold, then switches to a slower expansion policy to trade estimation accuracy for a smaller memory footprint.
+In practice, these two regimes can be combined: \sketchmg can be tuned to first maintain exact counts during a ``warmup phase'' until reaching a memory threshold, and then switch to a slower expansion policy to trade estimation accuracy for a smaller memory footprint.
 
 To tune the parameters~$\alpha$ and~$\epsilon$ for \sketchmg before processing a stream, practitioners can substitute the stream length~$N$ for~$M$ in \Cref{thm:mg-normal} to obtain an upper bound on the estimation error, since~$N \geq M$.
 At runtime, \sketchmg tracks the actual number of untracked-key insertions~$M$ and can use it to report a tighter error bound.
 
 \textbf{Fine-Grained Expansions.}
-Unlike \sketchcms and \sketchcs, \sketchmg can expand by factors smaller than~2 because it uses a hash table rather than flat counter arrays.
-\sketchmg achieves this with Cuckoo hashing by rebuilding the hash table from scratch with one additional slot in each bucket.
-This expansion occurs whenever the size function~$W(M)$ exceeds the hash table's current maximum capacity.
-Once the bucket size reaches twice its original size (eight slots), \sketchmg restructures the hash table by doubling the number of buckets and restoring the original bucket size (four slots).
-Other hash table implementations can also expand by factors smaller than~2 using techniques such as linear hashing~\cite{LinearHashing,VirtualHashing} or stretching~\cite{Zeno}.
-These finer-grained expansions incur additional reconstruction overheads, but allow \sketchmg to add counters sooner than \sketchcms and \sketchcs.
-As a result, \sketchmg attains smaller constant factors in its error bounds than those of \sketchcms and \sketchcs, as shown in \Cref{thm:mg-normal}.
-In particular, when~$\alpha=1$, \sketchmg's error bound is a natural logarithm rather than the base-2 logarithm of Theorems~\ref{thm:cms-w} and \ref{thm:cs-w}.
-When~$\alpha<1$, the hidden constant factor\footnote{Appendix~\ref{apx:upper_bounds_mg_normal} shows that this factor is close to~$\frac{\alpha}{\alpha+1} \cdot \left[ \left( N^\alpha/\epsilon \right)^{2 \cdot (\frac1\alpha+1)} \cdot {}_2F_1\left( 1, \frac{1+\alpha}{\alpha}; \frac{1+2\alpha}{\alpha}; -N^\alpha/\epsilon \right) \vphantom{\frac{(N^\alpha/\epsilon \cdot (N^\alpha/\epsilon-1))^{\frac1\alpha+1}}2} \right. -{}$ $\left. \frac{(N^\alpha/\epsilon \cdot (N^\alpha/\epsilon-1))^{\frac1\alpha+1}}2 \cdot {}_2F_1\left( 1, \frac{1+\alpha}\alpha; \frac{1+2\alpha}\alpha; -\frac{N^\alpha/\epsilon-1}{2} \right) \right]$, where~${}_2F_1$ is Gauss's hypergeometric function. This quantity can be shown to be at most~$\frac{1}{1-\alpha}$, and that it converges to $\ln M$ as $\alpha$ approaches~1.} is also smaller than those of \sketchcms and \sketchcs.
+Unlike \sketchcms and \sketchcs, which expand by doubling the size of their arrays, \sketchmg can expand by factors smaller than~2.
+This is because it uses a hash table rather than flat counter arrays, allowing it to increase its capacity by rehashing the stored keys into a larger table.
+Our key insight is that such finer-grained expansions yield tighter error bounds for \sketchmg.
+By adding counters more gradually, \sketchmg can expand sooner, reducing the frequency of evictions and thereby preserving more information about the historical frequencies of tracked keys.
+
+
+To exploit this opportunity, we augment \sketchmg with a fine-grained expansion mechanism.
+Starting with four slots per bucket in our Cuckoo hash table, each expansion rebuilds the table with one additional slot per bucket while keeping the number of buckets unchanged.
+Once the bucket size reaches eight slots, we instead double the number of buckets and restore the original bucket size of four slots, redistributing the entries of each original bucket across two new buckets, similarly to extendible hashing~\cite{ExtendibleHashing}.
+Each expansion is triggered whenever the size function~$W(M)$ exceeds the hash table's current maximum capacity.
+Alternative techniques for fine-grained hash table expansion, such as linear hashing~\cite{LinearHashing,VirtualHashing} or stretching~\cite{Zeno}, are also applicable.
+
+Although finer-grained expansions incur additional reconstruction overhead, they allow \sketchmg to add counters sooner than \sketchcms and \sketchcs, leading to smaller constant factors in its error bounds.
+We formalize this improvement in \Cref{thm:mg-normal}, proved in Appendix~\ref{apx:upper_bounds_mg_normal}.
+In particular, when~$\alpha=1$, \sketchmg's error bound involves a natural logarithm rather than the base-2 logarithm appearing in Theorems~\ref{thm:cms-w} and \ref{thm:cs-w}.
+When~$\alpha<1$, the constant factor hidden by the asymptotics\footnote{
+    Appendix~\ref{apx:upper_bounds_mg_normal} shows that this factor is close to~$\frac{\alpha}{\alpha+1} \cdot \left[ \left( N^\alpha/\epsilon \right)^{2 \cdot (\frac1\alpha+1)} \cdot {}_2F_1\left( 1, \frac{1+\alpha}{\alpha}; \frac{1+2\alpha}{\alpha}; -N^\alpha/\epsilon \right) \vphantom{\frac{(N^\alpha/\epsilon \cdot (N^\alpha/\epsilon-1))^{\frac1\alpha+1}}2} \right. -{}$ $\left. \frac{(N^\alpha/\epsilon \cdot (N^\alpha/\epsilon-1))^{\frac1\alpha+1}}2 \cdot {}_2F_1\left( 1, \frac{1+\alpha}\alpha; \frac{1+2\alpha}\alpha; -\frac{N^\alpha/\epsilon-1}{2} \right) \right]$, where~${}_2F_1$ is Gauss's hypergeometric function.
+    This quantity can be shown to be at most~$\frac{1}{1-\alpha}$, and that it converges to $\ln M$ as $\alpha$ approaches~1.
+} is also smaller than those of \sketchcms and \sketchcs.
 
 \textbf{Tail Guarantees.}
 As with CMS and CS, MG also provides a tail guarantee: any key's estimation error is at most~$\min_{1 \leq i \leq w} \frac{M^{\mathrm{res}(i)}}{w-i+1}$, where~$M^{\mathrm{res}(i)}$ is the total number of insertions for untracked keys that are not among the~$i$ most frequent.
@@ -3128,7 +3140,7 @@ The following theorem, proven in Appendix~\ref{apx:upper_bounds_mg_res}, shows t
     $$
     E(M) \leq  
     \begin{cases}
-        M^{\textup{res}(k)}/W(M) = \epsilon M^{\textup{res}(k)} & \text{$\alpha=0$,} \\
+        \epsilon M^{\textup{res}(k)} & \text{$\alpha=0$,} \\
         O(1) \cdot \epsilon \parentheses{M^{\textup{res}(k)}}^{1-\alpha} + O(k^{1/\alpha-1}) & \text{$0<\alpha<1$,} \\
         \ln M^{\textup{res}(k)} \cdot \epsilon + \ln k  & \text{$\alpha=1$ \textup{and} $\epsilon > 1$,} \\
         0  & \text{$\alpha=1$ \textup{and} $\epsilon \leq 1$,}
