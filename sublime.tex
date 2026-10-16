@@ -3583,9 +3583,7 @@ processor (4.8 GHz) with 24 cores. Our machine features an 80 KB L1 cache and a
         4 & \hspace*{1.5mm}- & - & \hspace*{1.5mm}70 & 5\hspace*{0.75mm} & \hspace*{0.75mm}75 & 4 \\ 
         \bottomrule 
     \end{tabular} 
-        \captionof{table}{Tuning \counterencodingabbrv's parameters for
-        each plot point to the left according to the table above enables high
-        performance and accuracy for \sketchcms.}
+        \captionof{table}{Tuning \counterencodingabbrv's parameters for each plot point above according to this table enables high performance and accuracy for \sketchcms.}
     \end{minipage} \\
     \vspace{-7mm}
     \caption{\sketchcms achieves the highest accuracy under real-world
@@ -3650,6 +3648,14 @@ relative errors to keep our presentation consistent with the theoretical error
 bounds studied in the literature. We have found the relative errors to behave
 similarly to the absolute errors.
 
+\hypertarget{experiment:accuracy}{\textbf{Experiment 1: Accuracy and Speed vs. Memory.}}
+In \Cref{fig:accuracy_bench}, we feed each workload to each baseline while varying the allotted memory budget.
+This experiment features bounded data growth, allowing us to focus on how well each baseline accommodates skew.
+Each point on the curves represents a complete run of the experiment starting from scratch.
+We tune Coding sketch and \sketchcms at each point to minimize their error and showcase their highest accuracy.
+The table to the right of \Cref{fig:accuracy_bench} details the tuned parameters of \sketchcms{\textemdash}the number of counters per chunk~$c$ and the stub length~$s$.
+We increase the memory budget by factors of 2 on the $x$-axis up to 4 MBs, though for the \textsc{Kosarak} dataset, we use smaller budgets due to the workload \mbox{trace being shorter}.
+
 \iftods
 \begin{figure}
     \centering
@@ -3667,19 +3673,6 @@ similarly to the absolute errors.
     \label{fig:skew_vale_tuning_bench}
 \end{figure}
 \fi
-
-\hypertarget{experiment:accuracy}{\textbf{Experiment 1: Accuracy and Speed vs. Memory.}}
-In \Cref{fig:accuracy_bench}, we feed each workload to each baseline while
-varying the allotted memory budget. This experiment features bounded data
-growth, allowing us to focus on how well each baseline accommodates skew. Each
-point on the curves represents a complete run of the experiment starting from
-scratch. We tune Coding sketch and \sketchcms at each point to minimize their
-error and showcase their highest accuracy. The table to the right of
-\Cref{fig:accuracy_bench} details the tuned parameters of
-\sketchcms{\textemdash}the number of counters per chunk~$c$ and the stub
-length~$s$. We increase the memory budget by factors of 2 on the $x$-axis up to
-4 MBs, though for the \textsc{Kosarak} dataset, we use smaller budgets due to
-the workload trace~being~shorter.
 
 \Cref{fig:accuracy_bench}
 shows that \sketchcms has a lower estimation error than most other baselines by
@@ -4038,15 +4031,55 @@ them without compounding errors.
 \fi
 
 \textbf{Experiment 9: MG Accuracy and Speed vs. Memory.}
-We now benchmark \sketchmg to demonstrate the benefits of applying \sketch\ to MG.
-We include a traditional MG implemented using a Cuckoo hash table~\cite{CuckooHashing,CuckooHashingConference} without auxiliary structures for evictions as a baseline.
-We also include SpaceSaving~\cite{SpaceSaving}, which employs a doubly-linked list for identifying eviction victims.
-Additionally, we include Waving sketch~\cite{WavingSketch} as a baseline, since it is the state-of-the-art sketch in the literature that employs MG as a sub-structure in its hybrid design.
-We also compare to Stingy sketch~\cite{StingySketch} and Coding sketch~\cite{CodingSketch} applied to CS, representing counter sharing methods with unbiased estimates.
-We exclude
-SALSA~\cite{SALSA} as its library does not provide a variant with unbiased
-estimates. We employ the \textsc{CAIDA} dataset and optimally tune Coding
-sketch and \sketchcs.
+We now turn our focus to evaluating \sketchmg.
+We consider two version of \sketchmg: one that scans the hash table to directly decrement each counter and evict keys, and one that de-amortizes these scans using a global decrement and compressed segment tree, as described in \Cref{sec:mg_sublime}.
+We implement the hash table using Cuckoo hashing~\cite{CuckooHashing,CuckooHashingConference} with buckets of four slots each.
+As baselines, we include traditional the MG implementation that similarly employs a Cuckoo hash table and scans its to implement decrements and evictions.
+We also include an MG implementation that de-amortizes these scans using a heap, and SpaceSaving~\cite{SpaceSaving}, which does the same using a doubly linked list.
+Finally, we include Waving sketch~\cite{WavingSketch} as a baseline, since it is the state-of-the-art hybrid sketch in the literature that employs MG as a substructure. 
+Specifically, it implements its hash table as a set of fixed-sized buckets, each implemented as a Traditional scan-based MG.
+
+\newsavebox{\mgtablebox}
+\begin{figure*}
+    \centering
+    \includegraphics[width=0.8\textwidth]{mg_accuracy.pdf}
+    \hspace*{8.5mm}
+    \small
+    \setlength{\tabcolsep}{4.03mm}
+    \sbox{\mgtablebox}{%
+    \begin{tabular}[b]{ccccccc} 
+        \toprule 
+        \multirow{2}{*}[0.0em]{Memory [MB]} & \multicolumn{2}{c}{\textsc{\hspace*{1.2mm}Kosarak}} & \multicolumn{2}{c}{\hspace*{0.3mm}\textsc{WebDocs}} & \multicolumn{2}{c}{\hspace*{0.5mm}\textsc{CAIDA}} \\ 
+        & \hspace*{1.5mm}$c$ & $s$ & \hspace*{1.5mm}$c$ & $s$\hspace*{0.75mm} & \hspace*{0.75mm}$c$ & $s$ \\ 
+        \midrule 
+        1/64 & \hspace*{1.5mm}39 & 9 & \hspace*{1.5mm}- & -\hspace*{0.75mm} & \hspace*{0.75mm}- & - \\ 
+        1/32 & \hspace*{1.5mm}39 & 9 & \hspace*{1.5mm}- & -\hspace*{0.75mm} & \hspace*{0.75mm}- & - \\ 
+        1/16 & \hspace*{1.5mm}41 & 9 & \hspace*{1.5mm}- & -\hspace*{0.75mm} & \hspace*{0.75mm}- & - \\ 
+        1/8 & \hspace*{1.5mm}46 & 8 & \hspace*{1.5mm}31 & 12\hspace*{0.75mm} & \hspace*{0.75mm}40 & 9 \\ 
+        1/4 & \hspace*{1.5mm}52 & 7 & \hspace*{1.5mm}33 & 11\hspace*{0.75mm} & \hspace*{0.75mm}49 & 8 \\ 
+        1/2 & \hspace*{1.5mm}- & - & \hspace*{1.5mm}39 & 9\hspace*{0.75mm} & \hspace*{0.75mm}46 & 8 \\ 
+        1 & \hspace*{1.5mm}- & - & \hspace*{1.5mm}45 & 8\hspace*{0.75mm} & \hspace*{0.75mm}56 & 6 \\ 
+        2 & \hspace*{1.5mm}- & - & \hspace*{1.5mm}45 & 8\hspace*{0.75mm} & \hspace*{0.75mm}68 & 5 \\ 
+        4 & \hspace*{1.5mm}- & - & \hspace*{1.5mm}55 & 6\hspace*{0.75mm} & \hspace*{0.75mm}68 & 5 \\ 
+        \bottomrule 
+    \end{tabular}}%
+    \begin{minipage}{\wd\mgtablebox}
+    \vspace*{2mm}
+    \usebox{\mgtablebox}
+        \captionof{table}{Tuning \counterencodingabbrv's parameters for each plot point above as in this table enables high performance and accuracy for \sketchmg.}
+    \end{minipage} \\
+    \vspace{-7mm}
+    \caption{\sketchmg attains the highest accuracy under real-world workloads while maintaining comparable insertion and query performance to the state of the art.
+    The table above details how \sketchmg tunes \counterencodingabbrv\ by listing the number of counters per chunk~$c$ and the stub length~$s$.}
+    \label{fig:mg_accuracy_bench}
+\end{figure*}
+
+In \Cref{fig:mg_accuracy_bench}, we consider the scenario of bounded data growth to isolate the benefits of saving space using \counterencodingabbrv\ and its effects on running time.
+As in Experiment~\hyperlink{experiment:accuracy}{1}, we feed the \textsc{Kosarak}, \textsc{WebDocs}, and \textsc{CAIDA} datasets to each baseline while varying the memory budget.
+We consider smaller memory budgets for the \textsc{Kosarak} dataset because it is a shorter trace.
+
+As shown in the first row, both versions of \sketchmg achieve the lowest estimation errors across all datasets and memory budgets.
+This results from compactly encoding the keys' counters using \counterencodingabbrv\ and de-amortizing evictions using a compact segment tree rather than memory-heavy auxiliary structures such as min-heaps or linked lists.
 
 \Cref{fig:accuracy_unbiased_bench}
 shows that, by leveraging the memory savings of \counterencodingabbrv\ to store
