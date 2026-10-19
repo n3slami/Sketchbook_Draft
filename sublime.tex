@@ -3054,8 +3054,8 @@ This keeps the stored counter values close to their effective counts, preserving
 
 Second, conventional data structures for de-amortizing evictions, such as min-heaps and linked lists, incur substantial memory overhead.
 This reduces the space available for storing entries in the hash table, thereby limiting estimation accuracy.
-In the context of \sketchmg, this overhead also overshadows the space savings achieved by \counterencodingabbrv.
-To address this challenge, we introduce a compressed segment tree that identifies eviction candidates using only two additional bits per counter, reducing the overall memory footprint by~2--3$\times$ compared with conventional heap- or linked-list-based implementations.
+In the context of \sketchmg, this overhead would also overshadow the space savings achieved by \counterencodingabbrv.
+To address this challenge, we introduce a compressed segment tree that identifies eviction candidates using only two additional bits per counter, reducing the overall memory footprint by~2--3$\times$ compared with conventional heap- or linked-list-based designs.
 The segment tree guarantees worst-case insertion time logarithmic in the sketch size.
 Moreover, counter updates rarely propagate far up the tree, which we show preserves~$O(1)$ amortized insertion time.
 
@@ -3095,7 +3095,7 @@ As discussed earlier, inserting a key that is already tracked by MG simply incre
 MG's error grows through global decrements triggered by insertions of untracked keys, with each decrement increasing the worst-case error by one.
 Moreover, inserting an untracked key into an empty slot without triggering a global decrement may contribute to future estimation error, as the newly admitted key may be infrequent and occupy a slot that could otherwise be used to track a heavy hitter.
 These observations motivate a different expansion criterion from those used by \sketchcms and \sketchcs.
-Whereas \sketchcms expands based on the total number of insertions and \sketchcs on the stream's~$\ell_2$-norm, \sketchmg expands based on the number of untracked-key insertions observed so far, denoted by~$M$.
+Whereas \sketchcms expands based on the total number of insertions and \sketchcs on the stream's~$\ell_2$-norm, \sketchmg should expand based on the number of untracked-key insertions observed so far, denoted by~$M$.
 This is because the number of untracked-key insertions governs the estimation error.
 
 Thus, we specify the number of counters \sketchmg should expand to accommodate after~$M$ untracked-key insertions by defining a size function~$W(M)$.
@@ -3133,7 +3133,7 @@ We quantify this constant factor shortly.
 When~$\alpha=1$ and~$\epsilon\leq1$, \sketchmg trivially achieves zero additive error because it expands with every untracked-key insertion, effectively becoming a conventional hash table that stores every key and tracks its exact count.
 This is captured by the bottom case of \Cref{thm:mg-normal}, which we include for completeness.
 When~$\alpha=1$ and $\epsilon>1$, \sketchmg instead expands proportionally to the number of untracked-key insertions, but maintains too few entries to track every key.
-One might hope that this would still yield constant additive error.
+One might hope that this would still yield constant additive error, as suggested by plugging in~$\alpha=1$ into the second case of \Cref{thm:mg-normal}.
 However, as with \sketchcms and \sketchcs, the additive error grows logarithmically rather than remaining constant, as shown by the third case of the theorem.
 The memory footprint lower bound in \Cref{thm:sketch_expandability_special_case} establishes that this trade-off is fundamental to dynamically expanding sketches with MG's deterministic error guarantees.
 In practice, these two regimes can be combined: \sketchmg can be tuned to first maintain exact counts during a ``warmup phase'' until reaching a memory threshold, and then switch to a slower expansion policy to trade estimation accuracy for a smaller memory footprint.
@@ -3200,7 +3200,7 @@ For global decrements, it achieves this using a global lazy offset~$L$, as in cl
 A consequence of this approach is that the stored value of each counter can exceed its effective count.
 This causes counters to occupy more bits than necessary when encoded with \counterencodingabbrv, reducing its space savings.
 One way to address this problem is to periodically scan the entire structure and subtract~$L$ from every counter.
-However, each such scan takes time linear in the sketch size~$w$, defeating the purpose of de-amortization.
+However, each such scan would take time linear in the sketch size~$w$, defeating the purpose of de-amortization.
 
 Instead, \sketchmg applies lazy decrements incrementally over blocks of~$\log_2 w$ counters (this block size bounds both the worst-case running time and the metadata overhead, as explained below).
 For each block, \sketchmg stores a \emph{local decrement} that records the global lazy offset last applied to that block.
