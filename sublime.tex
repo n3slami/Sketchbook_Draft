@@ -2905,7 +2905,7 @@ As shown, MG's worst-case estimation error grows linearly with the stream length
 MG is typically implemented using a hash table that maps each tracked key to its counter, supporting constant-time queries and insertions of already-tracked keys.
 Inserting an untracked key may trigger a global decrement, requiring a scan of all~$\Theta(w)$ counters.
 However, as observed in the original MG paper~\cite{MisraGries}, the error bound of~$N/w$ implies that at most~$N/w$ global decrements can occur over a stream of~$N$ insertions.
-Consequently, the total cost of these scans is~$O(N)$, yielding~$O(1)$ amortized overhead per insertion.
+Consequently, global decrements occur at most once every~$w$ insertions on average, amortizing the~$\Theta(w)$ scan cost of each to~$O(1)$ per insertion.
 Thus, when implemented using a hash table, MG supports insertions in constant expected amortized time.
 The first row of \Cref{tab:mg_performance_space_overhead} summarizes the properties of this \mbox{scan-based approach}.
 
@@ -3011,11 +3011,10 @@ The first row of \Cref{tab:mg_performance_space_overhead} summarizes the propert
 
         \bottomrule
     \end{tabular}
-    \caption{Different MG implementations augment the hash table with additional data structures to de-amortize the cost of decrements and scans.
-    \sketchmg improves upon the worst-case insertion time while retaining the amortized cost constant and incuring a small memory overhead of~2 bits per key.}
+    \caption{Different MG implementations augment the hash table with additional data structures to de-amortize the cost of decrements and evictions.
+    \sketchmg improves upon the worst-case insertion time while keeping the amortized cost constant and incuring a small memory overhead of~3 bits per key.}
     \label{tab:mg_performance_space_overhead}
 \end{table*}
-
 
 \textbf{De-amortizing Decrements.}
 In the above implementation, an individual insertion can take~$\Theta(w)$ time to scan and decrement all counters.
@@ -3137,7 +3136,7 @@ However, as with \sketchcms and \sketchcs, the additive error grows logarithmica
 The memory footprint lower bound in \Cref{thm:sketch_expandability_special_case} establishes that this trade-off is fundamental to dynamically expanding sketches with MG's deterministic error guarantees.
 
 Similarly to \sketchcms, \sketchmg defaults to~$\alpha=0.5$ in its size function to balance estimation error and memory footprint, making both scale as~$O(\sqrt{M})$.
-To instead tune the parameters~$\alpha$ and~$\epsilon$ for a particular workload, practitioners can substitute the stream length~$N$ for~$M$ in \Cref{thm:mg-normal} to obtain an upper bound on the estimation error, since~$N \geq M$.
+To tune the parameters~$\alpha$ and~$\epsilon$ for a particular workload, practitioners can substitute the stream length~$N$ for~$M$ in \Cref{thm:mg-normal} to obtain an upper bound on the estimation error, since~$N \geq M$.
 At runtime, \sketchmg tracks the actual number of untracked-key insertions~$M$ and can use it to report a \mbox{tighter error bound}.
 
 \textbf{Fine-Grained Expansions.}
@@ -3152,20 +3151,22 @@ Once the bucket size reaches eight slots, we instead double the number of bucket
 Each expansion is triggered whenever the size function~$W(M)$ exceeds the hash table's current maximum capacity.
 Alternative techniques for fine-grained hash table expansion, such as linear hashing~\cite{LinearHashing,VirtualHashing} or stretching~\cite{Zeno}, are also applicable.
 
-Although finer-grained expansions incur additional reconstruction overhead, they allow \sketchmg to add counters sooner than \sketchcms and \sketchcs, leading to smaller constant factors in its error bounds.
-We formalize this improvement in \Cref{thm:mg-normal}, proved in Appendix~\ref{apx:upper_bounds_mg_normal}.
-In particular, when~$\alpha=1$, \sketchmg's error bound involves a natural logarithm rather than the base-2 logarithm appearing in Theorems~\ref{thm:cms-w} and \ref{thm:cs-w}.
+Compared with doubling the sketch's size, this fine-grained expansion scheme rebuilds the sketch four times as often.
+Nevertheless, it allows \sketchmg to add counters sooner than \sketchcms and \sketchcs, yielding smaller constant factors in its error bounds.
+\Cref{thm:mg-normal}, proven in Appendix~\ref{apx:upper_bounds_mg_normal}, formalizes these improvements.
+In particular, when~$\alpha=1$, \sketchmg's error bound involves a natural logarithm, which is smaller than the base-2 logarithm appearing in the corresponding bounds for \sketchcms (\Cref{thm:cms-w}) and \sketchcs (\Cref{thm:cs-w}).
 \iftods
-When~$\alpha<1$, the constant factor hidden by the asymptotics\footnote{
+Moreover, when~$\alpha<1$, the constant factor hidden by the asymptotics of \Cref{thm:mg-normal}\footnote{
     Appendix~\ref{apx:upper_bounds_mg_normal} shows that this factor is close to~$\frac{\alpha}{\alpha+1} \cdot \left[ \left( N^\alpha/\epsilon \right)^{2 \cdot (\frac1\alpha+1)} \cdot {}_2F_1\left( 1, \frac{1+\alpha}{\alpha}; \frac{1+2\alpha}{\alpha}; -N^\alpha/\epsilon \right) \vphantom{\frac{(N^\alpha/\epsilon \cdot (N^\alpha/\epsilon-1))^{\frac1\alpha+1}}2} \right. -{}$ $\left. \frac{(N^\alpha/\epsilon \cdot (N^\alpha/\epsilon-1))^{\frac1\alpha+1}}2 \cdot {}_2F_1\left( 1, \frac{1+\alpha}\alpha; \frac{1+2\alpha}\alpha; -\frac{N^\alpha/\epsilon-1}{2} \right) \right]$, where~${}_2F_1$ is Gauss's hypergeometric function.
-    This quantity can be shown to be at most~$\frac{1}{1-\alpha}$, and that it converges to $\ln M$ as $\alpha$ approaches~1.
-} is also smaller than those of \sketchcms and \sketchcs.
+    This quantity can be shown to be at most~$\frac{1}{1-\alpha}$, and it converges to~$\ln M$ as~$\alpha$ approaches~1.
+} is at most~$1/(1-\alpha)$, compared with~$\frac{2^{1/\alpha}-1}{2^{1/\alpha-1}-1}$.
 \else
-When~$\alpha<1$, the constant factor hidden by the asymptotics\footnote{
+Moreover, when~$\alpha<1$, the constant factor hidden by the asymptotics of \Cref{thm:mg-normal}\footnote{
     In the proof of \Cref{thm:mg-normal} in Appendix~\ref{apx:upper_bounds_mg_normal}, we show that this constant factor is close to the expression~$\frac{\alpha}{\alpha+1} \cdot \left[ \left( N^\alpha/\epsilon \right)^{2 \cdot (\frac1\alpha+1)} \cdot {}_2F_1\left( 1, \frac{1+\alpha}{\alpha}; \frac{1+2\alpha}{\alpha}; -N^\alpha/\epsilon \right) \vphantom{\frac{(N^\alpha/\epsilon \cdot (N^\alpha/\epsilon-1))^{\frac1\alpha+1}}2} \right. -{}$ $\left. \frac{(N^\alpha/\epsilon \cdot (N^\alpha/\epsilon-1))^{\frac1\alpha+1}}2 \cdot {}_2F_1\left( 1, \frac{1+\alpha}\alpha; \frac{1+2\alpha}\alpha; -\frac{N^\alpha/\epsilon-1}{2} \right) \right]$, where~${}_2F_1$ denotes Gauss's hypergeometric function.
     This quantity can be shown to be at most~$\frac{1}{1-\alpha}$, and that it converges to $\ln M$ as $\alpha$ approaches~1.
-} is also smaller than those of \sketchcms and \sketchcs.
+} is at most~$1/(1-\alpha)$, compared with~$\frac{2^{1/\alpha}-1}{2^{1/\alpha-1}-1}$.
 \fi
+Under the default setting of~$\alpha=0.5$, these factors evaluate to~2 and~3.
 
 \textbf{Tail Guarantees.}
 As with CMS and CS, MG also provides a tail guarantee: any key's estimation error is at most~$\min_{1 \leq i \leq w} \frac{M^{\mathrm{res}(i)}}{w-i+1}$, where~$M^{\mathrm{res}(i)}$ is the total number of insertions for untracked keys that are not among the~$i$ most frequent.
@@ -3189,31 +3190,32 @@ This forces \sketchmg to ``wait out'' the stream until the hash table's capacity
 These terms vanish if \sketchmg is allocated~$k$ counters from the start.
 
 \textbf{Incremental Counter Deflation.}
-Similarly to classic MG designs, \sketchmg de-amortizes global decrement operations using a global frame of reference~$L$, allowing each decrement to be performed in constant time.
+Similarly to classic MG designs, \sketchmg de-amortizes global decrement operations using a global frame of reference~$L$, allowing each to be performed in constant time.
 A consequence of this approach is that the stored value of each counter can exceed its effective count.
 This causes counters to occupy more bits than necessary when encoded with \counterencodingabbrv, reducing its space savings.
 A naive way of addressing this problem would be to periodically scan the entire structure and subtract~$L$ from every counter.
 However, each such scan would take time linear in the sketch size~$w$, defeating the purpose of de-amortization.
 
-Instead, \sketchmg applies lazy decrements incrementally over blocks of~$\log_2 w$ counters (this block size bounds both the worst-case running time and the metadata overhead, as explained below).
-For each block, \sketchmg stores a \emph{local decrement} that records the global lazy offset last applied to that block.
-A counter's effective value is then obtained by subtracting its block's outstanding decrements (i.e., the difference between the global lazy offset~$L$ and the block's local decrement) from its stored value.
-When a counter is relocated to mirror a key's movement in the Cuckoo hash table, \sketchmg preserves its effective count by adjusting its stored value according to the difference in outstanding decrements between the source and destination blocks.
+Instead, we incrementally deflate the stored counter values to bring them closer to their effective counts.
+We do this by partitioning the counters into blocks of~$\log_2 w$ counters each (this block size bounds both the worst-case running time and the metadata overhead, as explained below).
+Each block maintains a \emph{local frame of reference} that records the last value of the global frame of reference applied to that block.
+A counter's effective count is then obtained by subtracting its block's outstanding decrements (i.e., the difference between the global and local frames of reference) from its stored value.
+When a counter is relocated to mirror a key's movement in the Cuckoo hash table, \sketchmg preserves its effective count by adjusting its stored value to account for the difference in outstanding decrements between the source and destination blocks.
 
-With each global decrement, \sketchmg applies the outstanding decrements to one block, removing each counter's corresponding key from the hash table if its value reaches zero.
+With each global decrement, \sketchmg applies the outstanding decrements to one block, removing each counter's corresponding key from the hash table if its count reaches zero.
 It then advances to the next block in circular order, which it processes upon the next global decrement.
-Because there are~$w/\log_2 w$ blocks, each block is visited once every~$w/\log_2 w$ global decrements and therefore accumulates at most~$w/\log_2 w$ outstanding decrements.
-This allows both the global lazy offset~$L$ and the local decrements to wrap around modulo~$w/\log_2 w$, enabling each to be stored in at most~$\log_2 w$ bits.
-Since each~$\log_2 w$-bit local decrement is shared by the~$\log_2 w$ counters in its block, the total metadata overhead is only~1 bit per counter.
-At the same time, applying the outstanding decrements to a single block takes only~$O(\log w)$ worst-case time while preserving constant amortized insertion cost.
+Because there are~$w/\log_2 w$ blocks, each block is visited once every~$w/\log_2 w$ global decrements and thus accumulates at most~$w/\log_2 w$ outstanding decrements.
+This allows both the global frame of reference~$L$ and the local frames of reference to wrap around modulo~$w/\log_2 w$, enabling each to be stored in at most~$\log_2 w$ bits.
+Since each local frame of reference is shared by the~$\log_2 w$ counters in its block, the total metadata overhead is only~1 bit per counter.
+At the same time, applying the outstanding decrements to a block takes only~$O(\log w)$ worst-case time.
+This also preserves~$O(1)$ amortized insertion time, since a block is processed upon a global decrement, which occurs at most once every~$w$ insertions on average, as established in \Cref{sec:mg_background}.
 
 \textbf{Evictions via a Segment Tree.}
-\sketchmg reduces the worst-case eviction time from~$\Theta(w)$ with scans to~$O(\log w)$ while retaining constant amortized insertion time.
-It achieves this by creating a compressed segment tree~\cite{SegmentTree1,SegmentTree2,CG} over its counter array, as shown in \Cref{fig:mg_segment_tree}.
-This segment tree is a full binary tree whose leaves are the counters in \sketchmg's counter array.
-Each internal node identifies the counter with the smallest non-zero effective count in its subtree by storing its offset from the subtree's leftmost leaf.
+To de-amortize the cost of identifying eviction candidates, we design a compact segment tree~\cite{SegmentTree1,SegmentTree2,CG}.
+This segment tree is a full binary tree whose leaves are the counters in \sketchmg's counter array, as shown in \Cref{fig:mg_segment_tree}.
+Each internal node identifies the counter with the smallest non-zero effective count in its subtree by storing its offset relative to the subtree's leftmost leaf.
 We exclude zero effective counts because they correspond to overprovisioned empty slots in the hash table that help speed up insertions.
-The segment tree's root therefore stores the offset of the smallest non-zero count in the entire counter array, allowing \sketchmg to efficiently identify an eviction victim.
+The segment tree's root therefore stores the offset of the smallest non-zero count in the entire counter array, allowing \sketchmg to immediately identify an eviction victim.
 
 \begin{figure}
     \centering
@@ -3274,10 +3276,10 @@ The segment tree's root therefore stores the offset of the smallest non-zero cou
         }
         \iftods
             \draw[decorate,decoration={brace,raise=3pt,amplitude=2pt}] (5*\cellw,0 |- slot-offset-4.south) -- (4*\cellw,0 |- slot-offset-4.south)
-                node[pos=0.5,below=6pt,inner sep=1pt] {\footnotesize Overprovisioning};
+                node[pos=0.5,below=6pt,inner sep=1pt] {\footnotesize Empty Slot};
         \else
             \draw[decorate,decoration={brace,raise=3pt,amplitude=2pt}] (5*\cellw,0 |- slot-offset-4.south) -- (4*\cellw,0 |- slot-offset-4.south)
-                node[pos=0.5,below=6pt,inner sep=1pt] {\small Overprovisioning};
+                node[pos=0.5,below=6pt,inner sep=1pt] {\small Empty Slot};
         \fi
 
         % Segment Tree
@@ -3337,36 +3339,38 @@ The segment tree's root therefore stores the offset of the smallest non-zero cou
         \fi
     \end{tikzpicture}
     \caption{By storing a compressed segment tree, \sketchmg improves the worst-case insertion cost to logarithmic while retaining a constant amortized cost.
-    To simplify the figure, this figure presents the effective count of each key in the corresponding counter.}
+    To simplify the figure, we present the effective count of each key in the corresponding counter.}
     \label{fig:mg_segment_tree}
 \end{figure}
 
-\Cref{fig:mg_segment_tree} shows these offsets in black and the corresponding counter values in gray.
+\Cref{fig:mg_segment_tree} illustrates these offsets in black and the corresponding counter values in gray.
 The lowest internal nodes store offsets~0, 1, 1, and 0, indicating which of their two children contain the smaller non-zero counter.
-The third node from the left in this level stores~1 rather than 0, since its left child has an effective count of zero.
+The third node from the left in this level stores~1 rather than~0 because its left child corresponds to an empty slot, as indicated by its zero effective count.
 The two internal nodes in the level above store offsets~3 and 1, identifying counters with values~4 and 1 as the minima of their respective subtrees.
+Finally, the root stores offset~5, identifying the counter with the smallest non-zero value of~1 in the entire array.
 
 Since an internal node at height~$h$ has at most~$2^h$ leaves in its subtree, its subtree-local offset lies in the range~$[0,2^h)$ and can therefore be encoded in~$h$ bits.
 The binary numbers in \Cref{fig:mg_segment_tree} illustrate this encoding.
 Because there are at most~$w/2^h$ internal nodes at height~$h$, the total memory required for the subtree-local offsets is at most~$\sum_h h \cdot w/2^h \leq 2 \cdot w$ bits.
-Thus, the segment tree incurs an overhead of at most~2 bits per counter.
-\Cref{tab:mg_performance_space_overhead} compares the combined space overhead of \sketchmg's segment tree and local decrements with that of the auxiliary structures in \mbox{classic MG implementations}.
+Thus, the segment tree incurs a memory overhead that approaches~2 bits per counter from below.
+\Cref{tab:mg_performance_space_overhead} compares the combined space overhead of \sketchmg's segment tree and local frames of references with that of the auxiliary structures in classic MG implementations.
 
 \sketchmg evicts a key by emptying the slot indicated by the segment tree's root and resetting its counter to zero.
 It then updates the path from the corresponding leaf toward the root to reflect the eviction, taking~$O(\log w)$ time in the worst case.
-This traversal terminates once it reaches an internal node whose subtree minimum remains unchanged.
-The same update procedure is used when a counter is relocated within the array to mirror a key's movement during hash table collision resolution or when an insertion increments the counter of a tracked key.
+The traversal terminates as soon as it reaches an internal node whose subtree minimum remains unchanged.
+The same update procedure is used when an insertion increments the counter of a tracked key or when a counter is relocated within the array to mirror a key's movement during hash table collision resolution.
+In contrast, a global decrement does not require updating the segment tree, since it affects all counters equally.
 
 These update traversals preserve constant amortized insertion time for three reasons:
-(1)~For evictions, the traversal is asymptotically faster than the scan-based approach, which already provides constant amortized insertion time.
-(2)~When a Cuckoo hash table moves a key to resolve a collision, the key being moved is effectively chosen at random from the table.
-The corresponding counter is therefore chosen at random from the counter array, so its update traversal advances only one level up the segment tree in expectation.
-A similar argument bounds the expected traversal cost for other collision resolution strategies (e.g., linear probing).
-(3)~For counter increments, updates to the segment tree's internal nodes are infrequent.
+(1)~For evictions, the~$O(\log w)$ traversal occurs only upon a global decrement, which happens at most once every~$w$ insertions on average, as discussed in \Cref{sec:mg_background}.
+(2)~For counter increments, updates to the segment tree's internal nodes are infrequent.
 To see why, we observe that the minimum counter value represented by an internal node (shown in gray in \Cref{fig:mg_segment_tree}) can increase only after every leaf in its subtree has been incremented.
 For a node at height~$h$, each such increase can therefore be charged to at least~$2^h$ leaf increments within its subtree.
 Equivalently, each leaf increment incurs an amortized cost of at most~$2^{-h}$ for updating its ancestor at height~$h$.
 Summing over all ancestors gives a total amortized cost of at most~$\sum_{h=1}^{\infty}2^{-h}=1$ per leaf increment.
+(3)~When a Cuckoo hash table moves a key to resolve a collision, the key being moved is effectively chosen at random from the table.
+The corresponding counter is therefore also chosen at random from the counter array, so its update traversal advances only one level up the segment tree in expectation.
+A similar argument bounds the expected traversal cost for other collision resolution strategies (e.g., linear probing).
 The last row of \Cref{tab:mg_performance_space_overhead} summarizes the properties of using this segment tree for evictions.
 
 \textbf{Weighted Updates.}
@@ -3598,10 +3602,10 @@ this degradation using techniques based on rank and
 select~\cite{Poppy,FlorianRankandSelect,CompactPATTrees,RankandSelectDict,Succincter}.
 
 \section{Evaluation}\label{sec:evaluation}
-In this section, empirically evaluate \sketch.
-\Cref{sec:evaluation_cms} evaluates the benefits of \sketch's techniques in detail through benchmarks of \sketchcms, while Sections~\ref{sec:evaluation_cs} and \ref{sec:evaluation_mg} demonstrate the framework's generality through benchmarks of \sketchcs and \sketchmg.
-Experiments~\hyperlink{experiment:accuracy}{1}, \hyperlink{experiment:skew}{2}, \hyperlink{experiment:vale_tuning}{3}, \hyperlink{experiment:accuracy_unbiased}{6}, and \hyperlink{experiment:accuracy_mg}{8} focus on accommodating skew, while Experiments~\hyperlink{experiment:expansion}{4}, \hyperlink{experiment:contraction}{5}, \hyperlink{experiment:l2_size_function}{7}, and \hyperlink{experiment:untracked_key_insertions}{9} deal with unbounded data growth.
-Finally, \Cref{sec:evaluation_join} evaluates \sketch\ in the end-to-end application of join size estimation.
+We now empirically evaluate \sketch.
+\Cref{sec:evaluation_cms} examines the benefits of \sketch's techniques in detail through benchmarks of \sketchcms, while Sections~\ref{sec:evaluation_cs} and \ref{sec:evaluation_mg} demonstrate the framework's generality through benchmarks of \sketchcs and \sketchmg.
+\Cref{sec:evaluation_join} further evaluates \sketch\ in the end-to-end application of join size estimation.
+Across these sections, Experiments~\hyperlink{experiment:accuracy}{1}, \hyperlink{experiment:skew}{2}, \hyperlink{experiment:vale_tuning}{3}, \hyperlink{experiment:accuracy_unbiased}{6}, and \hyperlink{experiment:accuracy_mg}{8} focus on accommodating skew, while Experiments~\hyperlink{experiment:expansion}{4}, \hyperlink{experiment:contraction}{5}, \hyperlink{experiment:l2_size_function}{7}, and \hyperlink{experiment:untracked_key_insertions}{9} deal with \mbox{unbounded data growth}.
 
 \textbf{Platform.}
 We run the experiments on a Fedora~44 machine with an Intel Xeon w7-2495X processor (4.8~GHz) with~24 cores.
@@ -3982,6 +3986,43 @@ The reason is that a more skewed dataset grows the variance more quickly, necess
 As skew increases further, expanding based on the variance yields diminishing returns.
 This is due to the stream's distinct keys dropping in number with skew, making keys less likely to map to the same counter and create severe errors.
 
+
+\subsection{Join Size Estimation}\label{sec:evaluation_join}
+We now demonstrate the benefits of \sketch\ in join size estimation.
+
+\iftods
+\begin{figure*}
+    \centering
+    \includegraphics[width=\textwidth]{join_size_camera_ready.pdf}
+    \caption{\sketch\ provides the most accurate frequency estimates of table
+    entries and the size of their join.}
+    \label{fig:join_size_bench}
+\end{figure*}
+\fi
+
+\textbf{Dataset and Workload.}
+We employ a 100 GB TPC-H workload~\cite{TPCH}.
+We consider the \texttt{lineitem} and \texttt{orders} tables, incrementally insert rows into each, and periodically join them on their shared \texttt{ORDERKEY} column.
+Following~\cite{JoinSizeEstimationFilterConditions}, each row in the \texttt{orders} table is duplicated~1--3 times to simulate a many-to-many join. 
+We construct FE sketches tracking the count of each \texttt{ORDERKEY} value in these tables and predict their counts in the join by multiplying the per-table estimates.
+We set the initial memory budget to~8MB ($\approx0.1\%$ of the data size) and distribute it to each sketch in proportion to the initial size of its table.
+
+\textbf{Baselines.}
+We compare CMS and CS with fixed-size and expandable versions of \sketchcms and \sketchcs.
+The expandable \sketchcms and \sketchcs grow as a sublinear power (with a power of~0.75) of the tables.
+We exclude MG and \sketchmg from this experiment because they return frequency estimates of zero for untracked keys, thereby causing severe underestimation of the join size when individual frequency estimates are multiplied.
+
+\hypertarget{experiment:join_size}{\textbf{Experiment 10: Join Size Estimation.}}
+\Cref{fig:join_size_bench} reports accuracy measurements for each table and the join result. 
+As shown, the fixed-size versions of \sketchcms and \sketchcs attain higher accuracy than CMS and CS by multiple orders of magnitude due to their use of variable-length counters.
+Moreover, the expandable \sketchcms and \sketchcs outperform their fixed-size counterparts by as much as an order of magnitude.
+The fixed-size version of \sketchcs is more accurate than the fixed-size version of \sketchcms on each separate table.
+This is because the workload in this experiment is almost uniform, leading to the positive and negative counts of colliding keys in \sketchcs to cancel out.
+When allowed to expand, \sketchcms is more accurate than \sketchcs on individual tables, as collisions reduce with expansions, and \sketchcms does not store a sign bit for each counter.
+Nevertheless, both versions of \sketchcs have more accurate join estimates than the corresponding version of \sketchcms.
+This is due to \sketchcs returning unbiased estimates, which allows for multiplying them without compounding errors.
+
+
 \subsection{\sketchmg}\label{sec:evaluation_mg}
 We now turn our focus to evaluating \sketchmg under both skew and stream growth.
 
@@ -4095,41 +4136,6 @@ The reason is that the former policy disregards how insertions of already-tracke
 This trade-off is particularly evident for~$\alpha=1.0$ in \Cref{fig:expansion_mg_bench}.
 When expanding based on~$N$ with~$\alpha=1.0$, \sketchmg's estimation error decreases toward zero as the stream grows.
 In contrast, expanding based on~$M$ with~$\alpha=1.0$ maintains a stable estimation error as intended while reducing the memory footprint by an order of magnitude compared to expanding based on~$N$.
-
-\subsection{Join Size Estimation}\label{sec:evaluation_join}
-We now demonstrate the benefits of \sketch\ in join size estimation.
-
-\iftods
-\begin{figure*}
-    \centering
-    \includegraphics[width=\textwidth]{join_size_camera_ready.pdf}
-    \caption{\sketch\ provides the most accurate frequency estimates of table
-    entries and the size of their join.}
-    \label{fig:join_size_bench}
-\end{figure*}
-\fi
-
-\textbf{Dataset and Workload.}
-We employ a 100 GB TPC-H workload~\cite{TPCH}.
-We consider the \texttt{lineitem} and \texttt{orders} tables, incrementally insert rows into each, and periodically join them on their shared \texttt{ORDERKEY} column.
-Following~\cite{JoinSizeEstimationFilterConditions}, each row in the \texttt{orders} table is duplicated~1--3 times to simulate a many-to-many join. 
-We construct FE sketches tracking the count of each \texttt{ORDERKEY} value in these tables and predict their counts in the join by multiplying the per-table estimates.
-We set the initial memory budget to~8MB ($\approx0.1\%$ of the data size) and distribute it to each sketch in proportion to the initial size of its table.
-
-\textbf{Baselines.}
-We compare CMS and CS with fixed-size and expandable versions of \sketchcms and \sketchcs.
-The expandable \sketchcms and \sketchcs grow as a sublinear power (with a power of~0.75) of the tables.
-We exclude MG and \sketchmg from this experiment because they return frequency estimates of zero for untracked keys, thereby causing severe underestimation of the join size when individual frequency estimates are multiplied.
-
-\hypertarget{experiment:join_size}{\textbf{Experiment 10: Join Size Estimation.}}
-\Cref{fig:join_size_bench} reports accuracy measurements for each table and the join result. 
-As shown, the fixed-size versions of \sketchcms and \sketchcs attain higher accuracy than CMS and CS by multiple orders of magnitude due to their use of variable-length counters.
-Moreover, the expandable \sketchcms and \sketchcs outperform their fixed-size counterparts by as much as an order of magnitude.
-The fixed-size version of \sketchcs is more accurate than the fixed-size version of \sketchcms on each separate table.
-This is because the workload in this experiment is almost uniform, leading to the positive and negative counts of colliding keys in \sketchcs to cancel out.
-When allowed to expand, \sketchcms is more accurate than \sketchcs on individual tables, as collisions reduce with expansions, and \sketchcms does not store a sign bit for each counter.
-Nevertheless, both versions of \sketchcs have more accurate join estimates than the corresponding version of \sketchcms.
-This is due to \sketchcs returning unbiased estimates, which allows for multiplying them without compounding errors.
 
 \section{Conclusion}
 We introduced \sketch, the first framework for generalizing a frequency estimation sketch to adapt to the skew and length of the stream.
