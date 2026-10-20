@@ -422,17 +422,11 @@ It further introduces a new Pareto frontier between these metrics, allowing appl
 \end{table}
 
 \section{Background}~\label{sec:background}
-A stream is a sequence of key-value pairs~$\left\langle (x_1,\Delta_1),
-(x_2,\Delta_2), \dots \right\rangle$, where~$x_i$ is the $i$-th key that
-appears in the stream and~$\Delta_i = \pm1$ represents whether its count was
-incremented due to an insertion ($\Delta_i=1$) or decremented due to a deletion
-($\Delta_i=-1$). This is known as the \emph{General Turnstile Model} of data
-streams~\cite{StreamModels}. We denote key~$x$'s current count as~$f(x)$,
-accounting for its insertions minus its deletions. We represent the current
-total count of the keys in the stream with~$N=\sum_x f(x)=\sum_i \Delta_i$.
-\Cref{tab:term_and_symbol_definitions}
-lists the terms and symbols used
-throughout the paper.
+A stream is a sequence of key-value pairs~$\left\langle (x_1,\Delta_1), (x_2,\Delta_2), \dots \right\rangle$, where~$x_i$ is the $i$-th key that appears in the stream and~$\Delta_i = \pm1$ represents whether its count was incremented due to an insertion ($\Delta_i=1$) or decremented due to a deletion ($\Delta_i=-1$).
+This is known as the \emph{General Turnstile Model} of data streams~\cite{StreamModels}.
+We denote key~$x$'s current count as~$f(x)$, accounting for its insertions minus its deletions.
+We represent the current total count of the keys in the stream with~$N=\sum_x f(x)=\sum_i \Delta_i$.
+\Cref{tab:term_and_symbol_definitions} lists the terms and symbols used throughout the paper.
 
 \textbf{Exhaustive Approach.}
 The simplest approach to tracking frequencies is to store each key and its count in a hash table.
@@ -1104,6 +1098,17 @@ corresponding extension in the same cache line. It quickly finds a stub's
 extension using a bit manipulation workflow that leverages rank
 and~select~operations.
 
+\textbf{Chunking.}
+To colocate stubs and their extensions in 512-bit cache lines,
+\counterencodingabbrv\ partitions each counter array into contiguous
+\emph{Chunks}, each occupying a cache line. A chunk stores its counters' stubs
+in a contiguous array and tracks the counters that overflow their stubs in an
+\emph{Overflows Bitmap} using one bit per counter. \counterencodingabbrv\
+stores the extensions of these overflowing counters contiguously in the
+remaining space towards the end of the chunk, called the \emph{Extension Pool}.
+Counter~0 and Counter~1 in \Cref{fig:counter_chunk}
+are examples of a non-overflowing and an overflowing counter, respectively.
+
 \begin{figure}
     \centering
     \begin{tikzpicture}
@@ -1222,17 +1227,6 @@ and~select~operations.
     fragments representing base-3 digits. Here, we use a stub length of~$s=6$.}
     \label{fig:counter_chunk}
 \end{figure}
-
-\textbf{Chunking.}
-To colocate stubs and their extensions in 512-bit cache lines,
-\counterencodingabbrv\ partitions each counter array into contiguous
-\emph{Chunks}, each occupying a cache line. A chunk stores its counters' stubs
-in a contiguous array and tracks the counters that overflow their stubs in an
-\emph{Overflows Bitmap} using one bit per counter. \counterencodingabbrv\
-stores the extensions of these overflowing counters contiguously in the
-remaining space towards the end of the chunk, called the \emph{Extension Pool}.
-Counter~0 and Counter~1 in \Cref{fig:counter_chunk}
-are examples of a non-overflowing and an overflowing counter, respectively.
 
 \textbf{Parameters.}
 \counterencodingabbrv\ has two global parameters: the stub length in bits~$s$
@@ -1767,12 +1761,9 @@ integer. For the heavy hitters (which comprise most of the stream), this yields
 faster insertions, as their counters often use tails.
 
 \textbf{Decrementing Counters.}
-Analogously, when a deletion maps to the~$i${\nobreakdash-}th counter in a
-chunk, \sketchcms decrements the lower-order bits in~stub[$i$]. If stub[$i$]
-borrows from the counter's higher-order bits as a result, \sketchcms decrements
-the corresponding extension or tail. This may trigger the removal of a digit
-from the counter's extension, in which case subsequent extensions are shifted
-to the left to keep the extension pool tightly packed. 
+Analogously, when a deletion maps to the~$i${\nobreakdash-}th counter in a chunk, \sketchcms decrements the lower-order bits in~stub[$i$].
+If stub[$i$] borrows from the counter's higher-order bits as a result, \sketchcms decrements the corresponding extension or tail.
+This may trigger the removal of a digit from the counter's extension, in which case subsequent extensions are shifted to the left to keep the extension pool tightly packed. 
 
 
 \textbf{Adaptive Tuning.}
@@ -2372,64 +2363,6 @@ This corresponds to having~$1/\epsilon$ chunks in each array at the beginning an
 When~$0<\alpha<1$, this factor is greater than two.
 When~$\alpha=0$, \sketchcms never expands, recovering the configuration of \mbox{a classic CMS}.
 
-\ifnotods
-\begin{figure}
-    \centering
-    \begin{tikzpicture}
-        \def\arraycount{3}
-        \def\arrayw{5}
-        \def\arrayh{0.25}
-        \def\arraysep{0.6}
-        \def\arraylen{10}
-        \def\counterw{0.5}
-
-        \foreach \i in {1, ..., \arraycount} {
-            \draw[black] (0,-\i*\arrayh+1.5*\arrayh-\i*\arraysep+\arraysep) rectangle (\arrayw,-\i*\arrayh+0.5*\arrayh-\i*\arraysep+\arraysep);
-            \foreach \j in {2, ..., \arraylen} {
-                \draw (\j*\counterw-\counterw,-\i*\arrayh+1.5*\arrayh-\i*\arraysep+\arraysep) -- (\j*\counterw-\counterw,-\i*\arrayh+0.5*\arrayh-\i*\arraysep+\arraysep);
-            }
-        }
-
-        \def\texty{5*\arrayh}
-        \def\inserttextx{-\counterw}
-        \node[inner sep=1pt,align=center] (key) at (\inserttextx,\texty) {\small Insert $x$};
-        \draw (key.south) -- (\inserttextx,-1.5*\arrayh-1.7*\arraysep);
-
-        \def\pa{2.0}
-        \def\pb{3.0}
-        \def\pc{1.0}
-        \draw[-stealth] (\inserttextx,0.5*\arrayh+0.3*\arraysep) -| (\pa*\counterw+0.5*\counterw,0.5*\arrayh) node[pos=0.22,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_1(x)$, $+\sigma_1(x)$};
-        \draw[-stealth] (\inserttextx,-0.5*\arrayh-0.7*\arraysep) -| (\pb*\counterw+0.5*\counterw,-0.5*\arrayh-1.0*\arraysep) node[pos=0.171,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_2(x)$, $+\sigma_2(x)$};
-        \draw[-stealth] (\inserttextx,-1.5*\arrayh-1.7*\arraysep) -| (\pc*\counterw+0.5*\counterw,-1.5*\arrayh-2.0*\arraysep) node[pos=0.206,above=2pt,align=center,inner sep=0pt] {\footnotesize \hspace{4.5mm} $h_3(x)$, $+\sigma_3(x)$};
-
-        \def\querytextx{\arrayw+1*\counterw}
-        \node[inner sep=1pt,align=center] (query) at (\querytextx,\texty) {\small Query $q$ \\[-2pt] \small Result $=2$};
-        \draw[stealth-] (query.south) -- (\querytextx,-1.5*\arrayh-1.7*\arraysep) node[pos=0.5,below=2pt,rotate=90,inner sep=2pt] {\small Median};
-
-        \def\pa{7.0}
-        \def\pb{8.0}
-        \def\pc{6.0}
-        \draw (\querytextx,0.5*\arrayh+0.3*\arraysep) -| (\pa*\counterw+0.5*\counterw,0.5*\arrayh) node[pos=0.300,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_1(q)$, $\times \sigma_1(q)=-1$};
-        \draw (\querytextx,-0.5*\arrayh-0.7*\arraysep) -| (\pb*\counterw+0.5*\counterw,-0.5*\arrayh-1.0*\arraysep) node[pos=0.291,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_2(q)$, $\times \sigma_2(q)=1$ \hspace{4mm}};
-        \draw (\querytextx,-1.5*\arrayh-1.7*\arraysep) -| (\pc*\counterw+0.5*\counterw,-1.5*\arrayh-2.0*\arraysep) node[pos=0.213,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_3(q)$, $\times \sigma_3(q)=1$};
-
-        \draw[fill=gray!20] (\pa*\counterw,0.5*\arrayh) rectangle (\pa*\counterw+\counterw,-0.5*\arrayh);
-        \draw[fill=gray!20] (\pb*\counterw,-0.5*\arrayh-1.0*\arraysep) rectangle (\pb*\counterw+\counterw,-1.5*\arrayh-1.0*\arraysep);
-        \draw[fill=gray!20] (\pc*\counterw,-1.5*\arrayh-2.0*\arraysep) rectangle (\pc*\counterw+\counterw,-2.5*\arrayh-2.0*\arraysep);
-        \node[inner sep=0pt] at (\pa*\counterw+0.5*\counterw,-0.0*\arrayh-0.0*\arraysep) {\footnotesize $-2$};
-        \node[inner sep=0pt] at (\pb*\counterw+0.5*\counterw,-1.0*\arrayh-1.0*\arraysep) {\footnotesize $9$};
-        \node[inner sep=0pt] at (\pc*\counterw+0.5*\counterw,-2.0*\arrayh-2.0*\arraysep) {\footnotesize $-4$};
-
-
-        %\node[inner sep=0pt,anchor=west] at (-3.1*\counterw,3.0*\arrayh) {\textbf{B) CS}};
-    \end{tikzpicture}
-    \caption{CS assigns a random update direction to each key and uses it to
-    insert them into~$d$ counter arrays of size~$w$. The random update
-    directions enable unbiased estimation.}
-    \label{fig:cs_overview}
-\end{figure}
-\fi
-
 When using a sublinear power as the size function, \sketchcms achieves an expected error of~$O(N/W(N))=O(\epsilon \cdot N^{1-\alpha})$.\footnote{
     The constant factor hidden by the asymptotics is~$(2^{1/\alpha}-1) \cdot \frac{1-2^{(\alpha-1) \cdot \log_2 N}}{2^{1/\alpha-1}-1}$, which is at most~$\frac{2^{1/\alpha}-1}{2^{1/\alpha-1}-1}$ and converges to~$\log_2 N$ as $\alpha$ approaches~1.
 }
@@ -2493,7 +2426,6 @@ The two techniques underlying \sketch, introduced in the preceding subsections, 
 In particular, \counterencodingabbrv\ compactly encodes the FE sketch's counters to reduce memory consumption under skew.
 Moreover, \sketch's expansion policy enables accommodating stream growth for any FE sketch whose error bound takes the form~$X/w$, where~$X$ is a measurable workload parameter and~$w$ is the sketch's size (for CMS, $X$ corresponds to the stream's total key count~$N$).
 As we demonstrate in Sections~\ref{sec:cs} and \ref{sec:mg}, defining the size function in terms of~$X$ (i.e., as~$W(X)$) and expanding whenever~$X$ more than doubles allows both the estimation error and memory consumption to scale sublinearly with~$X$.
-
 
 \begin{table}
     \centering
@@ -2592,6 +2524,64 @@ CS deletes~$x$ by subtracting~$\sigma(x)$ from its counter to undo its insertion
 Since each key's update direction is random, the expected interference on~$x$'s counter from any other key is zero due to the positive and negative possibilities cancelling out.
 Thus, the value of the counter along the update direction is an estimate of~$x$'s frequency.
 The zero expected interference removes bias, though it introduces two-sided errors (both under and overestimations). 
+
+\ifnotods
+\begin{figure}
+    \centering
+    \begin{tikzpicture}
+        \def\arraycount{3}
+        \def\arrayw{5}
+        \def\arrayh{0.25}
+        \def\arraysep{0.6}
+        \def\arraylen{10}
+        \def\counterw{0.5}
+
+        \foreach \i in {1, ..., \arraycount} {
+            \draw[black] (0,-\i*\arrayh+1.5*\arrayh-\i*\arraysep+\arraysep) rectangle (\arrayw,-\i*\arrayh+0.5*\arrayh-\i*\arraysep+\arraysep);
+            \foreach \j in {2, ..., \arraylen} {
+                \draw (\j*\counterw-\counterw,-\i*\arrayh+1.5*\arrayh-\i*\arraysep+\arraysep) -- (\j*\counterw-\counterw,-\i*\arrayh+0.5*\arrayh-\i*\arraysep+\arraysep);
+            }
+        }
+
+        \def\texty{5*\arrayh}
+        \def\inserttextx{-\counterw}
+        \node[inner sep=1pt,align=center] (key) at (\inserttextx,\texty) {\small Insert $x$};
+        \draw (key.south) -- (\inserttextx,-1.5*\arrayh-1.7*\arraysep);
+
+        \def\pa{2.0}
+        \def\pb{3.0}
+        \def\pc{1.0}
+        \draw[-stealth] (\inserttextx,0.5*\arrayh+0.3*\arraysep) -| (\pa*\counterw+0.5*\counterw,0.5*\arrayh) node[pos=0.22,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_1(x)$, $+\sigma_1(x)$};
+        \draw[-stealth] (\inserttextx,-0.5*\arrayh-0.7*\arraysep) -| (\pb*\counterw+0.5*\counterw,-0.5*\arrayh-1.0*\arraysep) node[pos=0.171,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_2(x)$, $+\sigma_2(x)$};
+        \draw[-stealth] (\inserttextx,-1.5*\arrayh-1.7*\arraysep) -| (\pc*\counterw+0.5*\counterw,-1.5*\arrayh-2.0*\arraysep) node[pos=0.206,above=2pt,align=center,inner sep=0pt] {\footnotesize \hspace{4.5mm} $h_3(x)$, $+\sigma_3(x)$};
+
+        \def\querytextx{\arrayw+1*\counterw}
+        \node[inner sep=1pt,align=center] (query) at (\querytextx,\texty) {\small Query $q$ \\[-2pt] \small Result $=2$};
+        \draw[stealth-] (query.south) -- (\querytextx,-1.5*\arrayh-1.7*\arraysep) node[pos=0.5,below=2pt,rotate=90,inner sep=2pt] {\small Median};
+
+        \def\pa{7.0}
+        \def\pb{8.0}
+        \def\pc{6.0}
+        \draw (\querytextx,0.5*\arrayh+0.3*\arraysep) -| (\pa*\counterw+0.5*\counterw,0.5*\arrayh) node[pos=0.300,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_1(q)$, $\times \sigma_1(q)=-1$};
+        \draw (\querytextx,-0.5*\arrayh-0.7*\arraysep) -| (\pb*\counterw+0.5*\counterw,-0.5*\arrayh-1.0*\arraysep) node[pos=0.291,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_2(q)$, $\times \sigma_2(q)=1$ \hspace{4mm}};
+        \draw (\querytextx,-1.5*\arrayh-1.7*\arraysep) -| (\pc*\counterw+0.5*\counterw,-1.5*\arrayh-2.0*\arraysep) node[pos=0.213,above=2pt,align=center,inner sep=0pt] {\footnotesize $h_3(q)$, $\times \sigma_3(q)=1$};
+
+        \draw[fill=gray!20] (\pa*\counterw,0.5*\arrayh) rectangle (\pa*\counterw+\counterw,-0.5*\arrayh);
+        \draw[fill=gray!20] (\pb*\counterw,-0.5*\arrayh-1.0*\arraysep) rectangle (\pb*\counterw+\counterw,-1.5*\arrayh-1.0*\arraysep);
+        \draw[fill=gray!20] (\pc*\counterw,-1.5*\arrayh-2.0*\arraysep) rectangle (\pc*\counterw+\counterw,-2.5*\arrayh-2.0*\arraysep);
+        \node[inner sep=0pt] at (\pa*\counterw+0.5*\counterw,-0.0*\arrayh-0.0*\arraysep) {\footnotesize $-2$};
+        \node[inner sep=0pt] at (\pb*\counterw+0.5*\counterw,-1.0*\arrayh-1.0*\arraysep) {\footnotesize $9$};
+        \node[inner sep=0pt] at (\pc*\counterw+0.5*\counterw,-2.0*\arrayh-2.0*\arraysep) {\footnotesize $-4$};
+
+
+        %\node[inner sep=0pt,anchor=west] at (-3.1*\counterw,3.0*\arrayh) {\textbf{B) CS}};
+    \end{tikzpicture}
+    \caption{CS assigns a random update direction to each key and uses it to
+    insert them into~$d$ counter arrays of size~$w$. The random update
+    directions enable unbiased estimation.}
+    \label{fig:cs_overview}
+\end{figure}
+\fi
 
 \textbf{Estimation Error.}
 Although the estimates are unbiased and accurate in expectation for any workload, they may suffer from large deviations.
@@ -2745,7 +2735,7 @@ these sketches after each insertion or deletion.
 \textbf{Tail Guarantees.}
 As discussed near the end of \Cref{sec:accommodating_unknown_stream_lengths}, CMS satisfies a tail guarantee that relates the estimation error to the total frequency of all keys except the heavy hitters.
 A similar guarantee holds for CS: with an array of~$w$ counters, after excluding the~$w/4$ most frequent keys, the estimation variance is at most~$4$ times the variance induced by the remaining keys, with confidence at~least~$1/2$.
-That is, for any key~$x$, $\Pr\left(|\hat{f}(x)-f(x)| \leq 2\sqrt{F^{\mathrm{res}(w/4)}/w}\right) \geq 1/2$, where~$F^{\mathrm{res}(i)}$ denotes the squared~$\ell_2$-norm of the stream after excluding the~$i$ most frequent keys.
+That is, for any key~$x$, $\Pr\left(|\hat{f}(x)-f(x)| \leq 2 \cdot \sqrt{F^{\mathrm{res}(w/4)}/w}\right) \geq 1/2$, where~$F^{\mathrm{res}(i)}$ denotes the squared~$\ell_2$-norm of the stream after excluding the~$i$ most frequent keys.
 This bound follows from an argument similar to that for CMS: a given key avoids collisions with the top~$w/4$ keys with sufficiently high probability, and Chebyshev's inequality bounds the error induced by the remaining keys.
 
 \sketchcs provides the same improvement to CS's tail bound as \Cref{thm:cs-w} provides for the standard bound.
@@ -2859,11 +2849,13 @@ Near the end of \Cref{sec:mg_sublime}, we also discuss several variants of Misra
             \node[inner sep=0pt] at (4.0*\cellw+\elemw+0.5*\counterw,0.0*\arrayh) {\small $\vphantom{bd0}1$};
         \fi
     \end{tikzpicture}
+    \vspace{-1mm}
     \caption{MG uses a dedicated counter to track each frequent key.
     In this example, a query for an existing key~$c$ returns its counter value, 4, while a query for an untracked key~$q$ returns~0.
     Inserting an existing key~$a$ increments its counter from~5 to 6.
     Inserting an untracked key~$x$ decrements all counters, causing~$e$'s counter to reach zero. As a result, $e$ is evicted and~$x$ is stored in its place with a count of~1.}
     \label{fig:mg_overview}
+    \vspace{-2mm}
 \end{figure}
 
 \subsection{Misra-Gries (MG)}\label{sec:mg_background}
@@ -3362,7 +3354,8 @@ The same update procedure is used when an insertion increments the counter of a 
 In contrast, a global decrement does not require updating the segment tree, since it affects all counters equally.
 
 These update traversals preserve constant amortized insertion time for three reasons:
-(1)~For evictions, the~$O(\log w)$ traversal occurs only upon a global decrement, which happens at most once every~$w$ insertions on average, as discussed in \Cref{sec:mg_background}.
+(1)~Evictions and their corresponding traversals occur only upon global decrements, which happen at most once every~$w$ insertions on average, as discussed in \Cref{sec:mg_background}.
+Thus, the~$O(\log w)$ traversal cost amortizes to less than a constant per insertion.
 (2)~For counter increments, updates to the segment tree's internal nodes are infrequent.
 To see why, we observe that the minimum counter value represented by an internal node (shown in gray in \Cref{fig:mg_segment_tree}) can increase only after every leaf in its subtree has been incremented.
 For a node at height~$h$, each such increase can therefore be charged to at least~$2^h$ leaf increments within its subtree.
@@ -3943,42 +3936,22 @@ It also has the fastest insertions while closely matching the query speed of the
 \end{figure}
 \fi
 
-\ifnotods
-\begin{figure*}
-    \centering
-    \includegraphics[width=0.7\textwidth]{accuracy_mg_arxiv.pdf}
-    \hspace{1pt}
-    \def\arraystretch{0.871}%  1 is the default, change whatever you need
-    \small
-    \begin{minipage}{0.28\textwidth}
-    \setlength{\tabcolsep}{14.0pt}
-    \begin{tabular}[b]{ccc} 
-        \toprule 
-        Memory [MB] & $c$ & $s$ \\ 
-        \midrule 
-        1/8 & 40 & 9 \\ 
-        1/4 & 49 & 8 \\ 
-        1/2 & 49 & 8 \\ 
-        1 & 56 & 6 \\ 
-        2 & 68 & 5 \\ 
-        4 & 68 & 5 \\ 
-        \bottomrule 
-    \end{tabular} 
-    \captionof{table}{Tuning \counterencodingabbrv's parameters for each plot point as in this table enables high performance and accuracy for \sketchmg.}
-    \vspace{6.05cm}
-    \end{minipage} \\
-    \vspace*{-5.21cm}
-    \caption{\sketchmg attains the highest accuracy while maintaining insertion and query performance comparable to the state of the art.
-    The table above details how \sketchmg automatically tunes \counterencodingabbrv\ by listing the number of counters per chunk~$c$ and the stub length~$s$.}
-    \label{fig:accuracy_mg_bench}
-\end{figure*}
-\fi
-
 \hypertarget{experiment:l2_size_function}{\textbf{Experiment 7: Expansion Based on Variance.}}
 \Cref{fig:l2_size_function_bench} illustrates how expanding \sketchcs based on the growth of the estimation variance (as described in~\Cref{sec:cs}) instead of the number of keys enables a stable confidence bound.
 We demonstrate this benefit by inserting~100M keys sampled from \textsc{Zipfian} distributions with increasing levels of skew.
 We measure the P{\nobreakdash-}99 absolute estimation error rather than the average, since it captures the errors that exceed their confidence bounds, whereas averages obscure this information.
 We also report the final memory footprint after ingesting the stream.
+
+\ifnotods
+\begin{figure*}
+    \centering
+    \includegraphics[width=0.86\textwidth]{join_size.pdf}
+    \caption{\sketch\ provides the most accurate frequency estimates of table
+    entries and the size of their join.}
+    \label{fig:join_size_bench}
+\end{figure*}
+\fi
+
 
 As shown in \Cref{fig:l2_size_function_bench}, expanding based on the estimation variance ensures stable tail errors in exchange for a higher memory footprint.
 This is in contrast to expanding \sketchcs based on the number of keys, which yields tail errors that increase with skew.
@@ -4025,6 +3998,37 @@ This is due to \sketchcs returning unbiased estimates, which allows for multiply
 
 \subsection{\sketchmg}\label{sec:evaluation_mg}
 We now turn our focus to evaluating \sketchmg under both skew and stream growth.
+
+\ifnotods
+\begin{figure*}
+    \centering
+    \includegraphics[width=0.7\textwidth]{accuracy_mg_arxiv.pdf}
+    \hspace{1pt}
+    \def\arraystretch{0.871}%  1 is the default, change whatever you need
+    \small
+    \begin{minipage}{0.28\textwidth}
+    \setlength{\tabcolsep}{14.0pt}
+    \begin{tabular}[b]{ccc} 
+        \toprule 
+        Memory [MB] & $c$ & $s$ \\ 
+        \midrule 
+        1/8 & 40 & 9 \\ 
+        1/4 & 49 & 8 \\ 
+        1/2 & 49 & 8 \\ 
+        1 & 56 & 6 \\ 
+        2 & 68 & 5 \\ 
+        4 & 68 & 5 \\ 
+        \bottomrule 
+    \end{tabular} 
+    \captionof{table}{Tuning \counterencodingabbrv's parameters for each plot point as in this table enables high performance and accuracy for \sketchmg.}
+    \vspace{6.05cm}
+    \end{minipage} \\
+    \vspace*{-5.21cm}
+    \caption{\sketchmg attains the highest accuracy while maintaining insertion and query performance comparable to the state of the art.
+    The table above details how \sketchmg automatically tunes \counterencodingabbrv\ by listing the number of counters per chunk~$c$ and the stub length~$s$.}
+    \label{fig:accuracy_mg_bench}
+\end{figure*}
+\fi
 
 \textbf{Baselines.}
 We consider two versions of \sketchmg: a scan-based version that scans the hash table to perform decrements and evictions, and a de-amortized version that handles these scans using global and local decrements and a compressed segment tree, as described in \Cref{sec:mg_sublime}.
@@ -4075,25 +4079,6 @@ Both versions outperform MG, the most accurate baseline, by up to~2$\times$ and 
 These improvements stem from \sketchmg's ability to track more keys using the space saved by compactly encoding counters with \counterencodingabbrv.
 The de-amortized version achieves nearly the same accuracy and memory footprint as the scan-based version because its global and local decrements and compressed segment tree incur a total memory overhead of only~3 bits per counter, less than~5\% of the space required to store a key and its counter.
 
-\ifnotods
-\begin{figure}
-    \centering
-    \includegraphics[width=\columnwidth]{expansion_mg.pdf}
-    \caption{By expanding based on the number of untracked-key insertions rather than the stream length, \sketchmg controls both the estimation error and the memory footprint as the stream grows.}
-    \label{fig:expansion_mg_bench}
-\end{figure}
-\fi
-
-\ifnotods
-\begin{figure*}
-    \centering
-    \includegraphics[width=0.86\textwidth]{join_size.pdf}
-    \caption{\sketch\ provides the most accurate frequency estimates of table
-    entries and the size of their join.}
-    \label{fig:join_size_bench}
-\end{figure*}
-\fi
-
 Since many applications use MG to identify the stream's heavy hitters~\cite{HeavyGuardian,HeavyKeeper,WavingSketch,NetworkAnomalyDetection1,NetworkAnomalyDetection2}, we also measure the average additive estimation error over the~$w$ most frequent keys, where~$w$ is the number of counters maintained by the baseline under evaluation.
 We denote this metric by \emph{Top{\nobreakdash-}$w$ AAE}.
 As shown in the top-middle subfigure of \Cref{fig:accuracy_mg_bench}, the gap in estimation error between \sketchmg and the baselines is approximately~1.5$\times$ larger under top{\nobreakdash-}$w$ AAE than under conventional AAE.
@@ -4126,6 +4111,16 @@ We include MG as a baseline but omit the other baselines from the previous exper
 As in Experiment~\hyperlink{experiment:expansion}{4} of \Cref{sec:evaluation_cms}, we initialize each sketch with a memory footprint of~32KB and feed it the \textsc{WebDocs} dataset.
 \Cref{fig:accuracy_mg_bench} reports the estimation error and memory footprint of each sketch as the stream grows.
 The number next to each \sketchmg line indicates the value of~$\alpha$ used in its size function.
+
+\ifnotods
+\begin{figure}
+    \centering
+    \includegraphics[width=\columnwidth]{expansion_mg.pdf}
+    \caption{By expanding based on the number of untracked-key insertions rather than the stream length, \sketchmg controls both the estimation error and the memory footprint as the stream grows.}
+    \label{fig:expansion_mg_bench}
+\end{figure}
+\fi
+
 
 As shown in the left subfigure of \Cref{fig:expansion_mg_bench}, all \sketchmg variants achieve lower estimation errors than MG by as much as several orders of magnitude, since they expand as the stream grows.
 Moreover, they achieve this while maintaining a small memory footprint, as shown in the right subfigure.
