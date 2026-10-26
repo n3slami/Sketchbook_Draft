@@ -2762,8 +2762,9 @@ This result follows from an argument analogous to that for \sketchcms's \mbox{ta
 As we have seen in previous sections, CMS and CS may overestimate a key's true frequency.
 While overestimation is acceptable in some applications, in others it can trigger unwarranted actions that degrade quality of service or waste resources (e.g., unnecessarily throttling a network connection~\cite{NetworkThrottling1,NetworkThrottling2,NetworkThrottling3} or admitting an infrequent data item into a cache~\cite{TinyLFU}).
 The Misra-Gries sketch~\cite{MisraGries} mitigates such concerns by ensuring that a frequency estimate never exceeds the true frequency, although it may underestimate it.
+Moreover, Misra-Gries provides a deterministic bound on its underestimation error, which can be added to its estimates to make them match or exceed the true frequencies, similarly to CMS.
 In this section, we apply \sketch\ to Misra-Gries.
-Near the end of \Cref{sec:mg_sublime}, we also discuss several variants of Misra-Gries and how \sketch\ can be applied to them.
+Near the end of \Cref{sec:mg_sublime}, we also discuss several variants of Misra-Gries and how \sketch\ \mbox{can be applied to them}.
 
 \begin{figure}
     \centering
@@ -3034,13 +3035,13 @@ The second and third rows of \Cref{tab:mg_performance_space_overhead} summarize 
 Similarly to CMS and CS, a shortcoming of classic MG designs is their use of fixed-length counters: under skewed workloads, many counters store relatively small values, leaving their higher-order bits unused.
 Moreover, the estimation errors of these MG designs grow linearly with the stream length, causing estimates to become increasingly inaccurate as the stream grows.
 We now introduce \sketchmg, a generalization of MG that addresses both shortcomings.
-It employs \counterencodingabbrv\ to compress the counters, and it should expand the hash table as the stream grows to control the estimation error.
+It employs \counterencodingabbrv\ to compress the counters, and it expands the hash table as the stream grows to control the estimation error.
 Both techniques are compatible with all MG variants, including those listed in \Cref{tab:mg_performance_space_overhead} \mbox{and others~\cite{UnbiasedSpaceSaving,SpaceSavingBoundedDeletes,HeavyGuardian,HeavyKeeper,WavingSketch}}.
 
 For applications requiring strong worst-case latency guarantees, we observe that the existing de-amortization techniques described above pose two challenges when combined with \counterencodingabbrv.
 First, recall that the global frame of reference enables performing decrements in constant time without immediately updating every individual counter.
 However, as decrements accumulate, stored counter values can become substantially larger than their effective counts, inflating the space consumed by their \counterencodingabbrv\ encodings.
-We address this issue by gradually applying accumulated decrements to individual counters over subsequent insertions.
+We address this issue by gradually subtracting the global frame of reference from individual counters across multiple insertions.
 This keeps the stored counter values close to their effective counts, preserving compact \counterencodingabbrv\ encodings while avoiding costly bulk updates.
 
 Second, conventional data structures for de-amortizing evictions, such as min-heaps and linked lists, incur substantial memory overhead.
@@ -3083,17 +3084,18 @@ The rightmost column of \Cref{tab:mg_performance_space_overhead} compares the sp
 \textbf{Accommodating Unbounded Data Growth with Expansions.}
 As discussed earlier, inserting a key that is already tracked by MG simply increments its counter and does not increase the estimation error.
 MG's error grows through global decrements triggered by insertions of untracked keys, with each decrement increasing the worst-case error by one.
-Moreover, inserting an untracked key into an empty slot without triggering a global decrement may contribute to future estimation error, as the newly admitted key may be infrequent and occupy a slot that could otherwise be used to track a heavy hitter.
+Moreover, inserting an untracked key into an empty slot contributes to the estimation error if the newly admitted key is infrequent, as it occupies a slot that could otherwise be used to track a currently untracked heavy hitter.
 These observations motivate a different expansion criterion from those used by \sketchcms and \sketchcs.
 Whereas \sketchcms expands based on the total number of insertions and \sketchcs on the stream's~$\ell_2$-norm, \sketchmg should expand based on the number of untracked-key insertions observed so far, denoted by~$M$.
 This is because the number of untracked-key insertions governs the estimation error.
 
-Thus, we specify the number of counters \sketchmg should expand to accommodate after~$M$ untracked-key insertions by defining a size function~$W(M)$.
-As in Sections~\ref{sec:accommodating_unknown_stream_lengths} and \ref{sec:cs}, we expose a wide range of accuracy--memory trade-offs by defining the size function as a sublinear power of the form~$W(M)=M^\alpha/\epsilon$.
+Thus, we define a size function~$W(M)$ that prescribes how many counters \sketchmg should contain after~$M$ untracked key insertions.
+As in Sections~\ref{sec:accommodating_unknown_stream_lengths} and \ref{sec:cs}, we expose a wide range of accuracy--memory trade-offs by defining this size function as a sublinear power of the form~$W(M)=M^\alpha/\epsilon$.
 The parameter~$\epsilon$ determines \sketchmg's initial size of~$1/\epsilon$ counters.
-When~$\epsilon>1$, \sketchmg still starts with one counter but delays its first expansion, trading estimation accuracy for a smaller memory footprint.
+When~$\epsilon>1$, \sketchmg is initialized with one counter but delays its first expansion, trading estimation accuracy for a smaller memory footprint.
 The parameter~$\alpha$ controls how quickly subsequent expansions occur as the number of untracked-key insertions~$M$ increases.
-For~$0<\alpha<1$, \sketchmg doubles in size whenever~$M$ more than doubles, whereas for~$\alpha=1$, it doubles in size whenever~$M$ doubles.
+For~$0<\alpha<1$, \sketchmg doubles in size whenever~$M$ more than doubles.
+For~$\alpha=1$, it doubles in size whenever~$M$ doubles.
 Setting~$\alpha=0$ prevents \sketchmg from expanding, recovering the classic \mbox{fixed-size MG}.
 
 \iftods
