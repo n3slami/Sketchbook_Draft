@@ -2750,12 +2750,11 @@ This result follows from an argument analogous to that for \sketchcms's \mbox{ta
 
 
 \section{Applying \sketch\ to Misra-Gries}\label{sec:mg}
-As we have seen in previous sections, CMS and CS may overestimate a key's true frequency.
-While overestimation is acceptable in some applications, in others it can trigger unwarranted actions that degrade quality of service or waste resources (e.g., unnecessarily throttling a network connection~\cite{NetworkThrottling1,NetworkThrottling2,NetworkThrottling3} or admitting an infrequent data item into a cache~\cite{TinyLFU}).
-The Misra-Gries sketch~\cite{MisraGries} mitigates such concerns by ensuring that a frequency estimate never exceeds the true frequency, although it may underestimate it.
-Moreover, Misra-Gries provides a deterministic bound on its underestimation error, which can be added to its estimates to make them match or exceed the true frequencies, similarly to CMS.
-In this section, we apply \sketch\ to Misra-Gries.
-Near the end of \Cref{sec:mg_sublime}, we also discuss several variants of Misra-Gries and how \sketch\ \mbox{can be applied to them}.
+As discussed in previous sections, CMS and CS provide probabilistic error bounds with tunable confidence levels, meaning that their estimates may violate these bounds with some probability.
+In contrast, the Misra-Gries sketch~\cite{MisraGries} provides deterministic error guarantees, ensuring that a key's estimated frequency deviates from its true frequency by at most a known additive error bound.
+Misra-Gries additionally guarantees that each estimate never exceeds the true frequency, although it may underestimate it.
+This one-sided deterministic guarantee is useful in applications where overestimation can trigger unwarranted actions that degrade quality of service or waste resources, such as unnecessarily throttling a network connection~\cite{NetworkThrottling1,NetworkThrottling2,NetworkThrottling3} or admitting an infrequent data item into a cache~\cite{TinyLFU}.
+\Cref{sec:mg_background} reviews Misra-Gries and discusses its key design choices and their trade-offs, while \Cref{sec:mg_sublime} applies \sketch\ to Misra-Gries to improve its accuracy--memory trade-offs on skewed streams that may grow without bound.
 
 \begin{figure}
     \centering
@@ -2871,10 +2870,10 @@ Third, because MG stores full keys, it can directly report the keys correspondin
 This is unlike CMS and CS, which hash keys into counters without retaining the keys themselves, and therefore cannot directly identify which keys are heavy hitters.
 This reporting capability is useful, for example, for identifying network flows that consume the most bandwidth~\cite{HeavyGuardian,HeavyKeeper,WavingSketch} or unusually frequent events that may indicate anomalies~\cite{NetworkAnomalyDetection1,NetworkAnomalyDetection2}.
 
-\textbf{Deletions.}
-An intrinsic limitation of MG relative to CMS and CS is that it cannot support deletions without weakening its error bound~\cite{BatchUpdateMisraGries,SpaceSavingBoundedDeletes}.
-This is because MG retains dedicated counters for only a bounded set of candidate heavy hitters.
-If the tracked heavy hitters are deleted, previously untracked keys may become heavy hitters, but MG has discarded their historical frequencies.
+However, a limitation of MG relative to CMS and CS is that deletions, which can be handled by decrementing individual counters, cannot undo the estimation error accumulated during insertions~\cite{BatchUpdateMisraGries,SpaceSavingBoundedDeletes}.
+This is because MG maintains dedicated counters for only a bounded set of candidate heavy hitters, discarding information about other keys.
+If a tracked heavy hitter is subsequently deleted, a previously untracked key may become a heavy hitter among the remaining items, but MG cannot recover its discarded frequency.
+Consequently, even as deletions reduce the stream size, MG's error bound does not decrease accordingly.
 
 \textbf{Estimation Error.}
 Increasing the number of slots~$w$ allows MG to retain more keys, thereby making global decrements less frequent and improving estimation accuracy.
@@ -3011,7 +3010,7 @@ The remaining challenge is efficiently identifying entries whose effective count
 Existing MG implementations tackle this challenge using auxiliary data structures.
 Heap-based implementations~\cite{MGH1,MGH2,BatchUpdateMisraGries} maintain a min-heap that orders keys by their counts.
 The minimum element identifies the next eviction victim, but maintaining the heap increases the cost of every insertion to~$O(\log w)$, sacrificing the constant amortized insertion time of the scan-based approach.
-A more efficient approach is to maintain a doubly linked list that organizes keys by their counter values~\cite{SpaceSaving,UnbiasedSpaceSaving}.
+A more efficient approach, introduced in the context of the Space-Saving sketch~\cite{SpaceSaving}, is to maintain a doubly linked list that organizes keys by their counter values.
 Each node in this linked list corresponds to a distinct counter value and points to all keys in the hash table with that count.
 Incrementing a counter moves its key by at most one position in the linked list, enabling constant-time updates, while keys with zero-valued counters appear at the head and can be evicted in constant time.
 
@@ -3368,7 +3367,7 @@ Constant amortized insertion time can be restored by evicting multiple keys at o
 \textbf{Applicability to Other MG Variants.}
 MG has several variants with different estimation and update properties.
 Randomized variants achieve unbiased estimation by probabilistically replacing the least frequent tracked key with an incoming untracked key while preserving the associated counter's value~\cite{UnbiasedSpaceSaving,WavingSketch}.
-Other variants improve empirical accuracy at the cost of permitting overestimation~\cite{SpaceSaving,HeavyGuardian,HeavyKeeper}.
+Other variants improve empirical accuracy at the cost of permitting overestimation~\cite{HeavyGuardian,HeavyKeeper}, with Space-Saving being the most prominent example~\cite{SpaceSaving}.
 Limited support for deletions is also possible at the cost of a larger memory footprint~\cite{SpaceSavingBoundedDeletes}.
 The techniques described in this section for applying \sketch\ to MG can be readily adapted to these variants.
 
