@@ -2751,7 +2751,7 @@ This result follows from an argument analogous to that for \sketchcms's \mbox{ta
 
 \section{Applying \sketch\ to Misra-Gries}\label{sec:mg}
 As discussed in previous sections, CMS and CS provide probabilistic error bounds with tunable confidence levels, meaning that their estimates may violate these bounds with some probability.
-In contrast, the Misra-Gries sketch~\cite{MisraGries} provides deterministic error guarantees, ensuring that a key's estimated frequency deviates from its true frequency by at most a known additive error bound.
+In contrast, the Misra-Gries sketch~\cite{MisraGries} provides deterministic error guarantees, ensuring that a key's estimated frequency never deviates from its true frequency by more than a known additive error bound.
 Misra-Gries additionally guarantees that each estimate never exceeds the true frequency, although it may underestimate it.
 This one-sided deterministic guarantee is useful in applications where overestimation can trigger unwarranted actions that degrade quality of service or waste resources, such as unnecessarily throttling a network connection~\cite{NetworkThrottling1,NetworkThrottling2,NetworkThrottling3} or admitting an infrequent data item into a cache~\cite{TinyLFU}.
 \Cref{sec:mg_background} reviews Misra-Gries and discusses its key design choices and their trade-offs, while \Cref{sec:mg_sublime} applies \sketch\ to Misra-Gries to improve its accuracy--memory trade-offs on skewed streams that may grow without bound.
@@ -2870,27 +2870,38 @@ Third, because MG stores full keys, it can directly report the keys correspondin
 This is unlike CMS and CS, which hash keys into counters without retaining the keys themselves, and therefore cannot directly identify which keys are heavy hitters.
 This reporting capability is useful, for example, for identifying network flows that consume the most bandwidth~\cite{HeavyGuardian,HeavyKeeper,WavingSketch} or unusually frequent events that may indicate anomalies~\cite{NetworkAnomalyDetection1,NetworkAnomalyDetection2}.
 
-However, a limitation of MG relative to CMS and CS is that deletions, which can be handled by decrementing individual counters, cannot undo the estimation error accumulated during insertions~\cite{BatchUpdateMisraGries,SpaceSavingBoundedDeletes}.
+A limitation of MG relative to CMS and CS is that deletions, which can be handled by decrementing individual counters, cannot undo the estimation error accumulated during insertions~\cite{BatchUpdateMisraGries,SpaceSavingBoundedDeletes}.
 This is because MG maintains dedicated counters for only a bounded set of candidate heavy hitters, discarding information about other keys.
-If a tracked heavy hitter is subsequently deleted, a previously untracked key may become a heavy hitter among the remaining items, but MG cannot recover its discarded frequency.
+If a tracked heavy hitter is deleted, a previously untracked key may become a heavy hitter among the remaining items, but MG cannot recover its discarded frequency.
 Consequently, even as deletions reduce the stream size, MG's error bound does not decrease accordingly.
 
 \textbf{Estimation Error.}
-Increasing the number of slots~$w$ allows MG to retain more keys, thereby making global decrements less frequent and improving estimation accuracy.
-With~$w$ slots, MG guarantees an additive underestimation error of at most~$N/w$, i.e., $0 \leq f(x)-\hat{f}(x) \leq N/w$ for any key~$x$.
+The number of slots~$w$ in MG's arrays determines its estimation error.
+Intuitively, more slots allow MG to track more keys, reducing the frequency of global decrements and improving estimation accuracy.
+Specifically, MG guarantees an additive underestimation error of at most~$N/w$, i.e., $0 \leq f(x)-\hat{f}(x) \leq N/w$ for any key~$x$.
 This bound holds because each global decrement subtracts one from~$w$ stored counters and can therefore be ``charged'' against~$w$ stream insertions.
-Since there are~$N$ insertions in total, at most~$N/w$ global decrements can occur, so the estimate of any key can fall below its true frequency by at most~$N/w$.
+Since there are~$N$ insertions in total, at most~$N/w$ global decrements can occur, so the estimate of any key can fall below its true frequency by at most~$N/w$.\footnote{
+    Since this argument involves only the global decrements and the earlier insertions associated with the decremented counters, the error bound can be tightened to~$M/w$, where~$M$ is the number of these insertions.
+}
 As this counting argument is deterministic, MG's error bound always holds with confidence~1, unlike the probabilistic error bounds of CMS and CS.
 \Cref{tab:conventional_sketch_stats} compares MG with CMS and CS.
 As shown, MG's worst-case estimation error grows linearly with the stream length, similarly to CMS and CS.
 
 \textbf{Classic Implementation.}
-MG is typically implemented using a hash table that maps each tracked key to its counter, supporting constant-time queries and insertions of already-tracked keys.
-Inserting an untracked key may trigger a global decrement, requiring a scan of all~$\Theta(w)$ counters.
-However, as observed in the original MG paper~\cite{MisraGries}, the error bound of~$N/w$ implies that at most~$N/w$ global decrements can occur over a stream of~$N$ insertions.
-Consequently, global decrements occur at most once every~$w$ insertions on average, amortizing the~$\Theta(w)$ scan cost of each to~$O(1)$ per insertion.
-Thus, when implemented using a hash table, MG supports insertions in constant expected amortized time.
-The first row of \Cref{tab:mg_performance_space_overhead} summarizes the properties of this \mbox{scan-based approach}.
+MG is typically implemented using a hash table that maps each tracked key to its counter.
+This enables supporting queries and insertions of already-tracked keys in constant expected time.
+Yet, inserting an untracked key may trigger a global decrement, requiring a scan of all~$\Theta(w)$ counters to decrement each of them.
+Consequently, insertions have a worst-case time complexity of~$\Theta(w)$.
+
+Despite this linear worst-case cost, the amortized insertion cost remains constant.
+As observed in the original MG paper~\cite{MisraGries}, the error bound of~$N/w$ implies that at most~$N/w$ global decrements can occur over a stream of~$N$ insertions.
+Thus, global decrements occur at most once every~$w$ insertions on average, amortizing the~$\Theta(w)$ cost of each scan to~$O(1)$ per insertion.
+Consequently, a hash-table-based implementation of MG supports constant expected amortized insertion time.
+The first row of \Cref{tab:mg_performance_space_overhead} summarizes the properties of this scan-based approach.
+
+Nevertheless, the worst-case~$\Theta(w)$ insertion cost can be unacceptable for applications with strict latency requirements, such as network routers that must aggregate traffic statistics without delaying packet forwarding~\cite{UnivMon,StingySketch}.
+Avoiding this cost requires overcoming two challenges: (1)~performing global decrements without scanning all counters and (2)~identifying counters eligible for eviction without scanning the hash table.
+These challenges are addressed by the \mbox{following existing techniques}.
 
 \begin{table*}
     \centering
@@ -3000,9 +3011,8 @@ The first row of \Cref{tab:mg_performance_space_overhead} summarizes the propert
 \end{table*}
 
 \textbf{De-amortizing Decrements.}
-In the above implementation, an individual insertion can take~$\Theta(w)$ time to scan and decrement all counters.
-This can be problematic for applications with strict latency requirements, such as network routers that must aggregate traffic statistics without delaying packet forwarding~\cite{UnivMon,StingySketch}.
-To avoid this worst-case cost, many MG implementations perform global decrements lazily using a global frame of reference~$L$, which is incremented whenever a decrement is triggered.
+To avoid scanning and decrementing every counter individually, many MG implementations perform global decrements lazily using a \emph{global frame of reference}~$L$.
+Rather than updating every counter, each global decrement simply increments~$L$ by one.
 Each stored counter value~$v$ then represents an effective count of~$v-L$, while newly admitted keys are assigned~$L+1$, corresponding to an effective count of~1.
 
 \textbf{De-amortizing Evictions.}
@@ -3029,7 +3039,7 @@ It employs \counterencodingabbrv\ to compactly encode the counters, and it expan
 Both techniques are compatible with all MG variants, including those listed in \Cref{tab:mg_performance_space_overhead} \mbox{and others~\cite{UnbiasedSpaceSaving,SpaceSavingBoundedDeletes,HeavyGuardian,HeavyKeeper,WavingSketch}}.
 
 We further observe that the existing de-amortization techniques described above pose two challenges when combined with \counterencodingabbrv.
-First, recall that the global frame of reference enables performing decrements in constant time without immediately updating every individual counter.
+First, recall that the global frame of reference enables performing global decrements in constant time without immediately updating every individual counter.
 As decrements accumulate, stored counter values can become substantially larger than their effective counts, limiting the space savings achievable with \counterencodingabbrv.
 To address this issue, we gradually deflate individual counters by subtracting the global frame of reference from them.
 This keeps the stored counter values close to their effective counts, preserving compact \counterencodingabbrv\ encodings while avoiding linear-time passes over the sketch during individual insertions.
@@ -3039,6 +3049,7 @@ This reduces the space available for storing entries in the hash table, thereby 
 In the context of \sketchmg, this overhead would also overshadow the space savings achieved by \counterencodingabbrv.
 To address this challenge, we introduce a compressed segment tree that identifies eviction candidates using only two additional bits per counter, reducing the overall memory footprint by~2--3$\times$ compared with conventional heap- or linked-list-based designs.
 The segment tree guarantees worst-case insertion time logarithmic in the sketch size, though we show that it preserves~$O(1)$ amortized insertion time because counter updates rarely propagate far up the tree.
+The last row of \Cref{tab:mg_performance_space_overhead} compares the properties of \sketchmg to those of existing MG implementations.
 
 \textbf{Accommodating Skew with \counterencodingabbrv.}
 Recall from \Cref{sec:accommodating_skew} that \counterencodingabbrv\ compresses contiguous counters by packing them into the same cache line along with their extensions.
@@ -3072,17 +3083,23 @@ In contrast, conventional fixed-length counters each use at least~$\log_2 N$ bit
 The rightmost column of \Cref{tab:mg_performance_space_overhead} compares the space consumption of \sketchmg's counters with that of conventional MG implementations.
 
 \textbf{Accommodating Unbounded Data Growth with Expansions.}
-As discussed earlier, inserting a key that is already tracked by MG (i.e., a key that is already present in the hash table) simply increments its counter and does not increase the estimation error.
-MG's estimation error grows through insertions of untracked keys (i.e., keys not currently present in the hash table).
-Each such insertion either triggers a global decrement operation, increasing the estimation error of all tracked keys by one, or occupies a slot in the hash table, increasing the pressure to evict other keys that may be more frequent.
-These observations motivate a different expansion criterion from those used by \sketchcms and \sketchcs.
-Whereas \sketchcms expands based on the total number of insertions and \sketchcs on the stream's~$\ell_2$-norm, \sketchmg should expand based on the number of untracked-key insertions observed so far, denoted by~$M$.
+As discussed earlier, inserting a key that is already tracked by MG simply increments its counter without increasing the estimation error.
+MG's estimation error grows through individual counter decrements triggered by global decrement operations.
+This observation motivates an expansion criterion different from those used by \sketchcms and \sketchcs.
+Whereas \sketchcms expands based on the total number of insertions and \sketchcs on the stream's~$\ell_2$-norm, \sketchmg should expand based on the total number of counter decrements.
 
-Thus, we define a size function~$W(M)$ that prescribes how many counters \sketchmg should contain after~$M$ untracked key insertions.
+However, tracking counter decrements as they occur would delay \sketchmg's expansions until after the decrements have already contributed to the estimation error.
+To mitigate this issue, we observe that each \emph{evicting counter decrement}, i.e., a counter decrement that reduces a key's count to zero, can be anticipated.
+This is because each evicting counter decrement corresponds to an earlier admission of the associated key into the sketch.
+We therefore account for evicting counter decrements in advance by counting admissions of keys, while counting non-evicting counter decrements as they occur.
+We denote the total number of admissions and non-evicting counter decrements by~$M$.
+Since each admission and non-evicting counter decrement can be charged to a distinct stream insertion, $M$ is at most the stream length~$N$, with equality possible when all inserted keys are distinct.
+
+We define a size function~$W(M)$ that prescribes how many counters \sketchmg should contain after~$M$ admissions and non-evicting counter decrements.
 As in Sections~\ref{sec:accommodating_unknown_stream_lengths} and \ref{sec:cs}, we expose a wide range of accuracy--memory trade-offs by defining this size function as a sublinear power of the form~$W(M)=M^\alpha/\epsilon$.
 The parameter~$\epsilon$ determines \sketchmg's initial size of~$1/\epsilon$ counters.
 When~$\epsilon>1$, \sketchmg is initialized with one counter but delays its first expansion, trading estimation accuracy for a smaller memory footprint.
-The parameter~$\alpha$ controls how quickly subsequent expansions occur as the number of untracked-key insertions~$M$ increases.
+The parameter~$\alpha$ controls how quickly subsequent expansions occur as~$M$ increases.
 For~$0<\alpha<1$, \sketchmg doubles in size whenever~$M$ more than doubles.
 For~$\alpha=1$, it doubles in size whenever~$M$ doubles.
 Setting~$\alpha=0$ prevents expansion, causing \sketchmg to degenerate into a conventional fixed-size MG.
@@ -3095,7 +3112,7 @@ When using sublinear power size functions (with~$0 \leq \alpha < 1$), \sketchmg 
 The following theorem, proven in Appendix~\ref{apx:upper_bounds_mg_normal}, formalizes this result:
 \begin{restatable}{theorem}{thmmgnormal}
     \label{thm:mg-normal} 
-    When using a sublinear power size function of the form~$W(M)=M^\alpha/\epsilon$ on a stream where a total of~$M$ insertions of untracked keys occur, \sketchmg provides an estimation error~$E(M)$ satisfying
+    When using a sublinear power size function of the form~$W(M)=M^\alpha/\epsilon$ on a stream where a total of~$M$ admissions and non-evicting counter decrements occur, \sketchmg provides an estimation error~$E(M)$ satisfying
     $$
     E(M) \leq  
     \begin{cases}
@@ -3107,18 +3124,18 @@ The following theorem, proven in Appendix~\ref{apx:upper_bounds_mg_normal}, form
     $$
 \end{restatable}
 \noindent
-The first case of the theorem shows that when~$\alpha=0$, \sketchmg's error bounds match those of a conventional fixed-size MG.
+The first case of the theorem shows that when~$\alpha=0$, \sketchmg's error bounds match those of a conventional fixed-size MG, as~$M$ can equal~$N$ in the worst case.
 The second case shows that when~$0<\alpha<1$, \sketchmg achieves error bounds within a small constant factor (quantified shortly) of those of a clairvoyantly sized MG, despite not knowing in advance how large~$M$ will grow.
 Here, a clairvoyantly sized MG refers to one allocated upfront with~$W(M)$ counters, assuming prior knowledge of~$M$.
-When~$\alpha=1$ and~$\epsilon\leq1$ (the third case), \sketchmg trivially achieves zero additive error because it expands with every untracked-key insertion, effectively becoming a conventional hash table that stores every key and tracks its exact count.
-In contrast, when~$\alpha=1$ and~$\epsilon>1$, \sketchmg expands proportionally to the number of untracked-key insertions but maintains too few entries to track every key.
+When~$\alpha=1$ and~$\epsilon\leq1$ (the third case), \sketchmg trivially achieves zero additive error because it expands with every admission of a key, effectively becoming a conventional hash table that stores every key and tracks its exact count.
+In contrast, when~$\alpha=1$ and~$\epsilon>1$, \sketchmg expands proportionally to the number of admissions and non-evicting counter decrements but maintains too few counters to track every key.
 One might expect this case to yield constant additive error by extrapolating the second case of \Cref{thm:mg-normal} to~$\alpha=1$.
 However, as with \sketchcms and \sketchcs, the additive error instead grows logarithmically, as shown by the fourth case of the theorem.
 The memory footprint lower bound in \Cref{thm:sketch_expandability_special_case} establishes that this trade-off is inherent to dynamically expandable~sketches.
 
 Similarly to \sketchcms and \sketchcs, \sketchmg defaults to~$\alpha=0.5$ in its size function to balance estimation error and memory footprint, making both scale as~$O(\sqrt{M})$.
-To tune the parameters~$\alpha$ and~$\epsilon$ for a particular workload at initialization time, practitioners can substitute the stream length~$N$ for~$M$ in \Cref{thm:mg-normal} to upper bound the estimation error, since~$N \geq M$.
-At runtime, \sketchmg tracks the actual number of untracked-key insertions~$M$ and can use it to report a \mbox{tighter error bound}.
+Since~$M$ is bounded above by the stream length~$N$, practitioners can control the worst-case scaling of \sketchmg's error and memory by substituting~$N$ for~$M$ in \Cref{thm:mg-normal} and tuning the parameters~$\alpha$ and~$\epsilon$.
+At runtime, \sketchmg tracks the actual number of admissions and non-evicting counter decrements~$M$, allowing it to report a tighter bound on the accumulated estimation error.
 
 \textbf{Fine-Grained Expansions.}
 Unlike \sketchcms and \sketchcs, which expand by doubling the size of their arrays, \sketchmg can expand by factors smaller than~2.
@@ -3148,11 +3165,11 @@ Moreover, when~$\alpha<1$, the constant factor hidden by the asymptotics of \Cre
 Under the default setting of~$\alpha=0.5$, these two expressions evaluate to~2 and~3, respectively, corresponding to a~$1.5\times$ improvement in the error bound.
 
 \textbf{Tail Guarantees.}
-As with CMS and CS, MG also provides a tail guarantee: any key's estimation error is at most~$\min_{1 \leq i \leq w} \frac{M^{\mathrm{res}(i)}}{w-i+1}$, where~$M^{\mathrm{res}(i)}$ is the total number of insertions for untracked keys that are not among the~$i$ most frequent.
+As with CMS and CS, MG also provides a tail guarantee: any key's estimation error is at most~$\min_{1 \leq i \leq w} \frac{M^{\mathrm{res}(i)}}{w-i+1}$, where~$M^{\mathrm{res}(i)}$ is the total number of admissions and non-evicting counter decrements corresponding to keys not among the~$i$ most frequent.
 The following theorem, proven in Appendix~\ref{apx:upper_bounds_mg_res}, shows that \sketchmg improves upon this tail bound with the same sublinear scaling as in \Cref{thm:mg-normal}:
 \begin{restatable}{theorem}{thmmgres}
     \label{thm:mg-res}
-    When using a sublinear power size function of the form~$W(M)=M^\alpha/\epsilon$ on a stream where a total of~$M$ insertions of untracked keys occur, \sketchmg provides an estimation error~$E(M)$ satisfying
+    When using a sublinear power size function of the form~$W(M)=M^\alpha/\epsilon$ on a stream where a total of~$M$ admissions and non-evicting counter decrements occur, \sketchmg provides an estimation error~$E(M)$ satisfying
     $$
     E(M) \leq  
     \begin{cases}
@@ -3162,14 +3179,14 @@ The following theorem, proven in Appendix~\ref{apx:upper_bounds_mg_res}, shows t
         0  & \text{$\alpha=1$ \textup{and} $\epsilon \leq 1$,}
     \end{cases}
     $$
-    where~$M^{\textup{res}(k)}$ is the total number of untracked-key insertions of all keys not among the top~$k$.
+    where~$M^{\textup{res}(k)}$ is the total number of admissions and non-evicting counter decrements corresponding to keys not among the top~$k$.
 \end{restatable}
 The additive terms on the right side of the above error bounds arise because \sketchmg may initially have fewer than~$k$ counters.
 This forces \sketchmg to ``wait out'' the stream until the hash table's capacity reaches~$k$, introducing the additive error.
 These terms vanish if \sketchmg is allocated~$k$ counters from the start.
 
 \textbf{Incremental Counter Deflation.}
-Similarly to classic MG designs, \sketchmg de-amortizes global decrement operations using a global frame of reference~$L$, allowing each decrement to be performed in constant time.
+Similarly to classic MG designs, \sketchmg de-amortizes global decrement operations using a global frame of reference~$L$, allowing each global decrement to be performed in constant time.
 A consequence of this approach is that the stored value of each counter can significantly exceed its effective count.
 This limits the space savings achievable by encoding the counters using \counterencodingabbrv.
 A naive way of addressing this problem would be to periodically scan the entire structure and subtract~$L$ from every counter.
@@ -3589,7 +3606,7 @@ select~\cite{Poppy,FlorianRankandSelect,CompactPATTrees,RankandSelectDict,Succin
 We now empirically evaluate \sketch.
 \Cref{sec:evaluation_cms} examines the benefits of \sketch's techniques in detail through benchmarks of \sketchcms, while Sections~\ref{sec:evaluation_cs} and \ref{sec:evaluation_mg} demonstrate the framework's generality through benchmarks of \sketchcs and \sketchmg.
 \Cref{sec:evaluation_join} further evaluates \sketch\ in the end-to-end application of join size estimation.
-Across these sections, Experiments~\hyperlink{experiment:accuracy}{1}, \hyperlink{experiment:skew}{2}, \hyperlink{experiment:vale_tuning}{3}, \hyperlink{experiment:accuracy_unbiased}{6}, and \hyperlink{experiment:accuracy_mg}{8} focus on accommodating skew, while Experiments~\hyperlink{experiment:expansion}{4}, \hyperlink{experiment:contraction}{5}, \hyperlink{experiment:l2_size_function}{7}, and \hyperlink{experiment:untracked_key_insertions}{9} deal with \mbox{unbounded data growth}.
+Across these sections, Experiments~\hyperlink{experiment:accuracy}{1}, \hyperlink{experiment:skew}{2}, \hyperlink{experiment:vale_tuning}{3}, \hyperlink{experiment:accuracy_unbiased}{6}, and \hyperlink{experiment:accuracy_mg}{8} focus on accommodating skew, while Experiments~\hyperlink{experiment:expansion}{4}, \hyperlink{experiment:contraction}{5}, \hyperlink{experiment:l2_size_function}{7}, and \hyperlink{experiment:expansion_with_decrements}{9} deal with \mbox{unbounded data growth}.
 
 \textbf{Platform.}
 We run the experiments on a Fedora~44 machine with an Intel Xeon w7-2495X processor (4.8~GHz) with~24 cores.
@@ -4022,7 +4039,7 @@ We now turn our focus to evaluating \sketchmg under both skew and stream growth.
 \fi
 
 \textbf{Baselines.}
-We evaluate two versions of \sketchmg: a scan-based version that scans the hash table to perform decrements and evictions, and a de-amortized version that avoids these scans using global and local frames of reference and a compact segment tree, as described in \Cref{sec:mg_sublime}.
+We evaluate two versions of \sketchmg: a scan-based version that scans the hash table to perform global decrements and evictions, and a de-amortized version that avoids these scans using global and local frames of reference and a compact segment tree, as described in \Cref{sec:mg_sublime}.
 Both versions tune \counterencodingabbrv\ on the fly based on the memory budget and workload.
 We compare against a traditional scan-based MG, an MG variant that uses a min-heap to de-amortize the scans, and Space-Saving~\cite{SpaceSaving}, another MG variant that uses a doubly linked list for de-amortization.
 We also include Waving sketch~\cite{WavingSketch}, the most accurate hybrid method in the literature that incorporates MG as a component.
@@ -4093,12 +4110,12 @@ The de-amortized version of \sketchmg addresses this limitation, reducing maximu
 Moreover, as the memory budget increases, its average insertion latency is only~50\% higher than those of the scan-based baselines, and is~35\% and~10\% lower than those of the de-amortized MG implementation based on min-heaps and doubly linked lists, respectively.
 These results demonstrate that \sketchmg's compact segment tree preserves amortized constant insertion time while reducing the worst-case insertion complexity from linear to logarithmic in the sketch size.
 
-\hypertarget{experiment:untracked_key_insertions}{\textbf{Experiment 9: Accuracy and Memory under Data Growth.}}
+\hypertarget{experiment:expansion_with_decrements}{\textbf{Experiment 9: Accuracy and Memory under Data Growth.}}
 We now evaluate how \sketchmg accommodates stream growth.
 We focus on the de-amortized version of \sketchmg, as its accuracy is similar to that of the scan-based version.
-We benchmark its default configuration, which uses a sublinear power size function of the form~$W(M)=M^\alpha/\epsilon$ with~$\alpha=0.5$ and~$\epsilon=1$, where~$M$ denotes the number of untracked-key insertions.
+We benchmark its default configuration, which uses a sublinear power size function of the form~$W(M)=M^\alpha/\epsilon$ with~$\alpha=0.5$ and~$\epsilon=1$, where~$M$ denotes the total number of admissions of keys into the sketch and non-evicting decrements of individual counters.
 We also include variants \mbox{with~$\alpha=0.75$} and~$1.0$.
-To demonstrate the benefits of expanding based on the number of untracked-key insertions~$M$ rather than the stream length~$N$, we compare against a variant of \sketchmg that instead uses~$W(N)=N^\alpha/\epsilon$ as its size function.
+To demonstrate the benefits of expanding based on~$M$ rather than the stream length~$N$, we compare against a variant of \sketchmg that instead uses~$W(N)=N^\alpha/\epsilon$ as its size function.
 We include MG as a baseline but omit the other baselines from the previous experiment, as MG achieved the highest accuracy among them.
 As in Experiment~\hyperlink{experiment:expansion}{4} of \Cref{sec:evaluation_cms}, we initialize each sketch with a memory footprint of~32KB and feed it the \textsc{WebDocs} dataset.
 \Cref{fig:accuracy_mg_bench} reports the estimation error and memory footprint of each sketch as the stream grows.
@@ -4108,7 +4125,7 @@ The number next to each \sketchmg line indicates the value of~$\alpha$ used in i
 \begin{figure}
     \centering
     \includegraphics[width=0.6\columnwidth]{expansion_mg.pdf}
-    \caption{By expanding based on the number of untracked-key insertions rather than the stream length, \sketchmg controls both the estimation error and the memory footprint as the stream grows.}
+    \caption{By expanding based on the total number of admissions and non-evciting counter decrements rather than the stream length, \sketchmg controls both the estimation error and the memory footprint as the stream grows.}
     \label{fig:expansion_mg_bench}
 \end{figure}
 \fi
@@ -4117,7 +4134,7 @@ The number next to each \sketchmg line indicates the value of~$\alpha$ used in i
 \begin{figure}
     \centering
     \includegraphics[width=\columnwidth]{expansion_mg.pdf}
-    \caption{By expanding based on the number of untracked-key insertions rather than the stream length, \sketchmg controls both the estimation error and the memory footprint as the stream grows.}
+    \caption{By expanding based on the total number of admissions and non-evciting counter decrements rather than the stream length, \sketchmg controls both the estimation error and the memory footprint as the stream grows.}
     \label{fig:expansion_mg_bench}
 \end{figure}
 \fi
@@ -4127,7 +4144,7 @@ all \sketchmg variants achieve lower estimation errors than MG by as much as sev
 Moreover, they achieve this while maintaining a small memory footprint, as shown in the right subfigure.
 The figure also shows that increasing the exponent~$\alpha$ of the size function reduces the estimation error in exchange for a larger memory footprint, since it causes the sketch to expand more rapidly.
 
-Expanding based on the total number of insertions~$N$ rather than the number of untracked-key insertions~$M$ also improves accuracy, but may incur a larger memory footprint than necessary to achieve a target estimation error.
+Expanding based on the total number of insertions~$N$ rather than~$M$ also improves accuracy, but may incur a larger memory footprint than necessary to achieve a target estimation error.
 The reason is that the former policy disregards how insertions of already-tracked keys do not increase the estimation error.
 This trade-off is illustrated for~$\alpha=1.0$ in \Cref{fig:expansion_mg_bench}.
 When expanding based on~$N$ with~$\alpha=1.0$, \sketchmg's estimation error decreases toward zero as the stream grows.
@@ -4498,8 +4515,8 @@ than the total key count~$N$. We include these derivations for~completeness:
 \end{proof}
 
 \subsection{Upper Bounds for \sketchmg}\label{apx:upper_bounds_mg_normal}
-We simplify our exposition of \sketchmg by assuming, w.l.o.g., that every insertion is of an untracked key.
-That is, we assume that the number of untracked-key insertions~$M$ equals the total number of insertions~$N$, which corresponds to the sketch's worst-case error.
+We simplify our exposition of \sketchmg by assuming, w.l.o.g., that every insertion can be charged to either an admission of an untracked key into the sketch or a non-evicting decrement.
+That is, we assume that the total number of admissions and non-evciting decrement~$M$ equals the total number of insertions~$N$, which corresponds to the sketch's worst-case error.
 Thus, the expressions we derive also hold with~$N$ replaced by~$M$.
 
 We also restrict our focus to implementations of \sketchmg that implement fine-grained expansions, as described in \Cref{sec:mg}.
@@ -4589,7 +4606,7 @@ This derivation requires the following technical claim in addition to~\Cref{lemm
 We are now ready to prove \Cref{thm:mg-normal}:
 \thmmgnormal*
 \begin{proof} ‌
-    As described at the start of this section, we may assume, w.l.o.g., that every insertion is of an untracked key and thus treat~$M$ and $N$ interchangeably. \\
+    As described at the start of this section, w.l.o.g., we may treat~$M$ and $N$ interchangeably. \\
     \textbf{The Linear Case of~$W(N)=N/\epsilon$.} 
     In this case, we use the fact that in \sketchmg we expand the hash table by one slot as opposed to doubling its capacity.
     In other words, we consider divisions into epochs for which~$W(N_{i+1})=W(N_i)+1$ and hence $N_{i+1}=N_i+\epsilon$.
@@ -4656,7 +4673,7 @@ Another derivation with tighter constant factors is as follows:
 
 \subsection{Tail Bounds for \sketchmg}\label{apx:upper_bounds_mg_res}
 We prove the tail error guarantees for \sketchmg by following the same general argument of \Cref{apx:upper_bounds_mg_normal}.
-As before, we consider the worst-case scenario in which every insertion into \sketchmg is of an untracked key, making~$N^{\text{res(k)}}$ and~$M^{\text{res(k)}}$ interchangeable.
+As before, we consider the worst-case scenario in which every insertion into \sketchmg can be charged to either an admission of an untracked key into the sketch or a non-evicting decrement, making~$N^{\text{res(k)}}$ and~$M^{\text{res(k)}}$ interchangeable.
 
 \begin{lemma}\label{lemma:mg-res-w}
     Letting~$E(N)$ denote the error of \sketchmg when using a size
